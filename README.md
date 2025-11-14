@@ -69,30 +69,43 @@ classDiagram
         -String userID
         -String name
         -String password
-        +login(): bool
+        -boolean isLoggedIn
+        +login(password: String): bool
         +logout(): void
         +changePassword(newPassword: String): void
+        +getUserID(): String
+        +getName(): String
+        +isLoggedIn(): bool
     }
 
     class Student {
         -int yearOfStudy
         -String major
-        +viewEligibleInternships(): List<InternshipOpportunity>
+        +viewEligibleInternships(): List~InternshipOpportunity~
         +applyForInternship(opportunityID: String): bool
-        +viewApplications(): List<Application>
+        +viewApplications(): List~Application~
         +acceptInternship(applicationID: String): void
         +requestWithdrawal(applicationID: String): void
+        +getYearOfStudy(): int
+        +getMajor(): String
     }
 
     class CompanyRepresentative {
         -String companyName
         -String department
         -String position
-        +createInternship(opportunity: InternshipOpportunity): bool
-        +viewApplications(): List<Application>
+        -boolean isApproved
+        +createInternship(title: String, description: String, level: String, preferredMajor: String, openingDate: Date, closingDate: Date, maxSlots: int): bool
+        +viewApplications(): List~Application~
+        +viewApplications(opportunityID: String): List~Application~
         +approveApplication(applicationID: String): void
         +rejectApplication(applicationID: String): void
         +toggleVisibility(opportunityID: String, visible: bool): void
+        +getCompanyName(): String
+        +getDepartment(): String
+        +getPosition(): String
+        +isApproved(): bool
+        +setApproved(approved: bool): void
     }
 
     class CareerCenterStaff {
@@ -102,32 +115,113 @@ classDiagram
         +rejectInternship(opportunityID: String): void
         +approveWithdrawal(applicationID: String): void
         +rejectWithdrawal(applicationID: String): void
-        +generateReports(filters: Map): Report
+        +generateReports(filters: Map~String,String~): Report
+        +getStaffDepartment(): String
     }
 
     class InternshipOpportunity {
         -String opportunityID
         -String title
         -String description
-        -String level  // Basic, Intermediate, Advanced
+        -String level
         -String preferredMajor
         -Date openingDate
         -Date closingDate
-        -String status  // Pending, Approved, Rejected, Filled
+        -String status
         -int maxSlots
         -boolean visibility
         -CompanyRepresentative createdBy
         +isOpen(): bool
         +isVisible(): bool
+        +getOpportunityID(): String
+        +getTitle(): String
+        +getDescription(): String
+        +getLevel(): String
+        +getPreferredMajor(): String
+        +getOpeningDate(): Date
+        +getClosingDate(): Date
+        +getStatus(): String
+        +setStatus(status: String): void
+        +getMaxSlots(): int
+        +isVisibility(): bool
+        +setVisibility(visibility: bool): void
+        +getCreatedBy(): CompanyRepresentative
     }
 
     class Application {
         -String applicationID
         -Student applicant
         -InternshipOpportunity opportunity
-        -String status  // Pending, Successful, Unsuccessful
+        -String status
         -Date appliedDate
         +updateStatus(newStatus: String): void
+        +getApplicationID(): String
+        +getApplicant(): Student
+        +getOpportunity(): InternshipOpportunity
+        +getStatus(): String
+        +getAppliedDate(): Date
+    }
+
+    class Database {
+        -static List~User~ users
+        -static List~InternshipOpportunity~ internships
+        -static List~Application~ applications
+        -static int applicationCounter
+        -static int internshipCounter
+        +loadUsersFromCSV(): void
+        +loadStudents(): void
+        +loadStaff(): void
+        +loadCompanyRepresentatives(): void
+        +saveData(): void
+        +saveCompanyRepresentatives(): void
+        +getUser(userID: String): User
+        +getUsers(): List~User~
+        +addUser(user: User): void
+        +getInternship(opportunityID: String): InternshipOpportunity
+        +getInternships(): List~InternshipOpportunity~
+        +addInternship(opportunity: InternshipOpportunity): void
+        +getApplication(applicationID: String): Application
+        +getApplications(): List~Application~
+        +addApplication(application: Application): void
+        +generateApplicationID(): String
+        +generateInternshipID(): String
+    }
+
+    class Report {
+        -List~InternshipOpportunity~ opportunities
+        -Map~String,String~ filters
+        +displayReport(): void
+        +getOpportunities(): List~InternshipOpportunity~
+        +getFilters(): Map~String,String~
+    }
+
+    class InternshipPlacementSystem {
+        -static Scanner scanner
+        -static User currentUser
+        +main(args: String[]): void
+        -showMainMenu(): void
+        -login(): void
+        -showUserMenu(): void
+        -showStudentMenu(): void
+        -showCompanyRepMenu(): void
+        -showCareerStaffMenu(): void
+        -logout(): void
+        -viewEligibleInternships(student: Student): void
+        -applyForInternship(student: Student): void
+        -viewMyApplications(student: Student): void
+        -acceptInternship(student: Student): void
+        -requestWithdrawal(student: Student): void
+        -createInternship(rep: CompanyRepresentative): void
+        -viewApplications(rep: CompanyRepresentative): void
+        -approveApplication(rep: CompanyRepresentative): void
+        -rejectApplication(rep: CompanyRepresentative): void
+        -toggleVisibility(rep: CompanyRepresentative): void
+        -approveCompanyRep(staff: CareerCenterStaff): void
+        -approveInternship(staff: CareerCenterStaff): void
+        -rejectInternship(staff: CareerCenterStaff): void
+        -approveWithdrawal(staff: CareerCenterStaff): void
+        -rejectWithdrawal(staff: CareerCenterStaff): void
+        -generateReports(staff: CareerCenterStaff): void
     }
 
     User <|-- Student
@@ -139,6 +233,25 @@ classDiagram
     InternshipOpportunity "1" --> "*" Application : has >
     Application "*" --> "1" Student
     Application "*" --> "1" InternshipOpportunity
+
+    Database ..> User : loads/saves
+    Database ..> Student : creates
+    Database ..> CompanyRepresentative : creates
+    Database ..> CareerCenterStaff : creates
+    Database ..> InternshipOpportunity : manages
+    Database ..> Application : manages
+
+    InternshipPlacementSystem ..> Database : uses
+    InternshipPlacementSystem ..> User : manages
+    InternshipPlacementSystem ..> Student : interacts
+    InternshipPlacementSystem ..> CompanyRepresentative : interacts
+    InternshipPlacementSystem ..> CareerCenterStaff : interacts
+    InternshipPlacementSystem ..> InternshipOpportunity : displays
+    InternshipPlacementSystem ..> Application : displays
+    InternshipPlacementSystem ..> Report : generates
+
+    CareerCenterStaff ..> Report : creates
+    Report ..> InternshipOpportunity : contains
 
 ```
 
@@ -153,7 +266,7 @@ sequenceDiagram
 
     participant system
 
-    participant internshipDB
+    participant Database
 
     participant applicationDB
 
@@ -167,33 +280,33 @@ sequenceDiagram
 
     student->>system: viewEligibleInternships()
 
-    system->>internshipDB: getVisibleOpenInternships(major, year)
+    system->>Database: getInternships()
 
-    internshipDB-->>system: List<InternshipOpportunity>
+    Database-->>system: List~InternshipOpportunity~
 
-    system-->>student: showList()
+    system->>student: showList()
 
   
 
     student->>system: applyForInternship(opportunityID)
 
-    system->>internshipDB: getInternship(opportunityID)
+    system->>Database: getInternship(opportunityID)
 
-    internshipDB-->>system: InternshipOpportunity
+    Database-->>system: InternshipOpportunity
 
   
 
-    system->>internshipDB: isOpen()
+    system->>InternshipOpportunity: isOpen()
 
-    system->>internshipDB: isVisible()
+    system->>InternshipOpportunity: isVisible()
 
   
 
     alt Eligible and Visible
 
-        system->>applicationDB: createApplication(studentID, opportunityID, "Pending")
+        system->>Database: addApplication(Application)
 
-        applicationDB-->>system: applicationCreated
+        Database-->>system: applicationCreated
 
         system-->>student: applicationSuccess()
 
@@ -209,23 +322,24 @@ sequenceDiagram
 sequenceDiagram
     participant companyRep
     participant system
-    participant internshipDB
+    participant Database
     participant careerStaff
 
     companyRep->>system: login()
     system-->>companyRep: loginSuccess()
 
     companyRep->>system: createInternship(opportunityDetails)
-    system->>internshipDB: save(opportunity, "Pending")
-    internshipDB-->>system: opportunitySaved
+    system->>Database: addInternship(InternshipOpportunity)
+    Database-->>system: opportunitySaved
     system-->>companyRep: notify("Submitted for approval")
 
     careerStaff->>system: login()
     system-->>careerStaff: loginSuccess()
 
     careerStaff->>system: approveInternship(opportunityID)
-    system->>internshipDB: updateStatus(opportunityID, "Approved")
-    internshipDB-->>system: statusUpdated
+    system->>Database: getInternship(opportunityID)
+    Database-->>system: InternshipOpportunity
+    system->>InternshipOpportunity: setStatus("Approved")
     system-->>companyRep: notify("Internship Approved")
 
 ```
@@ -235,21 +349,27 @@ sequenceDiagram
 sequenceDiagram
     participant student
     participant system
-    participant applicationDB
-    participant internshipDB
+    participant Database
 
     student->>system: acceptInternship(applicationID)
-    system->>applicationDB: getApplication(applicationID)
-    applicationDB-->>system: application
+    system->>Database: getApplication(applicationID)
+    Database-->>system: application
 
-    system->>applicationDB: updateStatus(applicationID, "Confirmed")
-    applicationDB-->>system: statusUpdated
+    system->>Application: updateStatus("Confirmed")
+    system->>Database: getApplications()
+    Database-->>system: allApplications
+    loop withdraw other applications
+        system->>Application: updateStatus("Withdrawn")
+    end
 
-    system->>applicationDB: withdrawOtherApplications(studentID)
-    applicationDB-->>system: otherApplicationsWithdrawn
-
-    system->>internshipDB: checkAndUpdateFilledStatus(opportunityID)
-    internshipDB-->>system: filledStatusUpdated
+    system->>Database: getApplications()
+    Database-->>system: opportunityApplications
+    loop count confirmed applications
+        system->>Application: getStatus()
+    end
+    alt slots filled
+        system->>InternshipOpportunity: setStatus("Filled")
+    end
     system-->>student: placementConfirmed
 
 ```
@@ -264,11 +384,13 @@ sequenceDiagram
 
     participant careerStaff
 
-    participant applicationDB
+    participant Database
 
   
 
     student->>system: requestWithdrawal(applicationID)
+
+    system->>Application: updateStatus("Withdrawal Requested")
 
     system->>careerStaff: notifyWithdrawalRequest(applicationID)
 
@@ -276,19 +398,15 @@ sequenceDiagram
 
     careerStaff->>system: reviewWithdrawalRequest(applicationID)
 
-    system->>applicationDB: getApplication(applicationID)
+    system->>Database: getApplication(applicationID)
 
-    applicationDB-->>system: application
+    Database-->>system: application
 
   
 
     careerStaff->>system: approveWithdrawal(applicationID)
 
-    system->>applicationDB: updateStatus(applicationID, "Withdrawn")
-
-    applicationDB-->>system: statusUpdated
-
-  
+    system->>Application: updateStatus("Withdrawn")
 
     system-->>student: withdrawalApproved()
 ```
@@ -298,14 +416,21 @@ sequenceDiagram
 sequenceDiagram
     participant careerStaff
     participant system
-    participant internshipDB
+    participant Database
 
     careerStaff->>system: login()
     system-->>careerStaff: loginSuccess()
 
     careerStaff->>system: generateReports(filters)
-    system->>internshipDB: queryWithFilters(filters)
-    internshipDB-->>careerStaff: filteredOpportunities
+    system->>Database: getInternships()
+    Database-->>system: allOpportunities
+    loop filter opportunities
+        system->>InternshipOpportunity: getStatus()
+        system->>InternshipOpportunity: getLevel()
+        system->>InternshipOpportunity: getPreferredMajor()
+    end
+    system->>Report: Report(filteredOpportunities, filters)
+    system->>Report: displayReport()
     system-->>careerStaff: displayReport
 
 ```
@@ -315,18 +440,21 @@ sequenceDiagram
 sequenceDiagram
     participant companyRep
     participant system
-    participant applicationDB
+    participant Database
     participant student
 
     companyRep->>system: viewApplications(opportunityID)
-    system->>applicationDB: getApplicationsByOpportunity(opportunityID)
-    applicationDB-->>system: applications
+    system->>Database: getApplications()
+    Database-->>system: allApplications
+    loop filter by opportunity
+        system->>Application: getOpportunity()
+    end
     system-->>companyRep: displayApplications
 
     companyRep->>system: approveApplication(applicationID)
-    system->>applicationDB: updateStatus(applicationID, "Successful")
-    applicationDB-->>system: statusUpdated
-
+    system->>Database: getApplication(applicationID)
+    Database-->>system: application
+    system->>Application: updateStatus("Successful")
     system-->>student: notify("Application Successful")
 
 ```
@@ -337,14 +465,22 @@ sequenceDiagram
     participant companyRep
     participant system
     participant careerStaff
+    participant Database
 
     companyRep->>system: registerCompanyRep(details)
+    system->>Database: addUser(CompanyRepresentative)
+    Database-->>system: userAdded
     system-->>companyRep: notify("Pending Approval")
 
     careerStaff->>system: login()
     system-->>careerStaff: loginSuccess()
 
     careerStaff->>system: approveCompanyRep(repID)
+    system->>Database: getUser(repID)
+    Database-->>system: companyRep
+    system->>CompanyRepresentative: setApproved(true)
+    system->>Database: saveData()
+    Database-->>system: dataSaved
     system-->>companyRep: notify("Account Approved")
 
 ```
