@@ -1,6 +1,66 @@
 # sc2002-oop-assignment
 An Internship Placement System, designed with Object-Oriented Principles
 
+## Features
+
+- **User Management**: Three user types (Students, Company Representatives, Career Center Staff)
+- **Internship Management**: Create, approve, and manage internship opportunities
+- **Application Process**: Students can apply for internships, track applications, and accept offers
+- **Approval Workflows**: Career center staff approve company reps and internships
+- **Reporting**: Generate filtered reports on internship opportunities
+- **Data Persistence**: CSV-based storage for user data
+
+## System Architecture
+
+### Classes
+- `User`: Base class for all users
+- `Student`: Extends User, handles student operations
+- `CompanyRepresentative`: Extends User, manages company internships
+- `CareerCenterStaff`: Extends User, admin functions
+- `InternshipOpportunity`: Represents internship postings
+- `Application`: Manages student applications
+- `Database`: Handles data persistence and CSV operations
+- `Report`: Generates filtered reports
+- `InternshipPlacementSystem`: Main CLI application
+
+### Data Storage
+- Users are loaded from CSV files:
+  - `sample_student_list.csv`
+  - `sample_staff_list.csv`
+  - `sample_company_representative_list.csv`
+- Internships and applications are stored in memory during runtime
+
+## Usage
+
+### Compile and Run
+```bash
+javac *.java
+java InternshipPlacementSystem
+```
+
+### Default Login Credentials
+All users have default password: `password`
+
+#### Students
+- U2310001A (Tan Wei Ling, Computer Science, Year 2)
+- U2310002B (Ng Jia Hao, Data Science & AI, Year 3)
+- U2310003C (Lim Yi Xuan, Computer Engineering, Year 4)
+- U2310004D (Chong Zhi Hao, Information Engineering & Media, Year 1)
+- U2310005E (Wong Shu Hui, Computer Science, Year 3)
+
+#### Career Center Staff
+- sng001 (Dr. Sng Hui Lin)
+- tan002 (Mr. Tan Boon Kiat)
+- lee003 (Ms. Lee Mei Ling)
+
+## Workflow
+
+1. **Company Representatives** must be approved by Career Center Staff before creating internships
+2. **Internships** start as "Pending" and must be approved by Career Center Staff
+3. **Students** can only apply to approved, visible internships matching their major
+4. **Applications** go through approval/rejection workflow
+5. **Students** can accept successful offers and request withdrawals
+
 # UML Class Diagram
 
 ```mermaid
@@ -89,59 +149,59 @@ classDiagram
 ```mermaid
 sequenceDiagram
 
-    participant student
+    participant student
 
-    participant system
+    participant system
 
-    participant internshipDB
+    participant internshipDB
 
-    participant applicationDB
-
-  
-
-    student->>system: login(userID, password)
-
-    system-->>student: loginSuccess()
+    participant applicationDB
 
   
 
-    student->>system: viewEligibleInternships()
+    student->>system: login(userID, password)
 
-    system->>internshipDB: getVisibleOpenInternships(major, year)
-
-    internshipDB-->>system: List<InternshipOpportunity>
-
-    system-->>student: showList()
+    system-->>student: loginSuccess()
 
   
 
-    student->>system: applyForInternship(opportunityID)
+    student->>system: viewEligibleInternships()
 
-    system->>internshipDB: getInternship(opportunityID)
+    system->>internshipDB: getVisibleOpenInternships(major, year)
 
-    internshipDB-->>system: InternshipOpportunity
+    internshipDB-->>system: List<InternshipOpportunity>
 
-  
-
-    system->>internshipDB: isOpen()
-
-    system->>internshipDB: isVisible()
+    system-->>student: showList()
 
   
 
-    alt Eligible and Visible
+    student->>system: applyForInternship(opportunityID)
 
-        system->>applicationDB: createApplication(studentID, opportunityID, "Pending")
+    system->>internshipDB: getInternship(opportunityID)
 
-        applicationDB-->>system: applicationCreated
+    internshipDB-->>system: InternshipOpportunity
 
-        system-->>student: applicationSuccess()
+  
 
-    else Not eligible
+    system->>internshipDB: isOpen()
 
-        system-->>student: showError("Not eligible")
+    system->>internshipDB: isVisible()
 
-    end
+  
+
+    alt Eligible and Visible
+
+        system->>applicationDB: createApplication(studentID, opportunityID, "Pending")
+
+        applicationDB-->>system: applicationCreated
+
+        system-->>student: applicationSuccess()
+
+    else Not eligible
+
+        system-->>student: showError("Not eligible")
+
+    end
 ```
 
 ## Create Internship
@@ -198,39 +258,39 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
 
-    participant student
+    participant student
 
-    participant system
+    participant system
 
-    participant careerStaff
+    participant careerStaff
 
-    participant applicationDB
-
-  
-
-    student->>system: requestWithdrawal(applicationID)
-
-    system->>careerStaff: notifyWithdrawalRequest(applicationID)
+    participant applicationDB
 
   
 
-    careerStaff->>system: reviewWithdrawalRequest(applicationID)
+    student->>system: requestWithdrawal(applicationID)
 
-    system->>applicationDB: getApplication(applicationID)
-
-    applicationDB-->>system: application
+    system->>careerStaff: notifyWithdrawalRequest(applicationID)
 
   
 
-    careerStaff->>system: approveWithdrawal(applicationID)
+    careerStaff->>system: reviewWithdrawalRequest(applicationID)
 
-    system->>applicationDB: updateStatus(applicationID, "Withdrawn")
+    system->>applicationDB: getApplication(applicationID)
 
-    applicationDB-->>system: statusUpdated
+    applicationDB-->>system: application
 
   
 
-    system-->>student: withdrawalApproved()
+    careerStaff->>system: approveWithdrawal(applicationID)
+
+    system->>applicationDB: updateStatus(applicationID, "Withdrawn")
+
+    applicationDB-->>system: statusUpdated
+
+  
+
+    system-->>student: withdrawalApproved()
 ```
 
 ## Generate Report
@@ -245,7 +305,7 @@ sequenceDiagram
 
     careerStaff->>system: generateReports(filters)
     system->>internshipDB: queryWithFilters(filters)
-    internshipDB-->>system: filteredOpportunities
+    internshipDB-->>careerStaff: filteredOpportunities
     system-->>careerStaff: displayReport
 
 ```
