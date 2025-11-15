@@ -2,8 +2,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Student extends User {
-    private int yearOfStudy;
-    private String major;
+    private final int yearOfStudy;
+    private final String major;
 
     public Student(String userID, String name, String password, int yearOfStudy, String major) {
         super(userID, name, password);
@@ -85,6 +85,28 @@ public class Student extends User {
             }
         }
         return myApplications;
+    }
+
+    public List<InternshipOpportunity> viewAllInternships() {
+        List<InternshipOpportunity> allInternships = new ArrayList<>();
+        for (InternshipOpportunity opportunity : Database.getInternships()) {
+            // Show all approved internships OR internships the student has applied to
+            if (opportunity.getStatus().equals("Approved")) {
+                boolean hasApplied = false;
+                for (Application app : Database.getApplications()) {
+                    if (app.getApplicant().getUserID().equals(this.userID) &&
+                        app.getOpportunity().getOpportunityID().equals(opportunity.getOpportunityID())) {
+                        hasApplied = true;
+                        break;
+                    }
+                }
+                // Show if visible OR if student has applied (even if visibility is off)
+                if (opportunity.isVisible() || hasApplied) {
+                    allInternships.add(opportunity);
+                }
+            }
+        }
+        return allInternships;
     }
 
     public void acceptInternship(String applicationID) {

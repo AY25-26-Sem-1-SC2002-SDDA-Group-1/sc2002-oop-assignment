@@ -2,8 +2,8 @@ import java.util.List;
 import java.util.Map;
 
 public class Report {
-    private List<InternshipOpportunity> opportunities;
-    private Map<String, String> filters;
+    private final List<InternshipOpportunity> opportunities;
+    private final Map<String, String> filters;
 
     public Report(List<InternshipOpportunity> opportunities, Map<String, String> filters) {
         this.opportunities = opportunities;

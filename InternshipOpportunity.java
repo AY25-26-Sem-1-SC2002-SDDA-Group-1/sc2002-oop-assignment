@@ -1,7 +1,7 @@
 import java.util.Date;
 
 public class InternshipOpportunity {
-    private String opportunityID;
+    private final String opportunityID;
     private String title;
     private String description;
     private String level;
@@ -11,7 +11,7 @@ public class InternshipOpportunity {
     private String status;
     private int maxSlots;
     private boolean visibility;
-    private CompanyRepresentative createdBy;
+    private final CompanyRepresentative createdBy;
 
     public InternshipOpportunity(String opportunityID, String title, String description, 
                                String level, String preferredMajor, Date openingDate, 
@@ -81,6 +81,26 @@ public class InternshipOpportunity {
     
     public void setDescription(String description) {
         this.description = description;
+    }
+    
+    public void setLevel(String level) {
+        this.level = level;
+    }
+    
+    public void setPreferredMajor(String preferredMajor) {
+        this.preferredMajor = preferredMajor;
+    }
+    
+    public void setOpeningDate(Date openingDate) {
+        this.openingDate = openingDate;
+    }
+    
+    public void setClosingDate(Date closingDate) {
+        this.closingDate = closingDate;
+    }
+    
+    public void setMaxSlots(int maxSlots) {
+        this.maxSlots = maxSlots;
     }
 
     public int getMaxSlots() {

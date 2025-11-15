@@ -3,7 +3,7 @@ import java.util.List;
 import java.util.Map;
 
 public class CareerCenterStaff extends User {
-    private String staffDepartment;
+    private final String staffDepartment;
 
     public CareerCenterStaff(String userID, String name, String password, String staffDepartment) {
         super(userID, name, password);
@@ -17,32 +17,42 @@ public class CareerCenterStaff extends User {
         }
     }
 
-    public void approveInternship(String opportunityID) {
+    public boolean approveInternship(String opportunityID) {
         InternshipOpportunity opportunity = Database.getInternship(opportunityID);
-        if (opportunity != null) {
+        if (opportunity != null && opportunity.getStatus().equals("Pending")) {
             opportunity.setStatus("Approved");
+            opportunity.setVisibility(true);  // Automatically set visibility to true when approved
+            Database.saveData();
+            return true;
         }
+        return false;
     }
 
-    public void rejectInternship(String opportunityID) {
+    public boolean rejectInternship(String opportunityID) {
         InternshipOpportunity opportunity = Database.getInternship(opportunityID);
-        if (opportunity != null) {
+        if (opportunity != null && opportunity.getStatus().equals("Pending")) {
             opportunity.setStatus("Rejected");
+            return true;
         }
+        return false;
     }
 
-    public void approveWithdrawal(String applicationID) {
+    public boolean approveWithdrawal(String applicationID) {
         Application application = Database.getApplication(applicationID);
         if (application != null && application.getStatus().equals("Withdrawal Requested")) {
             application.updateStatus("Withdrawn");
+            return true;
         }
+        return false;
     }
 
-    public void rejectWithdrawal(String applicationID) {
+    public boolean rejectWithdrawal(String applicationID) {
         Application application = Database.getApplication(applicationID);
         if (application != null && application.getStatus().equals("Withdrawal Requested")) {
             application.updateStatus("Pending");
+            return true;
         }
+        return false;
     }
 
     public Report generateReports(Map<String, String> filters) {

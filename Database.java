@@ -3,9 +3,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Database {
-    private static List<User> users = new ArrayList<>();
-    private static List<InternshipOpportunity> internships = new ArrayList<>();
-    private static List<Application> applications = new ArrayList<>();
+    private static final List<User> users = new ArrayList<>();
+    private static final List<InternshipOpportunity> internships = new ArrayList<>();
+    private static final List<Application> applications = new ArrayList<>();
     private static int applicationCounter = 1;
     private static int internshipCounter = 1;
     private static int companyRepCounter = 1;

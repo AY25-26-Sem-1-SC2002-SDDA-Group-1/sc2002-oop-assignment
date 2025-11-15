@@ -3,10 +3,10 @@ import java.util.Date;
 import java.util.List;
 
 public class CompanyRepresentative extends User {
-    private String companyName;
-    private String department;
-    private String position;
-    private String email;
+    private final String companyName;
+    private final String department;
+    private final String position;
+    private final String email;
     private boolean isApproved;
 
     public CompanyRepresentative(String userID, String name, String password, 
@@ -73,21 +73,28 @@ public class CompanyRepresentative extends User {
         return opportunityApplications;
     }
 
-    public boolean approveApplication(String applicationID) {
-        Application application = Database.getApplication(applicationID);
-        if (application != null && 
-            application.getOpportunity().getCreatedBy().getUserID().equals(this.userID)) {
-            application.updateStatus("Successful");
-            return true;
+    public List<Application> getPendingApplications() {
+        List<Application> pendingApplications = new ArrayList<>();
+        for (Application app : Database.getApplications()) {
+            if (app.getOpportunity().getCreatedBy().getUserID().equals(this.userID) &&
+                app.getStatus().equals("Pending")) {
+                pendingApplications.add(app);
+            }
         }
-        return false;
+        return pendingApplications;
     }
 
-    public boolean rejectApplication(String applicationID) {
+    public boolean processApplication(String applicationID, boolean approve) {
         Application application = Database.getApplication(applicationID);
         if (application != null && 
-            application.getOpportunity().getCreatedBy().getUserID().equals(this.userID)) {
-            application.updateStatus("Unsuccessful");
+            application.getOpportunity().getCreatedBy().getUserID().equals(this.userID) &&
+            application.getStatus().equals("Pending")) {
+            if (approve) {
+                application.updateStatus("Successful");
+            } else {
+                application.updateStatus("Unsuccessful");
+            }
+            Database.saveData();
             return true;
         }
         return false;

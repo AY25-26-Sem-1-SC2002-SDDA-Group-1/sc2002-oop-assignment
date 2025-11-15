@@ -1,11 +1,11 @@
 import java.util.Date;
 
 public class Application {
-    private String applicationID;
-    private Student applicant;
-    private InternshipOpportunity opportunity;
+    private final String applicationID;
+    private final Student applicant;
+    private final InternshipOpportunity opportunity;
     private String status;
-    private Date appliedDate;
+    private final Date appliedDate;
 
     public Application(String applicationID, Student applicant, InternshipOpportunity opportunity, String status) {
         this.applicationID = applicationID;
