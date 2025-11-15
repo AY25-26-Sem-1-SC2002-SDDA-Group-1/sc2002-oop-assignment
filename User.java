@@ -26,6 +26,10 @@ public class User {
     public void changePassword(String newPassword) {
         this.password = newPassword;
     }
+    
+    public boolean verifyPassword(String password) {
+        return this.password.equals(password);
+    }
 
     public String getUserID() {
         return userID;

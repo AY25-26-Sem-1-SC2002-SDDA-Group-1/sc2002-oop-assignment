@@ -8,6 +8,7 @@ public class Database {
     private static List<Application> applications = new ArrayList<>();
     private static int applicationCounter = 1;
     private static int internshipCounter = 1;
+    private static int companyRepCounter = 1;
 
     static {
         loadUsersFromCSV();
@@ -72,7 +73,8 @@ public class Database {
                     "password",
                     parts[2].trim(),
                     parts[3].trim(),
-                    parts[4].trim()
+                    parts[4].trim(),
+                    parts[5].trim()
                 );
                 if (parts.length >= 7 && parts[6].trim().equalsIgnoreCase("Approved")) {
                     rep.setApproved(true);
@@ -116,6 +118,26 @@ public class Database {
     public static void addInternship(InternshipOpportunity opportunity) {
         internships.add(opportunity);
     }
+    
+    public static void removeInternship(String opportunityID) {
+        internships.removeIf(opp -> opp.getOpportunityID().equals(opportunityID));
+        // Also remove all applications for this internship
+        applications.removeIf(app -> app.getOpportunity().getOpportunityID().equals(opportunityID));
+    }
+    
+    public static void updateInternshipTitle(String opportunityID, String newTitle) {
+        InternshipOpportunity opp = getInternship(opportunityID);
+        if (opp != null) {
+            opp.setTitle(newTitle);
+        }
+    }
+    
+    public static void updateInternshipDescription(String opportunityID, String newDescription) {
+        InternshipOpportunity opp = getInternship(opportunityID);
+        if (opp != null) {
+            opp.setDescription(newDescription);
+        }
+    }
 
     public static Application getApplication(String applicationID) {
         for (Application application : applications) {
@@ -142,12 +164,54 @@ public class Database {
         return "INT" + String.format("%04d", internshipCounter++);
     }
 
+    public static String generateCompanyRepID() {
+        return "CR" + String.format("%03d", companyRepCounter++);
+    }
+
     public static void saveData() {
         try {
+            saveStudents();
+            saveStaff();
             saveCompanyRepresentatives();
         } catch (IOException e) {
             System.err.println("Error saving data: " + e.getMessage());
         }
+    }
+    
+    private static void saveStudents() throws IOException {
+        BufferedWriter writer = new BufferedWriter(new FileWriter("sample_student_list.csv"));
+        writer.write("UserID,Name,Major,YearOfStudy");
+        writer.newLine();
+        
+        for (User user : users) {
+            if (user instanceof Student) {
+                Student student = (Student) user;
+                writer.write(student.getUserID() + "," +
+                           student.getName() + "," +
+                           student.getMajor() + "," +
+                           student.getYearOfStudy());
+                writer.newLine();
+            }
+        }
+        writer.close();
+    }
+    
+    private static void saveStaff() throws IOException {
+        BufferedWriter writer = new BufferedWriter(new FileWriter("sample_staff_list.csv"));
+        writer.write("StaffID,Name,Email,StaffDepartment");
+        writer.newLine();
+        
+        for (User user : users) {
+            if (user instanceof CareerCenterStaff) {
+                CareerCenterStaff staff = (CareerCenterStaff) user;
+                writer.write(staff.getUserID() + "," +
+                           staff.getName() + "," +
+                           staff.getUserID() + "@ntu.edu.sg," +
+                           staff.getStaffDepartment());
+                writer.newLine();
+            }
+        }
+        writer.close();
     }
 
     private static void saveCompanyRepresentatives() throws IOException {
@@ -158,12 +222,13 @@ public class Database {
         for (User user : users) {
             if (user instanceof CompanyRepresentative) {
                 CompanyRepresentative rep = (CompanyRepresentative) user;
-                writer.write(String.format("%s,%s,%s,%s,%s,email,%s",
+                writer.write(String.format("%s,%s,%s,%s,%s,%s,%s",
                     rep.getUserID(),
                     rep.getName(),
                     rep.getCompanyName(),
                     rep.getDepartment(),
                     rep.getPosition(),
+                    rep.getEmail(),
                     rep.isApproved() ? "Approved" : "Pending"
                 ));
                 writer.newLine();

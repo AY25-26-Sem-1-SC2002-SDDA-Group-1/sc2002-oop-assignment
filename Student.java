@@ -15,21 +15,50 @@ public class Student extends User {
         List<InternshipOpportunity> eligible = new ArrayList<>();
         for (InternshipOpportunity opportunity : Database.getInternships()) {
             if (opportunity.isOpen() && opportunity.isVisible() && 
-                opportunity.getPreferredMajor().equalsIgnoreCase(this.major)) {
+                opportunity.getPreferredMajor().equalsIgnoreCase(this.major) &&
+                isEligibleForLevel(opportunity.getLevel())) {
                 eligible.add(opportunity);
             }
         }
         return eligible;
+    }
+    
+    private boolean isEligibleForLevel(String level) {
+        // Year 1 and 2 students can only apply for Basic level
+        if (yearOfStudy <= 2) {
+            return level.equals("Basic");
+        }
+        // Year 3 and above can apply for any level
+        return true;
+    }
+    
+    private int getActiveApplicationCount() {
+        int count = 0;
+        for (Application app : Database.getApplications()) {
+            if (app.getApplicant().getUserID().equals(this.userID) &&
+                !app.getStatus().equals("Withdrawn") &&
+                !app.getStatus().equals("Unsuccessful")) {
+                count++;
+            }
+        }
+        return count;
     }
 
     public boolean applyForInternship(String opportunityID) {
         InternshipOpportunity opportunity = Database.getInternship(opportunityID);
         if (opportunity == null) return false;
         
+        // Check if student already has 3 active applications
+        if (getActiveApplicationCount() >= 3) return false;
+        
         if (!opportunity.isOpen() || !opportunity.isVisible()) return false;
         
         if (!opportunity.getPreferredMajor().equalsIgnoreCase(this.major)) return false;
         
+        // Check if student is eligible for this level
+        if (!isEligibleForLevel(opportunity.getLevel())) return false;
+        
+        // Check if already applied
         for (Application app : Database.getApplications()) {
             if (app.getApplicant().getUserID().equals(this.userID) && 
                 app.getOpportunity().getOpportunityID().equals(opportunityID)) {
