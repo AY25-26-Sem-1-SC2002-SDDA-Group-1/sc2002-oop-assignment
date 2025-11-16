@@ -3,7 +3,7 @@ public class UIHelper {
     public static void printWelcomeBanner() {
         System.out.println("╔═══════════════════════════════════════════════════════════════╗");
         System.out.println("║                                                               ║");
-        System.out.println("║        INTERNSHIP PLACEMENT MANAGEMENT SYSTEM (IPMS)         ║");
+        System.out.println("║        INTERNSHIP PLACEMENT MANAGEMENT SYSTEM (IPMS)          ║");
         System.out.println("║                                                               ║");
         System.out.println("║          Your Gateway to Professional Opportunities           ║");
         System.out.println("║                                                               ║");
@@ -26,8 +26,8 @@ public class UIHelper {
     public static void printGoodbyeMessage() {
         System.out.println();
         System.out.println("  ╔═════════════════════════════════════════════════════════╗");
-        System.out.println("  ║  Thank you for using the Internship Placement System  ║");
-        System.out.println("  ║              Have a great day ahead!                  ║");
+        System.out.println("  ║  Thank you for using the Internship Placement System    ║");
+        System.out.println("  ║              Have a great day ahead!                    ║");
         System.out.println("  ╚═════════════════════════════════════════════════════════╝");
         System.out.println();
     }

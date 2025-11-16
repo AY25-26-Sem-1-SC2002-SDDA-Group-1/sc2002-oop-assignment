@@ -75,31 +75,46 @@ public class CareerCenterStaff extends User {
         Application application = Database.getApplication(applicationID);
         if (application != null && application.getStatus().equals("Withdrawal Requested")) {
             if (approve) {
+                // Store original status before withdrawal for proper handling
+                boolean wasConfirmed = false;
+                // Check if this was a confirmed placement
+                for (Application app : Database.getApplications()) {
+                    if (app.getApplicationID().equals(applicationID)) {
+                        // Check manuallyWithdrawn flag to determine if it was confirmed
+                        wasConfirmed = app.isManuallyWithdrawn();
+                        break;
+                    }
+                }
+                
                 application.updateStatus("Withdrawn");
                 
-                // Check if the internship should be unfilled
-                InternshipOpportunity internship = application.getOpportunity();
-                if (internship != null && internship.getStatus().equals("Filled")) {
-                    // Count remaining confirmed applications
-                    int confirmedCount = 0;
-                    for (Application app : Database.getApplications()) {
-                        if (app.getOpportunity().equals(internship) && 
-                            app.getStatus().equals("Confirmed")) {
-                            confirmedCount++;
+                // Only process internship status and queue if it was a confirmed placement
+                if (wasConfirmed) {
+                    InternshipOpportunity internship = application.getOpportunity();
+                    if (internship != null) {
+                        // Check if the internship should be unfilled
+                        if (internship.getStatus().equals("Filled")) {
+                            // Count remaining confirmed applications
+                            int confirmedCount = 0;
+                            for (Application app : Database.getApplications()) {
+                                if (app.getOpportunity().equals(internship) && 
+                                    app.getStatus().equals("Confirmed")) {
+                                    confirmedCount++;
+                                }
+                            }
+                            
+                            // If slots are now available, change status back to Approved
+                            if (confirmedCount < internship.getMaxSlots()) {
+                                internship.setStatus("Approved");
+                            }
                         }
+                        
+                        // Process waitlist queue - automatically confirm next queued application
+                        processQueue(internship);
                     }
-                    
-                    // If slots are now available, change status back to Approved
-                    if (confirmedCount < internship.getMaxSlots()) {
-                        internship.setStatus("Approved");
-                    }
-                }
-                
-                // Process waitlist queue - automatically confirm next queued application
-                if (internship != null) {
-                    processQueue(internship);
                 }
             } else {
+                // Rejection: restore to Pending (cannot determine original status, safe default)
                 application.updateStatus("Pending");
             }
             Database.saveData();

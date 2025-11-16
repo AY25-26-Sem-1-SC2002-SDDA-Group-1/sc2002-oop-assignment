@@ -188,8 +188,12 @@ public class Student extends User {
             return;
         }
         
-        if (!application.getStatus().equals("Confirmed")) {
-            System.out.println("You can only request withdrawal for confirmed internships. Current status: " + application.getStatus());
+        String currentStatus = application.getStatus();
+        // Allow withdrawal for Pending, Successful, or Confirmed applications
+        if (!currentStatus.equals("Pending") && 
+            !currentStatus.equals("Successful") && 
+            !currentStatus.equals("Confirmed")) {
+            System.out.println("Cannot request withdrawal for application with status: " + currentStatus);
             return;
         }
         

@@ -6,7 +6,31 @@ This document outlines all the improvements made to the Internship Placement Sys
 
 ---
 
-## Latest Improvements ( 16 November 2025)
+## Latest Improvements (16 November 2025)
+
+### Major Feature: Flexible Withdrawal System
+
+#### 9. **Multi-Stage Withdrawal Request** ✅
+
+- **Feature**: Students can request withdrawal at ANY application stage (Pending, Successful, or Confirmed)
+- **Previous Limitation**: Only confirmed applications could be withdrawn
+- **Implementation**:
+  - `Student.requestWithdrawal()` now accepts three statuses: Pending, Successful, Confirmed
+  - UI displays all withdrawable applications with status indicators
+  - Career staff processing intelligently handles different withdrawal scenarios
+- **Location**:
+  - Student logic: `Student.java`, requestWithdrawal() method (lines 188-204)
+  - UI display: `InternshipPlacementSystem.java`, requestWithdrawal() (lines 568-600)
+  - Staff processing: `CareerCenterStaff.java`, processWithdrawal() (lines 74-123)
+- **Benefits**:
+  - Real-world flexibility: students can withdraw at any point in application lifecycle
+  - Pending withdrawal: student changes mind before company processes
+  - Successful withdrawal: student changes mind after approval but before acceptance
+  - Confirmed withdrawal: student needs to back out after accepting placement
+- **Smart Processing**:
+  - Only confirmed placement withdrawals affect internship Filled status
+  - Only confirmed placement withdrawals trigger queue processing
+  - Rejection restores application to "Pending" status (safe default)
 
 ### UX Enhancements
 
@@ -19,17 +43,19 @@ This document outlines all the improvements made to the Internship Placement Sys
 
 #### 2. **Pre-Display Application Lists** ✅
 
-- **Feature**: Students see their successful/confirmed applications before being prompted to accept/withdraw
+- **Feature**: Students see relevant information before being prompted for input
 - **Implementation**:
+  - `viewEligibleInternships()` called before `applyForInternship()` prompts for IDs
   - `acceptInternship()` displays all successful applications with details before prompting
-  - `requestWithdrawal()` displays all confirmed applications before prompting
-- **Location**: `InternshipPlacementSystem.java`, lines 533-590
+  - `requestWithdrawal()` displays all withdrawable applications (Pending/Successful/Confirmed) with status before prompting
+- **Location**: `InternshipPlacementSystem.java`, lines 465-467, 533-590
 - **Benefits**: Better user experience - students can review their options before making a decision
 
 #### 3. **Clean UI Design** ✅
 
-- **Change**: Removed all emoji characters from system messages
-- **Location**: `UIHelper.java`, printSuccessMessage(), printErrorMessage(), printWarningMessage()
+- **Change**: Removed all emoji characters from system messages, replaced with text markers
+- **Implementation**: [SUCCESS], [FAILED] markers replace emoji icons
+- **Location**: `InternshipPlacementSystem.java`, applyForInternship() method (lines 481-498)
 - **Benefits**: Professional appearance, better compatibility across terminals
 
 #### 4. **Password Security Enhancement** ✅

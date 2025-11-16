@@ -14,13 +14,20 @@ An Internship Placement System, designed with Object-Oriented Principles
 - **Waitlist System**: Automatic queue management for filled internships with FIFO processing
 - **Smart Status Management**: Automatic status updates when slots become available
 
-## Recent Enhancements
+## Recent Enhancements (v2.0.0)
+
+### Flexible Withdrawal System
+
+- **Multi-Stage Withdrawal**: Students can request withdrawal at any stage (Pending, Successful, or Confirmed)
+- **Smart Processing**: Career staff approval intelligently handles different withdrawal scenarios
+- **Automatic Queue Advancement**: When confirmed placements are withdrawn, queued students automatically advance
+- **Status Transparency**: UI displays current application status for informed withdrawal decisions
 
 ### User Experience
 
-- **Pre-Display Lists**: Students see their successful/confirmed applications before being prompted
+- **Pre-Display Lists**: Students see eligible internships before applying, successful/confirmed applications before accepting/withdrawing
 - **Batch Operations**: Space-separated IDs for applying to multiple internships and processing applications
-- **Clean UI**: Removed emojis for professional appearance
+- **Clean Professional UI**: Removed all emojis, replaced with text markers ([SUCCESS], [FAILED])
 - **Password Security**: Prevents users from setting new password same as current
 
 ### Advanced Features
@@ -86,7 +93,45 @@ All users have default password: `password`
 2. **Internships** start as "Pending" and must be approved by Career Center Staff
 3. **Students** can only apply to approved, visible internships matching their major
 4. **Applications** go through approval/rejection workflow
-5. **Students** can accept successful offers and request withdrawals
+5. **Students** can accept successful offers and request withdrawals at any stage (Pending, Successful, or Confirmed)
+6. **Waitlist Queue** automatically manages students when internships are full
+7. **Withdrawal Processing** by Career Staff triggers queue advancement for confirmed placements
+
+## Key Features Explained
+
+### Withdrawal System
+
+- **Pending Stage**: Student can withdraw before company processes application
+- **Successful Stage**: Student can withdraw after approval but before accepting
+- **Confirmed Stage**: Student can withdraw after accepting placement
+- All withdrawals must be approved by Career Center Staff
+- Confirmed withdrawals trigger automatic queue processing
+
+### Batch Processing
+
+- Apply to multiple internships: `INT0001 INT0002 INT0003`
+- Process multiple applications: `APP0001 APP0002 APP0003`
+- Toggle multiple visibility settings: `INT0001 INT0002`
+
+### Waitlist Queue
+
+- Automatically activated when internship reaches max slots
+- Students added to queue in FIFO order
+- Queue automatically processed when slots become available
+- Queued students notified of automatic confirmation
+
+### Manual Withdrawal Tracking
+
+- Students who manually withdraw cannot reapply to same internship
+- Prevents abuse of placement system
+- Tracked via `manuallyWithdrawn` flag in Application class
+
+## Documentation
+
+- **CHANGELOG.md**: Complete version history and feature additions
+- **IMPROVEMENTS.md**: Detailed enhancement descriptions beyond base requirements
+- **TEST_VERIFICATION.md**: Validation of all 20 specification test cases
+- **README.md**: This file - system overview and usage guide
 
 # UML Class Diagram
 

@@ -463,7 +463,10 @@ public class InternshipPlacementSystem {
     }
 
     private static void applyForInternship(Student student) {
-        System.out.print("Enter Internship ID(s) (space-separated for multiple): ");
+        // Display eligible internships first
+        viewEligibleInternships(student);
+        
+        System.out.print("\nEnter Internship ID(s) (space-separated for multiple): ");
         String input = scanner.nextLine().trim();
         if (input.isEmpty()) {
             System.out.println("Internship ID cannot be empty.");
@@ -479,22 +482,22 @@ public class InternshipPlacementSystem {
             boolean result = student.applyForInternship(internshipID);
             
             if (result) {
-                System.out.println("✓ " + internshipID + ": Application submitted successfully!");
+                System.out.println("[SUCCESS] " + internshipID + ": Application submitted successfully!");
                 successCount++;
             } else {
                 InternshipOpportunity opp = Database.getInternship(internshipID);
                 if (opp == null) {
-                    System.out.println("✗ " + internshipID + ": Internship not found.");
+                    System.out.println("[FAILED] " + internshipID + ": Internship not found.");
                 } else if (!opp.isVisible() || !opp.getStatus().equals("Approved")) {
-                    System.out.println("✗ " + internshipID + ": Not available for applications.");
+                    System.out.println("[FAILED] " + internshipID + ": Not available for applications.");
                 } else if (!opp.isOpen()) {
-                    System.out.println("✗ " + internshipID + ": Not accepting applications (check dates).");
+                    System.out.println("[FAILED] " + internshipID + ": Not accepting applications (check dates).");
                 } else if (!opp.getPreferredMajor().equalsIgnoreCase(student.getMajor())) {
-                    System.out.println("✗ " + internshipID + ": Major mismatch.");
+                    System.out.println("[FAILED] " + internshipID + ": Major mismatch.");
                 } else if (student.getYearOfStudy() <= 2 && !opp.getLevel().equals("Basic")) {
-                    System.out.println("✗ " + internshipID + ": Year 1-2 students can only apply for Basic level.");
+                    System.out.println("[FAILED] " + internshipID + ": Year 1-2 students can only apply for Basic level.");
                 } else {
-                    System.out.println("✗ " + internshipID + ": Failed (already applied or max 3 applications reached).");
+                    System.out.println("[FAILED] " + internshipID + ": Failed (already applied or max 3 applications reached).");
                 }
                 failCount++;
             }
@@ -565,27 +568,29 @@ public class InternshipPlacementSystem {
     }
 
     private static void requestWithdrawal(Student student) {
-        // Show confirmed applications first
-        List<Application> confirmedApps = new java.util.ArrayList<>();
+        // Show withdrawable applications (Pending, Successful, or Confirmed)
+        List<Application> withdrawableApps = new java.util.ArrayList<>();
         for (Application app : student.viewApplications()) {
-            if (app.getStatus().equals("Confirmed")) {
-                confirmedApps.add(app);
+            String status = app.getStatus();
+            if (status.equals("Pending") || status.equals("Successful") || status.equals("Confirmed")) {
+                withdrawableApps.add(app);
             }
         }
         
-        if (confirmedApps.isEmpty()) {
-            System.out.println("\nNo confirmed applications to withdraw from.");
+        if (withdrawableApps.isEmpty()) {
+            System.out.println("\nNo withdrawable applications found (Pending, Successful, or Confirmed).");
             return;
         }
         
-        System.out.println("\n=== CONFIRMED APPLICATIONS ===");
-        for (Application app : confirmedApps) {
+        System.out.println("\n=== WITHDRAWABLE APPLICATIONS ===");
+        for (Application app : withdrawableApps) {
             InternshipOpportunity opp = app.getOpportunity();
             System.out.println("\nApplication ID: " + app.getApplicationID());
+            System.out.println("Status: " + app.getStatus());
             System.out.println("Internship: " + opp.getTitle());
             System.out.println("Company: " + opp.getCreatedBy().getName());
             System.out.println("Level: " + opp.getLevel());
-            System.out.println("Confirmed Date: " + app.getAppliedDate());
+            System.out.println("Applied Date: " + app.getAppliedDate());
             System.out.println("-".repeat(50));
         }
         
@@ -1178,7 +1183,7 @@ public class InternshipPlacementSystem {
         
         if (decision.equals("approve")) {
             if (staff.processCompanyRep(repID, true)) {
-                UIHelper.printSuccessMessage("✓ Company representative approved successfully.");
+                UIHelper.printSuccessMessage("Company representative approved successfully.");
             } else {
                 UIHelper.printErrorMessage("Failed to approve company representative.");
             }
@@ -1257,16 +1262,16 @@ public class InternshipPlacementSystem {
             }
             
             if (!found) {
-                System.out.println("⚠ Skipping " + internshipID + ": Invalid ID or not pending.");
+                System.out.println("Skipping " + internshipID + ": Invalid ID or not pending.");
                 failCount++;
                 continue;
             }
             
             if (staff.processInternship(internshipID, isApprove)) {
-                System.out.println("✓ " + internshipID + ": " + (isApprove ? "Approved and set to visible" : "Rejected"));
+                System.out.println(internshipID + ": " + (isApprove ? "Approved and set to visible" : "Rejected"));
                 successCount++;
             } else {
-                System.out.println("✗ " + internshipID + ": Failed to process");
+                System.out.println(internshipID + ": Failed to process");
                 failCount++;
             }
         }
