@@ -6,6 +6,7 @@ public class Application {
     private final InternshipOpportunity opportunity;
     private String status;
     private final Date appliedDate;
+    private boolean manuallyWithdrawn;
 
     public Application(String applicationID, Student applicant, InternshipOpportunity opportunity, String status) {
         this.applicationID = applicationID;
@@ -13,6 +14,7 @@ public class Application {
         this.opportunity = opportunity;
         this.status = status;
         this.appliedDate = new Date();
+        this.manuallyWithdrawn = false;
     }
 
     public void updateStatus(String newStatus) {
@@ -37,5 +39,13 @@ public class Application {
 
     public Date getAppliedDate() {
         return appliedDate;
+    }
+    
+    public boolean isManuallyWithdrawn() {
+        return manuallyWithdrawn;
+    }
+    
+    public void setManuallyWithdrawn(boolean manuallyWithdrawn) {
+        this.manuallyWithdrawn = manuallyWithdrawn;
     }
 }

@@ -10,49 +10,151 @@ public class CareerCenterStaff extends User {
         this.staffDepartment = staffDepartment;
     }
 
-    public void approveCompanyRep(String repID) {
-        User user = Database.getUser(repID);
-        if (user instanceof CompanyRepresentative) {
-            ((CompanyRepresentative) user).setApproved(true);
+    public List<CompanyRepresentative> getPendingCompanyReps() {
+        List<CompanyRepresentative> pendingReps = new ArrayList<>();
+        for (User user : Database.getUsers()) {
+            if (user instanceof CompanyRepresentative) {
+                CompanyRepresentative rep = (CompanyRepresentative) user;
+                if (!rep.isApproved()) {
+                    pendingReps.add(rep);
+                }
+            }
         }
+        return pendingReps;
     }
 
-    public boolean approveInternship(String opportunityID) {
+    public boolean processCompanyRep(String repID, boolean approve) {
+        User user = Database.getUser(repID);
+        if (user instanceof CompanyRepresentative) {
+            CompanyRepresentative rep = (CompanyRepresentative) user;
+            if (!rep.isApproved() && approve) {
+                rep.setApproved(true);
+                Database.saveData();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public List<InternshipOpportunity> getPendingInternships() {
+        List<InternshipOpportunity> pendingInternships = new ArrayList<>();
+        for (InternshipOpportunity opp : Database.getInternships()) {
+            if (opp.getStatus().equals("Pending")) {
+                pendingInternships.add(opp);
+            }
+        }
+        return pendingInternships;
+    }
+
+    public boolean processInternship(String opportunityID, boolean approve) {
         InternshipOpportunity opportunity = Database.getInternship(opportunityID);
         if (opportunity != null && opportunity.getStatus().equals("Pending")) {
-            opportunity.setStatus("Approved");
-            opportunity.setVisibility(true);  // Automatically set visibility to true when approved
+            if (approve) {
+                opportunity.setStatus("Approved");
+                opportunity.setVisibility(true);  // Automatically set visibility to true when approved
+            } else {
+                opportunity.setStatus("Rejected");
+            }
             Database.saveData();
             return true;
         }
         return false;
     }
 
-    public boolean rejectInternship(String opportunityID) {
-        InternshipOpportunity opportunity = Database.getInternship(opportunityID);
-        if (opportunity != null && opportunity.getStatus().equals("Pending")) {
-            opportunity.setStatus("Rejected");
+    public List<Application> getWithdrawalRequests() {
+        List<Application> withdrawalRequests = new ArrayList<>();
+        for (Application app : Database.getApplications()) {
+            if (app.getStatus().equals("Withdrawal Requested")) {
+                withdrawalRequests.add(app);
+            }
+        }
+        return withdrawalRequests;
+    }
+
+    public boolean processWithdrawal(String applicationID, boolean approve) {
+        Application application = Database.getApplication(applicationID);
+        if (application != null && application.getStatus().equals("Withdrawal Requested")) {
+            if (approve) {
+                application.updateStatus("Withdrawn");
+                
+                // Check if the internship should be unfilled
+                InternshipOpportunity internship = application.getOpportunity();
+                if (internship != null && internship.getStatus().equals("Filled")) {
+                    // Count remaining confirmed applications
+                    int confirmedCount = 0;
+                    for (Application app : Database.getApplications()) {
+                        if (app.getOpportunity().equals(internship) && 
+                            app.getStatus().equals("Confirmed")) {
+                            confirmedCount++;
+                        }
+                    }
+                    
+                    // If slots are now available, change status back to Approved
+                    if (confirmedCount < internship.getMaxSlots()) {
+                        internship.setStatus("Approved");
+                    }
+                }
+                
+                // Process waitlist queue - automatically confirm next queued application
+                if (internship != null) {
+                    processQueue(internship);
+                }
+            } else {
+                application.updateStatus("Pending");
+            }
+            Database.saveData();
             return true;
         }
         return false;
     }
-
-    public boolean approveWithdrawal(String applicationID) {
-        Application application = Database.getApplication(applicationID);
-        if (application != null && application.getStatus().equals("Withdrawal Requested")) {
-            application.updateStatus("Withdrawn");
-            return true;
+    
+    private void processQueue(InternshipOpportunity internship) {
+        // Count current confirmed applications
+        int confirmedCount = 0;
+        for (Application app : Database.getApplications()) {
+            if (app.getOpportunity().equals(internship) &&
+                app.getStatus().equals("Confirmed")) {
+                confirmedCount++;
+            }
         }
-        return false;
-    }
-
-    public boolean rejectWithdrawal(String applicationID) {
-        Application application = Database.getApplication(applicationID);
-        if (application != null && application.getStatus().equals("Withdrawal Requested")) {
-            application.updateStatus("Pending");
-            return true;
+        
+        // While slots available and queue has applications
+        while (confirmedCount < internship.getMaxSlots()) {
+            // Find oldest queued application
+            Application queuedApp = null;
+            for (Application app : Database.getApplications()) {
+                if (app.getOpportunity().equals(internship) &&
+                    app.getStatus().equals("Queued")) {
+                    if (queuedApp == null || app.getAppliedDate().before(queuedApp.getAppliedDate())) {
+                        queuedApp = app;
+                    }
+                }
+            }
+            
+            if (queuedApp == null) {
+                break; // No more queued applications
+            }
+            
+            // Confirm the queued application
+            queuedApp.updateStatus("Confirmed");
+            
+            // Withdraw all other applications for this student
+            Student student = queuedApp.getApplicant();
+            for (Application app : Database.getApplications()) {
+                if (!app.getApplicationID().equals(queuedApp.getApplicationID()) &&
+                    app.getApplicant().getUserID().equals(student.getUserID()) &&
+                    !app.getStatus().equals("Withdrawn")) {
+                    app.updateStatus("Withdrawn");
+                }
+            }
+            
+            confirmedCount++;
+            
+            // Mark internship as filled if max slots reached
+            if (confirmedCount >= internship.getMaxSlots()) {
+                internship.setStatus("Filled");
+            }
         }
-        return false;
     }
 
     public Report generateReports(Map<String, String> filters) {

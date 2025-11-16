@@ -14,7 +14,7 @@ public class Student extends User {
     public List<InternshipOpportunity> viewEligibleInternships() {
         List<InternshipOpportunity> eligible = new ArrayList<>();
         for (InternshipOpportunity opportunity : Database.getInternships()) {
-            if (opportunity.isOpen() && opportunity.isVisible() && 
+            if (opportunity.isVisible() && 
                 opportunity.getPreferredMajor().equalsIgnoreCase(this.major) &&
                 isEligibleForLevel(opportunity.getLevel())) {
                 eligible.add(opportunity);
@@ -66,6 +66,15 @@ public class Student extends User {
             }
         }
         
+        // Check if student manually withdrew from this internship before
+        for (Application app : Database.getApplications()) {
+            if (app.getApplicant().getUserID().equals(this.userID) &&
+                app.getOpportunity().getOpportunityID().equals(opportunityID) &&
+                app.isManuallyWithdrawn()) {
+                return false;
+            }
+        }
+        
         Application application = new Application(
             Database.generateApplicationID(),
             this,
@@ -111,40 +120,83 @@ public class Student extends User {
 
     public void acceptInternship(String applicationID) {
         Application application = Database.getApplication(applicationID);
-        if (application != null && 
-            application.getApplicant().getUserID().equals(this.userID) &&
-            application.getStatus().equals("Successful")) {
-            
-            application.updateStatus("Confirmed");
-            
-            for (Application app : Database.getApplications()) {
-                if (!app.getApplicationID().equals(applicationID) &&
-                    app.getApplicant().getUserID().equals(this.userID) &&
-                    !app.getStatus().equals("Withdrawn")) {
-                    app.updateStatus("Withdrawn");
-                }
-            }
-            
-            InternshipOpportunity opportunity = application.getOpportunity();
-            int confirmedCount = 0;
-            for (Application app : Database.getApplications()) {
-                if (app.getOpportunity().getOpportunityID().equals(opportunity.getOpportunityID()) &&
-                    app.getStatus().equals("Confirmed")) {
-                    confirmedCount++;
-                }
-            }
-            if (confirmedCount >= opportunity.getMaxSlots()) {
-                opportunity.setStatus("Filled");
+        if (application == null) {
+            System.out.println("Application not found.");
+            return;
+        }
+        
+        if (!application.getApplicant().getUserID().equals(this.userID)) {
+            System.out.println("This application does not belong to you.");
+            return;
+        }
+        
+        if (!application.getStatus().equals("Successful")) {
+            System.out.println("You can only accept applications with 'Successful' status. Current status: " + application.getStatus());
+            return;
+        }
+        
+        // Check if internship is already full
+        InternshipOpportunity opportunity = application.getOpportunity();
+        int confirmedCount = 0;
+        for (Application app : Database.getApplications()) {
+            if (app.getOpportunity().getOpportunityID().equals(opportunity.getOpportunityID()) &&
+                app.getStatus().equals("Confirmed")) {
+                confirmedCount++;
             }
         }
+        
+        if (confirmedCount >= opportunity.getMaxSlots()) {
+            // Add to waitlist queue
+            application.updateStatus("Queued");
+            System.out.println("This internship is currently full (" + confirmedCount + "/" + opportunity.getMaxSlots() + " slots filled).");
+            System.out.println("You have been added to the waitlist. You will be automatically confirmed if a slot becomes available.");
+            Database.saveData();
+            return;
+        }
+        
+        // Accept the internship
+        application.updateStatus("Confirmed");
+        System.out.println("Internship accepted successfully!");
+        
+        // Withdraw all other applications
+        for (Application app : Database.getApplications()) {
+            if (!app.getApplicationID().equals(applicationID) &&
+                app.getApplicant().getUserID().equals(this.userID) &&
+                !app.getStatus().equals("Withdrawn")) {
+                app.updateStatus("Withdrawn");
+            }
+        }
+        
+        // Check if internship should be marked as Filled
+        confirmedCount++;
+        if (confirmedCount >= opportunity.getMaxSlots()) {
+            opportunity.setStatus("Filled");
+        }
+        
+        Database.saveData();
     }
 
     public void requestWithdrawal(String applicationID) {
         Application application = Database.getApplication(applicationID);
-        if (application != null && 
-            application.getApplicant().getUserID().equals(this.userID)) {
-            application.updateStatus("Withdrawal Requested");
+        if (application == null) {
+            System.out.println("Application not found.");
+            return;
         }
+        
+        if (!application.getApplicant().getUserID().equals(this.userID)) {
+            System.out.println("This application does not belong to you.");
+            return;
+        }
+        
+        if (!application.getStatus().equals("Confirmed")) {
+            System.out.println("You can only request withdrawal for confirmed internships. Current status: " + application.getStatus());
+            return;
+        }
+        
+        application.updateStatus("Withdrawal Requested");
+        application.setManuallyWithdrawn(true);
+        System.out.println("Withdrawal request submitted successfully.");
+        Database.saveData();
     }
 
     public int getYearOfStudy() {

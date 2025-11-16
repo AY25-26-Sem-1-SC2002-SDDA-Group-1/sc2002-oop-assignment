@@ -1,13 +1,77 @@
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
+
+class FilterSettings {
+    private String statusFilter = "";
+    private String levelFilter = "";
+    private String majorFilter = "";
+    private String sortBy = "title"; // Default sort by title (alphabetical)
+    
+    public void setStatusFilter(String status) { this.statusFilter = status; }
+    public void setLevelFilter(String level) { this.levelFilter = level; }
+    public void setMajorFilter(String major) { this.majorFilter = major; }
+    public void setSortBy(String sortBy) { this.sortBy = sortBy; }
+    
+    public String getStatusFilter() { return statusFilter; }
+    public String getLevelFilter() { return levelFilter; }
+    public String getMajorFilter() { return majorFilter; }
+    public String getSortBy() { return sortBy; }
+    
+    public boolean hasActiveFilters() {
+        return !statusFilter.isEmpty() || !levelFilter.isEmpty() || !majorFilter.isEmpty();
+    }
+    
+    public void clearFilters() {
+        statusFilter = "";
+        levelFilter = "";
+        majorFilter = "";
+    }
+    
+    public List<InternshipOpportunity> applyFilters(List<InternshipOpportunity> opportunities) {
+        return opportunities.stream()
+            .filter(opp -> statusFilter.isEmpty() || opp.getStatus().equalsIgnoreCase(statusFilter))
+            .filter(opp -> levelFilter.isEmpty() || opp.getLevel().equalsIgnoreCase(levelFilter))
+            .filter(opp -> majorFilter.isEmpty() || opp.getPreferredMajor().equalsIgnoreCase(majorFilter))
+            .sorted(getComparator())
+            .collect(Collectors.toList());
+    }
+    
+    private Comparator<InternshipOpportunity> getComparator() {
+        switch (sortBy.toLowerCase()) {
+            case "title":
+                return Comparator.comparing(InternshipOpportunity::getTitle);
+            case "company":
+                return Comparator.comparing(opp -> opp.getCreatedBy().getCompanyName());
+            case "level":
+                return Comparator.comparing(InternshipOpportunity::getLevel);
+            case "closing":
+                return Comparator.comparing(InternshipOpportunity::getClosingDate);
+            default:
+                return Comparator.comparing(InternshipOpportunity::getTitle);
+        }
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("Active Filters: ");
+        if (!statusFilter.isEmpty()) sb.append("Status=").append(statusFilter).append(" ");
+        if (!levelFilter.isEmpty()) sb.append("Level=").append(levelFilter).append(" ");
+        if (!majorFilter.isEmpty()) sb.append("Major=").append(majorFilter).append(" ");
+        sb.append("| Sort by: ").append(sortBy);
+        return sb.toString();
+    }
+}
 
 public class InternshipPlacementSystem {
     private static final Scanner scanner = new Scanner(System.in);
     private static User currentUser = null;
+    private static FilterSettings userFilters = new FilterSettings(); // Persistent filter settings
 
     public static void main(String[] args) {
         UIHelper.printWelcomeBanner();
@@ -184,11 +248,11 @@ public class InternshipPlacementSystem {
         Student student = (Student) currentUser;
         UIHelper.printStudentMenu();
         System.out.println("1. View Eligible Internships");
-        System.out.println("2. View All Internships");
-        System.out.println("3. Apply for Internship");
-        System.out.println("4. View My Applications");
-        System.out.println("5. Accept Internship");
-        System.out.println("6. Request Withdrawal");
+        System.out.println("2. Apply for Internship");
+        System.out.println("3. View My Applications");
+        System.out.println("4. Accept Internship");
+        System.out.println("5. Request Withdrawal");
+        System.out.println("6. Manage Filters");
         System.out.println("7. Change Password");
         System.out.println("8. Logout");
         System.out.print("\nEnter your choice: ");
@@ -200,19 +264,19 @@ public class InternshipPlacementSystem {
                 viewEligibleInternships(student);
                 break;
             case "2":
-                viewAllInternships(student);
-                break;
-            case "3":
                 applyForInternship(student);
                 break;
-            case "4":
+            case "3":
                 viewMyApplications(student);
                 break;
-            case "5":
+            case "4":
                 acceptInternship(student);
                 break;
-            case "6":
+            case "5":
                 requestWithdrawal(student);
+                break;
+            case "6":
+                manageFilters();
                 break;
             case "7":
                 changePassword(currentUser);
@@ -232,10 +296,13 @@ public class InternshipPlacementSystem {
         System.out.println("2. View My Internships");
         System.out.println("3. Edit Internship");
         System.out.println("4. Delete Internship");
-        System.out.println("5. Process Applications");
-        System.out.println("6. Toggle Internship Visibility");
-        System.out.println("7. Change Password");
-        System.out.println("8. Logout");
+        System.out.println("5. View Application Details");
+        System.out.println("6. Process Applications");
+        System.out.println("7. Toggle Internship Visibility");
+        System.out.println("8. View All Internships (Filtered)");
+        System.out.println("9. Manage Filters");
+        System.out.println("10. Change Password");
+        System.out.println("11. Logout");
         System.out.print("\nEnter your choice: ");
         
         String choice = scanner.nextLine();
@@ -254,15 +321,24 @@ public class InternshipPlacementSystem {
                 deleteInternship(rep);
                 break;
             case "5":
-                processApplications(rep);
+                viewApplicationDetails(rep);
                 break;
             case "6":
-                toggleVisibility(rep);
+                processApplications(rep);
                 break;
             case "7":
-                changePassword(currentUser);
+                toggleVisibility(rep);
                 break;
             case "8":
+                viewAllInternshipsFiltered();
+                break;
+            case "9":
+                manageFilters();
+                break;
+            case "10":
+                changePassword(currentUser);
+                break;
+            case "11":
                 logout();
                 break;
             default:
@@ -272,34 +348,34 @@ public class InternshipPlacementSystem {
 
     private static void showCareerStaffMenu() {
         CareerCenterStaff staff = (CareerCenterStaff) currentUser;
-        System.out.println("\n=== CAREER CENTER STAFF MENU ===");
-        System.out.println("1. Approve Company Representative");
-        System.out.println("2. Approve Internship");
-        System.out.println("3. Reject Internship");
-        System.out.println("4. Approve Withdrawal");
-        System.out.println("5. Reject Withdrawal");
+        UIHelper.printCareerStaffMenu();
+        System.out.println("1. Process Company Representatives");
+        System.out.println("2. Process Internships");
+        System.out.println("3. Process Withdrawal Requests");
+        System.out.println("4. View All Internships (Filtered)");
+        System.out.println("5. Manage Filters");
         System.out.println("6. Generate Reports");
         System.out.println("7. Change Password");
         System.out.println("8. Logout");
-        System.out.print("Enter your choice: ");
+        System.out.print("\nEnter your choice: ");
         
         String choice = scanner.nextLine();
         
         switch (choice) {
             case "1":
-                approveCompanyRep(staff);
+                processCompanyReps(staff);
                 break;
             case "2":
-                approveInternship(staff);
+                processInternships(staff);
                 break;
             case "3":
-                rejectInternship(staff);
+                processWithdrawals(staff);
                 break;
             case "4":
-                approveWithdrawal(staff);
+                viewAllInternshipsFiltered();
                 break;
             case "5":
-                rejectWithdrawal(staff);
+                manageFilters();
                 break;
             case "6":
                 generateReports(staff);
@@ -311,7 +387,7 @@ public class InternshipPlacementSystem {
                 logout();
                 break;
             default:
-                System.out.println("Invalid choice. Please try again.");
+                UIHelper.printErrorMessage("Invalid choice. Please try again.");
         }
     }
 
@@ -339,6 +415,12 @@ public class InternshipPlacementSystem {
             return;
         }
         
+        // Check if new password is same as current password
+        if (newPassword.equals(currentPassword)) {
+            System.out.println("New password cannot be the same as current password.");
+            return;
+        }
+        
         System.out.print("Confirm new password: ");
         String confirmPassword = scanner.nextLine().trim();
         
@@ -353,67 +435,74 @@ public class InternshipPlacementSystem {
 
     private static void viewEligibleInternships(Student student) {
         UIHelper.printSectionHeader("ELIGIBLE INTERNSHIPS");
+        
+        if (userFilters.hasActiveFilters()) {
+            System.out.println(userFilters.toString());
+            System.out.println();
+        }
+        
         var internships = student.viewEligibleInternships();
+        internships = userFilters.applyFilters(internships);
+        
         if (internships.isEmpty()) {
             System.out.println("No eligible internships found.");
         } else {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             for (var internship : internships) {
                 System.out.println("ID: " + internship.getOpportunityID());
                 System.out.println("Title: " + internship.getTitle());
                 System.out.println("Company: " + internship.getCreatedBy().getCompanyName());
                 System.out.println("Level: " + internship.getLevel());
                 System.out.println("Preferred Major: " + internship.getPreferredMajor());
-                System.out.println("-------------------");
-            }
-        }
-    }
-
-    private static void viewAllInternships(Student student) {
-        UIHelper.printSectionHeader("ALL INTERNSHIPS");
-        var internships = student.viewAllInternships();
-        if (internships.isEmpty()) {
-            System.out.println("No internships available.");
-        } else {
-            for (var internship : internships) {
-                System.out.println("ID: " + internship.getOpportunityID());
-                System.out.println("Title: " + internship.getTitle());
-                System.out.println("Company: " + internship.getCreatedBy().getCompanyName());
-                System.out.println("Level: " + internship.getLevel());
-                System.out.println("Preferred Major: " + internship.getPreferredMajor());
-                System.out.println("Status: " + internship.getStatus());
-                System.out.println("Visible: " + (internship.isVisible() ? "Yes" : "No (You applied)"));
+                System.out.println("Max Slots: " + internship.getMaxSlots());
+                System.out.println("Opening Date: " + dateFormat.format(internship.getOpeningDate()));
+                System.out.println("Closing Date: " + dateFormat.format(internship.getClosingDate()));
                 System.out.println("-------------------");
             }
         }
     }
 
     private static void applyForInternship(Student student) {
-        System.out.print("Enter Internship ID: ");
-        String internshipID = scanner.nextLine();
-        if (internshipID.trim().isEmpty()) {
+        System.out.print("Enter Internship ID(s) (space-separated for multiple): ");
+        String input = scanner.nextLine().trim();
+        if (input.isEmpty()) {
             System.out.println("Internship ID cannot be empty.");
             return;
         }
         
-        boolean result = student.applyForInternship(internshipID);
-        if (result) {
-            System.out.println("Application submitted successfully!");
-        } else {
-            InternshipOpportunity opp = Database.getInternship(internshipID);
-            if (opp == null) {
-                System.out.println("Internship not found.");
-            } else if (!opp.isVisible() || !opp.getStatus().equals("Approved")) {
-                System.out.println("This internship is not available for applications.");
-            } else if (!opp.isOpen()) {
-                System.out.println("This internship is not accepting applications at this time. Applications are only accepted between the opening and closing dates.");
-            } else if (!opp.getPreferredMajor().equalsIgnoreCase(student.getMajor())) {
-                System.out.println("Your major does not match the preferred major for this internship.");
-            } else if (student.getYearOfStudy() <= 2 && !opp.getLevel().equals("Basic")) {
-                System.out.println("Year 1 and 2 students can only apply for Basic level internships.");
+        String[] internshipIDs = input.split("\\s+");
+        int successCount = 0;
+        int failCount = 0;
+        
+        for (String internshipID : internshipIDs) {
+            internshipID = internshipID.trim();
+            boolean result = student.applyForInternship(internshipID);
+            
+            if (result) {
+                System.out.println("✓ " + internshipID + ": Application submitted successfully!");
+                successCount++;
             } else {
-                System.out.println("Failed to apply. You may have already applied or reached the maximum of 3 active applications.");
+                InternshipOpportunity opp = Database.getInternship(internshipID);
+                if (opp == null) {
+                    System.out.println("✗ " + internshipID + ": Internship not found.");
+                } else if (!opp.isVisible() || !opp.getStatus().equals("Approved")) {
+                    System.out.println("✗ " + internshipID + ": Not available for applications.");
+                } else if (!opp.isOpen()) {
+                    System.out.println("✗ " + internshipID + ": Not accepting applications (check dates).");
+                } else if (!opp.getPreferredMajor().equalsIgnoreCase(student.getMajor())) {
+                    System.out.println("✗ " + internshipID + ": Major mismatch.");
+                } else if (student.getYearOfStudy() <= 2 && !opp.getLevel().equals("Basic")) {
+                    System.out.println("✗ " + internshipID + ": Year 1-2 students can only apply for Basic level.");
+                } else {
+                    System.out.println("✗ " + internshipID + ": Failed (already applied or max 3 applications reached).");
+                }
+                failCount++;
             }
         }
+        
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("Application complete: " + successCount + " succeeded, " + failCount + " failed.");
+        System.out.println("=".repeat(50));
     }
 
     private static void viewMyApplications(Student student) {
@@ -434,7 +523,7 @@ public class InternshipPlacementSystem {
                 System.out.println("  Company: " + opp.getCreatedBy().getCompanyName());
                 System.out.println("  Level: " + opp.getLevel());
                 System.out.println("  Preferred Major: " + opp.getPreferredMajor());
-                System.out.println("  Internship Status: " + opp.getStatus());
+                System.out.println("  Max Slots: " + opp.getMaxSlots());
                 System.out.println("  Currently Visible: " + (opp.isVisible() ? "Yes" : "No"));
                 System.out.println("=".repeat(50));
             }
@@ -442,25 +531,71 @@ public class InternshipPlacementSystem {
     }
 
     private static void acceptInternship(Student student) {
-        System.out.print("Enter Application ID: ");
+        // Show successful applications first
+        List<Application> successfulApps = new java.util.ArrayList<>();
+        for (Application app : student.viewApplications()) {
+            if (app.getStatus().equals("Successful")) {
+                successfulApps.add(app);
+            }
+        }
+        
+        if (successfulApps.isEmpty()) {
+            System.out.println("\nNo successful applications to accept.");
+            return;
+        }
+        
+        System.out.println("\n=== SUCCESSFUL APPLICATIONS ===");
+        for (Application app : successfulApps) {
+            InternshipOpportunity opp = app.getOpportunity();
+            System.out.println("\nApplication ID: " + app.getApplicationID());
+            System.out.println("Internship: " + opp.getTitle());
+            System.out.println("Company: " + opp.getCreatedBy().getName());
+            System.out.println("Level: " + opp.getLevel());
+            System.out.println("Max Slots: " + opp.getMaxSlots());
+            System.out.println("-".repeat(50));
+        }
+        
+        System.out.print("\nEnter Application ID to accept: ");
         String applicationID = scanner.nextLine();
         if (applicationID.trim().isEmpty()) {
             System.out.println("Application ID cannot be empty.");
             return;
         }
         student.acceptInternship(applicationID);
-        System.out.println("Internship acceptance processed.");
     }
 
     private static void requestWithdrawal(Student student) {
-        System.out.print("Enter Application ID: ");
+        // Show confirmed applications first
+        List<Application> confirmedApps = new java.util.ArrayList<>();
+        for (Application app : student.viewApplications()) {
+            if (app.getStatus().equals("Confirmed")) {
+                confirmedApps.add(app);
+            }
+        }
+        
+        if (confirmedApps.isEmpty()) {
+            System.out.println("\nNo confirmed applications to withdraw from.");
+            return;
+        }
+        
+        System.out.println("\n=== CONFIRMED APPLICATIONS ===");
+        for (Application app : confirmedApps) {
+            InternshipOpportunity opp = app.getOpportunity();
+            System.out.println("\nApplication ID: " + app.getApplicationID());
+            System.out.println("Internship: " + opp.getTitle());
+            System.out.println("Company: " + opp.getCreatedBy().getName());
+            System.out.println("Level: " + opp.getLevel());
+            System.out.println("Confirmed Date: " + app.getAppliedDate());
+            System.out.println("-".repeat(50));
+        }
+        
+        System.out.print("\nEnter Application ID to withdraw: ");
         String applicationID = scanner.nextLine();
         if (applicationID.trim().isEmpty()) {
             System.out.println("Application ID cannot be empty.");
             return;
         }
         student.requestWithdrawal(applicationID);
-        System.out.println("Withdrawal request submitted.");
     }
 
     private static void createInternship(CompanyRepresentative rep) {
@@ -495,11 +630,15 @@ public class InternshipPlacementSystem {
             return;
         }
         
-        System.out.print("Enter Level (Basic/Intermediate/Advanced): ");
-        String level = scanner.nextLine();
-        if (!level.equals("Basic") && !level.equals("Intermediate") && !level.equals("Advanced")) {
-            System.out.println("Invalid level. Must be Basic, Intermediate, or Advanced.");
-            return;
+        String level = null;
+        while (level == null) {
+            System.out.print("Enter Level (Basic/Intermediate/Advanced): ");
+            String input = scanner.nextLine().trim();
+            if (input.equals("Basic") || input.equals("Intermediate") || input.equals("Advanced")) {
+                level = input;
+            } else {
+                System.out.println("Invalid level. Must be Basic, Intermediate, or Advanced. Please try again.");
+            }
         }
         
         System.out.print("Enter Preferred Major: ");
@@ -519,15 +658,22 @@ public class InternshipPlacementSystem {
             
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             dateFormat.setLenient(false);
-            Date currentDate = new Date();
+            
+            // Get start of today (midnight) for date comparison
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            cal.set(java.util.Calendar.MINUTE, 0);
+            cal.set(java.util.Calendar.SECOND, 0);
+            cal.set(java.util.Calendar.MILLISECOND, 0);
+            Date startOfToday = cal.getTime();
             
             Date openingDate = null;
             while (openingDate == null) {
                 System.out.print("Enter Opening Date (dd/MM/yyyy): ");
                 try {
                     openingDate = dateFormat.parse(scanner.nextLine());
-                    // Check if opening date is before current date
-                    if (openingDate.before(currentDate)) {
+                    // Check if opening date is before today (allow today)
+                    if (openingDate.before(startOfToday)) {
                         System.out.println("Opening date cannot be in the past. Please enter a date from today onwards.");
                         openingDate = null;
                     }
@@ -541,7 +687,7 @@ public class InternshipPlacementSystem {
                 System.out.print("Enter Closing Date (dd/MM/yyyy): ");
                 try {
                     closingDate = dateFormat.parse(scanner.nextLine());
-                    if (closingDate.before(currentDate)) {
+                    if (closingDate.before(startOfToday)) {
                         System.out.println("Closing date cannot be in the past. Please enter a date from today onwards.");
                         closingDate = null;
                     } else if (closingDate.before(openingDate) || closingDate.equals(openingDate)) {
@@ -586,22 +732,22 @@ public class InternshipPlacementSystem {
     }
     
     private static void editInternship(CompanyRepresentative rep) {
-        UIHelper.printSectionHeader("EDIT INTERNSHIP (Pending Only)");
-        // Show only pending internships
-        boolean foundPending = false;
+        UIHelper.printSectionHeader("EDIT INTERNSHIP (Pending/Rejected Only)");
+        // Show only pending and rejected internships
+        boolean foundEditable = false;
         for (InternshipOpportunity opp : Database.getInternships()) {
             if (opp.getCreatedBy().getUserID().equals(rep.getUserID()) && 
-                opp.getStatus().equals("Pending")) {
+                (opp.getStatus().equals("Pending") || opp.getStatus().equals("Rejected"))) {
                 System.out.println("ID: " + opp.getOpportunityID());
                 System.out.println("Title: " + opp.getTitle());
                 System.out.println("Status: " + opp.getStatus());
                 System.out.println("-------------------");
-                foundPending = true;
+                foundEditable = true;
             }
         }
         
-        if (!foundPending) {
-            System.out.println("No pending internships to edit. Note: Approved internships cannot be edited.");
+        if (!foundEditable) {
+            System.out.println("No editable internships found. Note: Only pending or rejected internships can be edited.");
             return;
         }
         
@@ -618,9 +764,15 @@ public class InternshipPlacementSystem {
             return;
         }
         
-        if (!opp.getStatus().equals("Pending")) {
-            System.out.println("Cannot edit internship. Only pending internships can be edited (Status: " + opp.getStatus() + ")");
+        if (!opp.getStatus().equals("Pending") && !opp.getStatus().equals("Rejected")) {
+            System.out.println("Cannot edit internship. Only pending or rejected internships can be edited (Status: " + opp.getStatus() + ")");
             return;
+        }
+        
+        // If editing a rejected internship, change status back to Pending
+        if (opp.getStatus().equals("Rejected")) {
+            opp.setStatus("Pending");
+            System.out.println("Note: This internship status has been changed from Rejected to Pending for re-review.");
         }
         
         System.out.println("Leave field blank to keep current value.");
@@ -742,6 +894,63 @@ public class InternshipPlacementSystem {
             System.out.println("Deletion cancelled.");
         }
     }
+    
+    private static void viewApplicationDetails(CompanyRepresentative rep) {
+        UIHelper.printSectionHeader("VIEW APPLICATION DETAILS");
+        
+        // Show rep's internships
+        List<InternshipOpportunity> myInternships = new java.util.ArrayList<>();
+        for (InternshipOpportunity opp : Database.getInternships()) {
+            if (opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
+                myInternships.add(opp);
+            }
+        }
+        
+        if (myInternships.isEmpty()) {
+            UIHelper.printWarningMessage("No internships found.");
+            return;
+        }
+        
+        System.out.println("\nYour Internships:");
+        for (InternshipOpportunity opp : myInternships) {
+            System.out.println("ID: " + opp.getOpportunityID() + " - " + opp.getTitle() + " (" + opp.getStatus() + ")");
+        }
+        
+        System.out.print("\nEnter Internship ID to view applications (or 'cancel'): ");
+        String internshipID = scanner.nextLine().trim();
+        
+        if (internshipID.equalsIgnoreCase("cancel")) {
+            return;
+        }
+        
+        // Get applications for this internship
+        List<Application> applications = rep.viewApplications(internshipID);
+        
+        if (applications.isEmpty()) {
+            System.out.println("No applications found for this internship.");
+            return;
+        }
+        
+        System.out.println("\n" + "=".repeat(70));
+        System.out.println("APPLICATIONS FOR: " + Database.getInternship(internshipID).getTitle());
+        System.out.println("=".repeat(70));
+        
+        for (Application app : applications) {
+            Student student = app.getApplicant();
+            System.out.println("\nApplication ID: " + app.getApplicationID());
+            System.out.println("Status: " + app.getStatus());
+            System.out.println("Applied Date: " + app.getAppliedDate());
+            System.out.println("\nStudent Information:");
+            System.out.println("  Name: " + student.getName());
+            System.out.println("  Student ID: " + student.getUserID());
+            System.out.println("  Year of Study: Year " + student.getYearOfStudy());
+            System.out.println("  Major: " + student.getMajor());
+            System.out.println("-".repeat(70));
+        }
+        
+        System.out.println("\nTotal Applications: " + applications.size());
+        System.out.println("=".repeat(70));
+    }
 
     private static void processApplications(CompanyRepresentative rep) {
         UIHelper.printSectionHeader("PROCESS APPLICATIONS");
@@ -767,52 +976,71 @@ public class InternshipPlacementSystem {
             System.out.println("=".repeat(50));
         }
         
-        // Process application
-        System.out.print("\nEnter Application ID to process (or 'cancel' to go back): ");
-        String applicationID = scanner.nextLine().trim();
+        // Process applications (space-separated for batch processing)
+        System.out.print("\nEnter Application ID(s) to process (space-separated for multiple, or 'cancel' to go back): ");
+        String input = scanner.nextLine().trim();
         
-        if (applicationID.equalsIgnoreCase("cancel")) {
+        if (input.equalsIgnoreCase("cancel")) {
             UIHelper.printWarningMessage("Operation cancelled.");
             return;
         }
         
-        if (applicationID.isEmpty()) {
+        if (input.isEmpty()) {
             UIHelper.printErrorMessage("Application ID cannot be empty.");
             return;
         }
         
-        // Verify the application exists in pending list
-        boolean found = false;
-        for (Application app : pendingApplications) {
-            if (app.getApplicationID().equals(applicationID)) {
-                found = true;
-                break;
-            }
-        }
+        // Get decision first
+        System.out.print("Decision for all selected applications (approve/reject): ");
+        String decision = scanner.nextLine().trim().toLowerCase();
         
-        if (!found) {
-            UIHelper.printErrorMessage("Invalid Application ID or application is not pending.");
+        if (!decision.equals("approve") && !decision.equals("reject")) {
+            UIHelper.printErrorMessage("Invalid decision. Please enter 'approve' or 'reject'.");
             return;
         }
         
-        System.out.print("Decision (approve/reject): ");
-        String decision = scanner.nextLine().trim().toLowerCase();
+        // Process each application ID
+        String[] applicationIDs = input.split("\\s+");
+        int successCount = 0;
+        int failCount = 0;
         
-        if (decision.equals("approve")) {
-            if (rep.processApplication(applicationID, true)) {
-                UIHelper.printSuccessMessage("✓ Application approved successfully.");
-            } else {
-                UIHelper.printErrorMessage("Failed to approve application.");
+        for (String applicationID : applicationIDs) {
+            applicationID = applicationID.trim();
+            if (applicationID.isEmpty()) continue;
+            
+            // Verify the application exists in pending list
+            boolean found = false;
+            for (Application app : pendingApplications) {
+                if (app.getApplicationID().equals(applicationID)) {
+                    found = true;
+                    break;
+                }
             }
-        } else if (decision.equals("reject")) {
-            if (rep.processApplication(applicationID, false)) {
-                UIHelper.printSuccessMessage("✓ Application rejected successfully.");
-            } else {
-                UIHelper.printErrorMessage("Failed to reject application.");
+            
+            if (!found) {
+                System.out.println("Skipped " + applicationID + ": Invalid or not pending");
+                failCount++;
+                continue;
             }
-        } else {
-            UIHelper.printErrorMessage("Invalid decision. Please enter 'approve' or 'reject'.");
+            
+            boolean success;
+            if (decision.equals("approve")) {
+                success = rep.processApplication(applicationID, true);
+            } else {
+                success = rep.processApplication(applicationID, false);
+            }
+            
+            if (success) {
+                successCount++;
+            } else {
+                System.out.println("Failed to process: " + applicationID);
+                failCount++;
+            }
         }
+        
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("Processing complete: " + successCount + " succeeded, " + failCount + " failed");
+        System.out.println("=".repeat(50));
     }
 
     private static void toggleVisibility(CompanyRepresentative rep) {
@@ -840,212 +1068,281 @@ public class InternshipPlacementSystem {
             System.out.println("-".repeat(50));
         }
         
-        System.out.print("\nEnter Internship ID to toggle (or 'cancel' to go back): ");
-        String internshipID = scanner.nextLine().trim();
+        System.out.print("\nEnter Internship ID(s) to toggle (space-separated for multiple, or 'cancel'): ");
+        String input = scanner.nextLine().trim();
         
-        if (internshipID.equalsIgnoreCase("cancel")) {
+        if (input.equalsIgnoreCase("cancel")) {
             UIHelper.printWarningMessage("Operation cancelled.");
             return;
         }
         
-        if (internshipID.isEmpty()) {
+        if (input.isEmpty()) {
             UIHelper.printErrorMessage("Internship ID cannot be empty.");
             return;
         }
         
-        // Verify internship exists in the list
-        InternshipOpportunity targetOpp = null;
-        for (InternshipOpportunity opp : myInternships) {
-            if (opp.getOpportunityID().equals(internshipID)) {
-                targetOpp = opp;
-                break;
-            }
-        }
-        
-        if (targetOpp == null) {
-            UIHelper.printErrorMessage("Invalid Internship ID or internship not approved.");
-            return;
-        }
+        String[] internshipIDs = input.split("\\s+");
         
         System.out.print("Set visibility to (visible/hidden): ");
         String visibilityInput = scanner.nextLine().trim().toLowerCase();
         
-        if (visibilityInput.equals("visible")) {
-            rep.toggleVisibility(internshipID, true);
-            Database.saveData();
-            UIHelper.printSuccessMessage("✓ Internship is now visible to students.");
-        } else if (visibilityInput.equals("hidden")) {
-            rep.toggleVisibility(internshipID, false);
-            Database.saveData();
-            UIHelper.printSuccessMessage("✓ Internship is now hidden from students.");
-        } else {
+        if (!visibilityInput.equals("visible") && !visibilityInput.equals("hidden")) {
             UIHelper.printErrorMessage("Invalid input. Please enter 'visible' or 'hidden'.");
+            return;
         }
-    }
-
-    private static void approveCompanyRep(CareerCenterStaff staff) {
-        // First, show pending company representatives
-        UIHelper.printSectionHeader("PENDING COMPANY REPRESENTATIVES");
-        boolean foundPending = false;
-        for (User user : Database.getUsers()) {
-            if (user instanceof CompanyRepresentative) {
-                CompanyRepresentative rep = (CompanyRepresentative) user;
-                if (!rep.isApproved()) {
-                    System.out.println("ID: " + rep.getUserID());
-                    System.out.println("Name: " + rep.getName());
-                    System.out.println("Company: " + rep.getCompanyName());
-                    System.out.println("Department: " + rep.getDepartment());
-                    System.out.println("Position: " + rep.getPosition());
-                    System.out.println("-------------------");
-                    foundPending = true;
+        
+        boolean setVisible = visibilityInput.equals("visible");
+        int successCount = 0;
+        int failCount = 0;
+        
+        for (String internshipID : internshipIDs) {
+            internshipID = internshipID.trim();
+            
+            // Verify internship exists in the list
+            InternshipOpportunity targetOpp = null;
+            for (InternshipOpportunity opp : myInternships) {
+                if (opp.getOpportunityID().equals(internshipID)) {
+                    targetOpp = opp;
+                    break;
                 }
             }
-        }
-        if (!foundPending) {
-            System.out.println("No pending company representatives.");
-            return;
+            
+            if (targetOpp == null) {
+                System.out.println("✗ " + internshipID + ": Invalid ID or not approved.");
+                failCount++;
+            } else {
+                rep.toggleVisibility(internshipID, setVisible);
+                System.out.println("✓ " + internshipID + ": Set to " + (setVisible ? "visible" : "hidden"));
+                successCount++;
+            }
         }
         
-        System.out.print("Enter Company Representative ID to approve: ");
-        String repID = scanner.nextLine();
-        if (repID.trim().isEmpty()) {
-            System.out.println("ID cannot be empty.");
-            return;
-        }
-        staff.approveCompanyRep(repID);
         Database.saveData();
-        System.out.println("Company representative approved.");
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("Toggle complete: " + successCount + " succeeded, " + failCount + " failed.");
+        System.out.println("=".repeat(50));
     }
 
-    private static void approveInternship(CareerCenterStaff staff) {
-        // First, show pending internships
-        System.out.println("\n=== PENDING INTERNSHIPS ===");
-        boolean foundPending = false;
-        for (InternshipOpportunity opp : Database.getInternships()) {
-            if (opp.getStatus().equals("Pending")) {
-                System.out.println("ID: " + opp.getOpportunityID());
-                System.out.println("Title: " + opp.getTitle());
-                System.out.println("Company: " + opp.getCreatedBy().getCompanyName());
-                System.out.println("Level: " + opp.getLevel());
-                System.out.println("Preferred Major: " + opp.getPreferredMajor());
-                System.out.println("Max Slots: " + opp.getMaxSlots());
-                System.out.println("-------------------");
-                foundPending = true;
-            }
-        }
-        if (!foundPending) {
-            System.out.println("No pending internships.");
+    private static void processCompanyReps(CareerCenterStaff staff) {
+        UIHelper.printSectionHeader("PROCESS COMPANY REPRESENTATIVES");
+        
+        List<CompanyRepresentative> pendingReps = staff.getPendingCompanyReps();
+        
+        if (pendingReps.isEmpty()) {
+            UIHelper.printWarningMessage("No pending company representatives to process.");
             return;
         }
         
-        System.out.print("Enter Internship ID to approve: ");
-        String internshipID = scanner.nextLine();
-        if (internshipID.trim().isEmpty()) {
-            System.out.println("ID cannot be empty.");
-            return;
+        // Display all pending company representatives
+        System.out.println("\nPending Company Representatives:");
+        for (CompanyRepresentative rep : pendingReps) {
+            System.out.println("\n" + "=".repeat(50));
+            System.out.println("ID: " + rep.getUserID());
+            System.out.println("Name: " + rep.getName());
+            System.out.println("Company: " + rep.getCompanyName());
+            System.out.println("Department: " + rep.getDepartment());
+            System.out.println("Position: " + rep.getPosition());
+            System.out.println("Email: " + rep.getEmail());
+            System.out.println("=".repeat(50));
         }
-        if (staff.approveInternship(internshipID)) {
-            Database.saveData();
-            System.out.println("Internship approved successfully.");
-        } else {
-            System.out.println("Invalid Internship ID or internship is not in Pending status.");
-        }
-    }
-
-    private static void rejectInternship(CareerCenterStaff staff) {
-        // First, show pending internships
-        System.out.println("\n=== PENDING INTERNSHIPS ===");
-        boolean foundPending = false;
-        for (InternshipOpportunity opp : Database.getInternships()) {
-            if (opp.getStatus().equals("Pending")) {
-                System.out.println("ID: " + opp.getOpportunityID());
-                System.out.println("Title: " + opp.getTitle());
-                System.out.println("Company: " + opp.getCreatedBy().getCompanyName());
-                System.out.println("-------------------");
-                foundPending = true;
-            }
-        }
-        if (!foundPending) {
-            System.out.println("No pending internships.");
+        
+        System.out.print("\nEnter Company Representative ID to process (or 'cancel' to go back): ");
+        String repID = scanner.nextLine().trim();
+        
+        if (repID.equalsIgnoreCase("cancel")) {
+            UIHelper.printWarningMessage("Operation cancelled.");
             return;
         }
         
-        System.out.print("Enter Internship ID to reject: ");
-        String internshipID = scanner.nextLine();
-        if (internshipID.trim().isEmpty()) {
-            System.out.println("ID cannot be empty.");
-            return;
-        }
-        if (staff.rejectInternship(internshipID)) {
-            Database.saveData();
-            System.out.println("Internship rejected successfully.");
-        } else {
-            System.out.println("Invalid Internship ID or internship is not in Pending status.");
-        }
-    }
-
-    private static void approveWithdrawal(CareerCenterStaff staff) {
-        // First, show withdrawal requests
-        System.out.println("\n=== WITHDRAWAL REQUESTS ===");
-        boolean foundRequests = false;
-        for (Application app : Database.getApplications()) {
-            if (app.getStatus().equals("Withdrawal Requested")) {
-                System.out.println("Application ID: " + app.getApplicationID());
-                System.out.println("Student: " + app.getApplicant().getName());
-                System.out.println("Internship: " + app.getOpportunity().getTitle());
-                System.out.println("Company: " + app.getOpportunity().getCreatedBy().getCompanyName());
-                System.out.println("-------------------");
-                foundRequests = true;
-            }
-        }
-        if (!foundRequests) {
-            System.out.println("No withdrawal requests.");
+        if (repID.isEmpty()) {
+            UIHelper.printErrorMessage("ID cannot be empty.");
             return;
         }
         
-        System.out.print("Enter Application ID to approve withdrawal: ");
-        String applicationID = scanner.nextLine();
-        if (applicationID.trim().isEmpty()) {
-            System.out.println("ID cannot be empty.");
-            return;
-        }
-        if (staff.approveWithdrawal(applicationID)) {
-            Database.saveData();
-            System.out.println("Withdrawal approved successfully.");
-        } else {
-            System.out.println("Invalid Application ID or application does not have a withdrawal request.");
-        }
-    }
-
-    private static void rejectWithdrawal(CareerCenterStaff staff) {
-        // First, show withdrawal requests
-        System.out.println("\n=== WITHDRAWAL REQUESTS ===");
-        boolean foundRequests = false;
-        for (Application app : Database.getApplications()) {
-            if (app.getStatus().equals("Withdrawal Requested")) {
-                System.out.println("Application ID: " + app.getApplicationID());
-                System.out.println("Student: " + app.getApplicant().getName());
-                System.out.println("Internship: " + app.getOpportunity().getTitle());
-                System.out.println("-------------------");
-                foundRequests = true;
+        // Verify the rep exists in pending list
+        boolean found = false;
+        for (CompanyRepresentative rep : pendingReps) {
+            if (rep.getUserID().equals(repID)) {
+                found = true;
+                break;
             }
         }
-        if (!foundRequests) {
-            System.out.println("No withdrawal requests.");
+        
+        if (!found) {
+            UIHelper.printErrorMessage("Invalid ID or company representative is not pending.");
             return;
         }
         
-        System.out.print("Enter Application ID to reject withdrawal: ");
-        String applicationID = scanner.nextLine();
-        if (applicationID.trim().isEmpty()) {
-            System.out.println("ID cannot be empty.");
+        System.out.print("Decision (approve/reject): ");
+        String decision = scanner.nextLine().trim().toLowerCase();
+        
+        if (decision.equals("approve")) {
+            if (staff.processCompanyRep(repID, true)) {
+                UIHelper.printSuccessMessage("✓ Company representative approved successfully.");
+            } else {
+                UIHelper.printErrorMessage("Failed to approve company representative.");
+            }
+        } else if (decision.equals("reject")) {
+            UIHelper.printWarningMessage("Company representative registration rejected. (Account remains pending)");
+        } else {
+            UIHelper.printErrorMessage("Invalid decision. Please enter 'approve' or 'reject'.");
+        }
+    }
+
+    private static void processInternships(CareerCenterStaff staff) {
+        UIHelper.printSectionHeader("PROCESS INTERNSHIPS");
+        
+        List<InternshipOpportunity> pendingInternships = staff.getPendingInternships();
+        
+        if (pendingInternships.isEmpty()) {
+            UIHelper.printWarningMessage("No pending internships to process.");
             return;
         }
-        if (staff.rejectWithdrawal(applicationID)) {
-            Database.saveData();
-            System.out.println("Withdrawal rejected successfully.");
+        
+        // Display all pending internships
+        System.out.println("\nPending Internships:");
+        for (InternshipOpportunity opp : pendingInternships) {
+            System.out.println("\n" + "=".repeat(50));
+            System.out.println("ID: " + opp.getOpportunityID());
+            System.out.println("Title: " + opp.getTitle());
+            System.out.println("Description: " + opp.getDescription());
+            System.out.println("Company: " + opp.getCreatedBy().getCompanyName());
+            System.out.println("Requested by: " + opp.getCreatedBy().getName() + " (" + opp.getCreatedBy().getPosition() + ")");
+            System.out.println("Level: " + opp.getLevel());
+            System.out.println("Preferred Major: " + opp.getPreferredMajor());
+            System.out.println("Max Slots: " + opp.getMaxSlots());
+            System.out.println("Opening Date: " + opp.getOpeningDate());
+            System.out.println("Closing Date: " + opp.getClosingDate());
+            System.out.println("=".repeat(50));
+        }
+        
+        System.out.print("\nEnter Internship ID(s) to process (space-separated for multiple, or 'cancel' to go back): ");
+        String input = scanner.nextLine().trim();
+        
+        if (input.equalsIgnoreCase("cancel")) {
+            UIHelper.printWarningMessage("Operation cancelled.");
+            return;
+        }
+        
+        if (input.isEmpty()) {
+            UIHelper.printErrorMessage("Internship ID cannot be empty.");
+            return;
+        }
+        
+        // Split by spaces for mass processing
+        String[] internshipIDs = input.split("\\s+");
+        
+        System.out.print("Decision (approve/reject): ");
+        String decision = scanner.nextLine().trim().toLowerCase();
+        
+        if (!decision.equals("approve") && !decision.equals("reject")) {
+            UIHelper.printErrorMessage("Invalid decision. Please enter 'approve' or 'reject'.");
+            return;
+        }
+        
+        boolean isApprove = decision.equals("approve");
+        int successCount = 0;
+        int failCount = 0;
+        
+        for (String internshipID : internshipIDs) {
+            internshipID = internshipID.trim();
+            
+            // Verify internship exists in pending list
+            boolean found = false;
+            for (InternshipOpportunity opp : pendingInternships) {
+                if (opp.getOpportunityID().equals(internshipID)) {
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found) {
+                System.out.println("⚠ Skipping " + internshipID + ": Invalid ID or not pending.");
+                failCount++;
+                continue;
+            }
+            
+            if (staff.processInternship(internshipID, isApprove)) {
+                System.out.println("✓ " + internshipID + ": " + (isApprove ? "Approved and set to visible" : "Rejected"));
+                successCount++;
+            } else {
+                System.out.println("✗ " + internshipID + ": Failed to process");
+                failCount++;
+            }
+        }
+        
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("Processing complete: " + successCount + " succeeded, " + failCount + " failed.");
+        System.out.println("=".repeat(50));
+    }
+
+    private static void processWithdrawals(CareerCenterStaff staff) {
+        UIHelper.printSectionHeader("PROCESS WITHDRAWAL REQUESTS");
+        
+        List<Application> withdrawalRequests = staff.getWithdrawalRequests();
+        
+        if (withdrawalRequests.isEmpty()) {
+            UIHelper.printWarningMessage("No withdrawal requests to process.");
+            return;
+        }
+        
+        // Display all withdrawal requests
+        System.out.println("\nWithdrawal Requests:");
+        for (Application app : withdrawalRequests) {
+            System.out.println("\n" + "=".repeat(50));
+            System.out.println("Application ID: " + app.getApplicationID());
+            System.out.println("Student: " + app.getApplicant().getName());
+            System.out.println("Student ID: " + app.getApplicant().getUserID());
+            System.out.println("Internship: " + app.getOpportunity().getTitle());
+            System.out.println("Company: " + app.getOpportunity().getCreatedBy().getCompanyName());
+            System.out.println("Applied Date: " + app.getAppliedDate());
+            System.out.println("=".repeat(50));
+        }
+        
+        System.out.print("\nEnter Application ID to process (or 'cancel' to go back): ");
+        String applicationID = scanner.nextLine().trim();
+        
+        if (applicationID.equalsIgnoreCase("cancel")) {
+            UIHelper.printWarningMessage("Operation cancelled.");
+            return;
+        }
+        
+        if (applicationID.isEmpty()) {
+            UIHelper.printErrorMessage("Application ID cannot be empty.");
+            return;
+        }
+        
+        // Verify application exists in withdrawal requests list
+        boolean found = false;
+        for (Application app : withdrawalRequests) {
+            if (app.getApplicationID().equals(applicationID)) {
+                found = true;
+                break;
+            }
+        }
+        
+        if (!found) {
+            UIHelper.printErrorMessage("Invalid Application ID or no withdrawal request exists.");
+            return;
+        }
+        
+        System.out.print("Decision (approve/reject): ");
+        String decision = scanner.nextLine().trim().toLowerCase();
+        
+        if (decision.equals("approve")) {
+            if (staff.processWithdrawal(applicationID, true)) {
+                UIHelper.printSuccessMessage(" Withdrawal request approved. Application status changed to Withdrawn.");
+            } else {
+                UIHelper.printErrorMessage("Failed to approve withdrawal.");
+            }
+        } else if (decision.equals("reject")) {
+            if (staff.processWithdrawal(applicationID, false)) {
+                UIHelper.printSuccessMessage(" Withdrawal request rejected. Application remains Pending.");
+            } else {
+                UIHelper.printErrorMessage("Failed to reject withdrawal.");
+            }
         } else {
-            System.out.println("Invalid Application ID or application does not have a withdrawal request.");
+            UIHelper.printErrorMessage("Invalid decision. Please enter 'approve' or 'reject'.");
         }
     }
 
@@ -1067,5 +1364,88 @@ public class InternshipPlacementSystem {
         
         Report report = staff.generateReports(filters);
         report.displayReport();
+    }
+    
+    // ============================================
+    // FILTER MANAGEMENT METHODS
+    // ============================================
+    
+    private static void manageFilters() {
+        UIHelper.printSectionHeader("MANAGE FILTERS");
+        System.out.println("Current Settings:");
+        System.out.println(userFilters.toString());
+        System.out.println();
+        
+        System.out.println("1. Set Status Filter (Pending/Approved/Rejected)");
+        System.out.println("2. Set Level Filter (Undergraduate/Graduate/Both)");
+        System.out.println("3. Set Major Filter (CS/EEE/BM/All)");
+        System.out.println("4. Change Sort By (Title/Company/Level/Closing)");
+        System.out.println("5. Clear All Filters");
+        System.out.println("6. Back to Main Menu");
+        System.out.print("\nEnter your choice: ");
+        
+        String choice = scanner.nextLine();
+        
+        switch (choice) {
+            case "1":
+                System.out.print("Enter status (Pending/Approved/Rejected) or leave blank: ");
+                userFilters.setStatusFilter(scanner.nextLine().trim());
+                UIHelper.printSuccessMessage("Status filter updated!");
+                break;
+            case "2":
+                System.out.print("Enter level (Undergraduate/Graduate/Both) or leave blank: ");
+                userFilters.setLevelFilter(scanner.nextLine().trim());
+                UIHelper.printSuccessMessage("Level filter updated!");
+                break;
+            case "3":
+                System.out.print("Enter major (CS/EEE/BM/All) or leave blank: ");
+                userFilters.setMajorFilter(scanner.nextLine().trim());
+                UIHelper.printSuccessMessage("Major filter updated!");
+                break;
+            case "4":
+                System.out.print("Sort by (Title/Company/Level/Closing): ");
+                String sortBy = scanner.nextLine().trim();
+                if (!sortBy.isEmpty()) {
+                    userFilters.setSortBy(sortBy);
+                    UIHelper.printSuccessMessage("Sort preference updated!");
+                }
+                break;
+            case "5":
+                userFilters.clearFilters();
+                UIHelper.printSuccessMessage("All filters cleared!");
+                break;
+            case "6":
+                return;
+            default:
+                UIHelper.printErrorMessage("Invalid choice.");
+        }
+    }
+    
+    private static void viewAllInternshipsFiltered() {
+        UIHelper.printSectionHeader("ALL INTERNSHIPS (FILTERED)");
+        
+        if (userFilters.hasActiveFilters()) {
+            System.out.println(userFilters.toString());
+            System.out.println();
+        }
+        
+        List<InternshipOpportunity> allInternships = Database.getInternships();
+        allInternships = userFilters.applyFilters(allInternships);
+        
+        if (allInternships.isEmpty()) {
+            System.out.println("No internships match your filters.");
+        } else {
+            for (InternshipOpportunity internship : allInternships) {
+                System.out.println("ID: " + internship.getOpportunityID());
+                System.out.println("Title: " + internship.getTitle());
+                System.out.println("Company: " + internship.getCreatedBy().getCompanyName());
+                System.out.println("Level: " + internship.getLevel());
+                System.out.println("Preferred Major: " + internship.getPreferredMajor());
+                System.out.println("Status: " + internship.getStatus());
+                System.out.println("Closing Date: " + internship.getClosingDate());
+                System.out.println("Visible: " + (internship.isVisible() ? "Yes" : "No"));
+                System.out.println("-------------------");
+            }
+        }
     }
 }

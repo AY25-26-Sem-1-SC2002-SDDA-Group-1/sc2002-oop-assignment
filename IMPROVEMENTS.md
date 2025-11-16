@@ -6,6 +6,93 @@ This document outlines all the improvements made to the Internship Placement Sys
 
 ---
 
+## Latest Improvements ( 16 November 2025)
+
+### UX Enhancements
+
+#### 1. **Space-Separated Batch Processing** ✅
+
+- **Feature**: Company representatives can now process multiple applications at once using space-separated Application IDs
+- **Implementation**: `processApplications()` accepts multiple IDs and processes them with a single approve/reject decision
+- **Location**: `InternshipPlacementSystem.java`, processApplications() method
+- **Benefits**: Significantly reduces time for processing multiple applications
+
+#### 2. **Pre-Display Application Lists** ✅
+
+- **Feature**: Students see their successful/confirmed applications before being prompted to accept/withdraw
+- **Implementation**:
+  - `acceptInternship()` displays all successful applications with details before prompting
+  - `requestWithdrawal()` displays all confirmed applications before prompting
+- **Location**: `InternshipPlacementSystem.java`, lines 533-590
+- **Benefits**: Better user experience - students can review their options before making a decision
+
+#### 3. **Clean UI Design** ✅
+
+- **Change**: Removed all emoji characters from system messages
+- **Location**: `UIHelper.java`, printSuccessMessage(), printErrorMessage(), printWarningMessage()
+- **Benefits**: Professional appearance, better compatibility across terminals
+
+#### 4. **Password Security Enhancement** ✅
+
+- **Feature**: Users cannot change their password to the same password they currently have
+- **Implementation**: Added validation in `changePassword()` to check if new password equals current password
+- **Location**: `InternshipPlacementSystem.java`, lines 419-423
+- **Benefits**: Enforces actual password changes for security compliance
+
+### Advanced Features
+
+#### 5. **Waitlist Queue System** ✅
+
+- **Feature**: Automatic queue management for filled internships
+- **Implementation**:
+  - When student accepts filled internship, application status changes to "Queued"
+  - When withdrawal approved, system automatically confirms next queued application (FIFO)
+  - Queue processing handles all side effects (withdraw other applications, update internship status)
+- **Location**:
+  - Student queuing: `Student.java`, acceptInternship() method (lines 130-137)
+  - Auto-confirmation: `CareerCenterStaff.java`, processQueue() method (lines 109-157)
+- **Benefits**: Fair allocation of slots, no manual intervention needed, seamless user experience
+
+#### 6. **Manual Withdrawal Tracking** ✅
+
+- **Feature**: Students cannot reapply to internships they manually withdrew from
+- **Implementation**:
+  - Added `manuallyWithdrawn` field to Application class
+  - Field set to true when student requests withdrawal (not for auto-withdrawals)
+  - `applyForInternship()` checks for previous manual withdrawals
+- **Location**:
+  - Application class: `Application.java`, lines 9, 16, 42-48
+  - Student withdrawal: `Student.java`, requestWithdrawal() (line 197)
+  - Application validation: `Student.java`, applyForInternship() (lines 67-73)
+- **Benefits**: Prevents abuse of withdrawal system, maintains commitment accountability
+
+#### 7. **Smart Internship Status Management** ✅
+
+- **Feature**: Automatic status updates when slots become available
+- **Implementation**:
+  - When withdrawal approved for "Filled" internship, status reverts to "Approved" if slots available
+  - Integrated with queue processing for seamless slot management
+- **Location**: `CareerCenterStaff.java`, processWithdrawal() method (lines 81-95)
+- **Benefits**: Internships automatically become visible again when slots open
+
+#### 8. **Removed Student-Side Filled Message** ✅
+
+- **Change**: Removed "This internship is now full and has been marked as Filled" message from student's view
+- **Implementation**: Removed System.out.println from Student.acceptInternship()
+- **Location**: `Student.java`, lines 161-164
+- **Benefits**: Cleaner user experience - students don't need to see internal status changes
+
+### OOP Compliance
+
+All improvements maintain strict OOP principles:
+
+- **Encapsulation**: Business logic in domain classes (Student, CareerCenterStaff)
+- **Single Responsibility**: UI layer only handles display, domain layer handles validation
+- **DRY Principle**: Queue processing logic centralized in one method
+- **Data Integrity**: manuallyWithdrawn field prevents state inconsistencies
+
+---
+
 ## ✅ ALL 20 APPENDIX A TEST CASES VERIFIED
 
 See `TEST_VERIFICATION.md` for detailed test case implementation status.
@@ -137,6 +224,80 @@ See `TEST_VERIFICATION.md` for detailed test case implementation status.
   - `InternshipPlacementSystem.java`: Added save call (line 139)
   - `Database.java`: Fixed email field in save method (line 227)
 
+### 15. **Unified "Process" Pattern for Approval/Rejection** ✅
+
+- **Issue**: Duplicate approve/reject methods throughout the system (8 total methods across 2 classes) caused code duplication and inconsistent UX
+- **Fix**:
+  - **Company Representative**: Consolidated `approveApplication()` and `rejectApplication()` into single `processApplication(applicationID, approve)` method
+  - **Career Center Staff**: Consolidated 6 methods into 3:
+    - `approveCompanyRep()` + `rejectCompanyRep()` → `processCompanyRep(id, approve)`
+    - `approveInternship()` + `rejectInternship()` → `processInternship(id, approve)`
+    - `approveWithdrawal()` + `rejectWithdrawal()` → `processWithdrawal(id, approve)`
+  - Added helper methods for data retrieval: `getPendingCompanyReps()`, `getPendingInternships()`, `getWithdrawalRequests()`
+  - **UI Layer**: Consolidated 6 menu methods into 3 unified workflows with enhanced displays, validation, and cancel options
+  - **Menu Optimization**: Career Staff menu reduced from 8 to 6 options
+- **Benefits**:
+  - Eliminated code duplication (DRY principle)
+  - Consistent user experience across all approval workflows
+  - Single responsibility maintained with helper methods
+  - Auto-save integration in unified process methods
+  - Comprehensive validation and error handling
+- **Location**:
+  - `CompanyRepresentative.java`: `processApplication()` (lines 76-94), `getPendingApplications()` (lines 96-103)
+  - `CareerCenterStaff.java`: 3 process methods + 3 helper methods (lines 42-158)
+  - `InternshipPlacementSystem.java`: 3 unified UI methods (lines 846-1190)
+
+### 16. **Auto-Visibility Toggle on Internship Approval** ✅
+
+- **Issue**: After Career Staff approved an internship, Company Rep had to manually toggle visibility for students to see it
+- **Fix**: Added automatic visibility toggle when internship status changes to "Approved"
+- **Location**: `CareerCenterStaff.java`, `processInternship()` method (line 85)
+- **Benefit**: Streamlined workflow - internships become visible immediately after approval
+
+### 17. **Student View Applied Internships Regardless of Visibility** ✅
+
+- **Issue**: Students couldn't see internships they applied to after visibility was turned off
+- **Fix**:
+  - Added `viewAllInternships()` method to Student class that returns visible internships + internships student has applied to
+  - Enhanced `viewMyApplications()` in UI to show full internship details with visibility status
+  - Added new menu option "View All Internships" to student menu (menu expanded from 7 to 8 options)
+- **Location**:
+  - `Student.java`: `viewAllInternships()` method (lines 122-143)
+  - `InternshipPlacementSystem.java`: Enhanced display (lines 420-447)
+- **Benefit**: Students maintain visibility of their application status even after internship visibility changes
+
+### 18. **Filter and Sort Functionality for All Users** ✅
+
+- **Issue**: No filtering capability for students or company reps; only Career Staff had filters (limited to reports)
+- **Fix**:
+  - Created `FilterSettings` class to encapsulate filter state and logic (status, level, major, sort preferences)
+  - Implemented persistent filter settings that are saved across menu navigation (reset only on logout)
+  - **Default sorting**: Alphabetical order by internship title
+  - **Filter options**: Status (Pending/Approved/Rejected), Level (Undergraduate/Graduate/Both), Major (CS/EEE/BM/All), Closing Date
+  - **Sort options**: Title, Company, Level, Closing Date
+  - Added "Manage Filters" menu option for all user types
+  - Applied filters to all internship viewing functions:
+    - Student: `viewEligibleInternships()`, `viewAllInternships()`
+    - Company Rep: `viewAllInternshipsFiltered()` (new option)
+    - Career Staff: `viewAllInternshipsFiltered()` (new option)
+  - Filter settings display shows active filters and current sort preference
+- **Menu Updates**:
+  - Student menu: 8 → 9 options (added "Manage Filters")
+  - Company Rep menu: 8 → 10 options (added "View All Internships (Filtered)" + "Manage Filters")
+  - Career Staff menu: 6 → 8 options (added "View All Internships (Filtered)" + "Manage Filters")
+- **Location**:
+  - `InternshipPlacementSystem.java`:
+    - `FilterSettings` class (lines 10-60)
+    - `userFilters` instance variable (line 64)
+    - `manageFilters()` method (lines 1210-1254)
+    - `viewAllInternshipsFiltered()` method (lines 1256-1279)
+    - Updated all view methods to apply filters
+- **Benefits**:
+  - All users can filter and sort internships based on their needs
+  - Filter persistence improves user experience (no need to re-set filters on each page)
+  - Default alphabetical sorting provides consistent, predictable ordering
+  - OOP design: Filter logic encapsulated in dedicated class
+
 ---
 
 ## OOP Principles Improvements
@@ -180,12 +341,15 @@ See `TEST_VERIFICATION.md` for detailed test case implementation status.
 ### Student Features ✅
 
 - [x] View only eligible internships (major match, level restriction, visibility)
+- [x] **Filter and sort internships** (Status, Level, Major, Closing Date with alphabetical default)
+- [x] **View applied internships regardless of visibility status**
 - [x] Maximum 3 active applications enforced
 - [x] Year 1-2 restricted to Basic level
 - [x] Can view all their applications
 - [x] Can accept successful offers
 - [x] Can request withdrawal
 - [x] Can change password
+- [x] **Filter settings persist across menu navigation**
 
 ### Company Representative Features ✅
 
@@ -196,29 +360,38 @@ See `TEST_VERIFICATION.md` for detailed test case implementation status.
 - [x] Internship max slots (1-10) validated
 - [x] Opening and closing dates are user-inputted with validation
 - [x] Can view applications for their internships
-- [x] Can approve/reject applications (with proper validation)
+- [x] **Unified "process applications" feature** (approve/reject consolidated into single workflow)
 - [x] Can toggle visibility
 - [x] Can change password
 - [x] CRUD operations for internships (view, edit pending only, delete)
 - [x] New registrations automatically saved to CSV
+- [x] **Filter and sort all internships** (view internships from all companies with filters)
+- [x] **Filter settings persist across menu navigation**
 
 ### Career Center Staff Features ✅
 
-- [x] Can approve company representatives (with listing)
-- [x] Can approve internships (with listing)
-- [x] Can reject internships (with listing)
-- [x] Can approve withdrawals (with listing)
-- [x] Can reject withdrawals (with listing)
+- [x] **Unified "process" workflows** for all approval/rejection operations
+- [x] Can process company representatives (approve/reject in single workflow with listing)
+- [x] Can process internships (approve/reject in single workflow with listing)
+- [x] **Auto-visibility toggle** when internship is approved
+- [x] Can process withdrawals (approve/reject in single workflow with listing)
 - [x] Can generate filtered reports
 - [x] Can change password
+- [x] **Filter and sort all internships** (view all internships with filters)
+- [x] **Filter settings persist across menu navigation**
+- [x] **Menu optimized** from 8 to 8 options (consolidated workflows, added filters)
 
 ### General Features ✅
 
 - [x] All users can login/logout
 - [x] All users can change password
+- [x] **All users can filter and sort internship views** (Status, Level, Major, Closing Date)
+- [x] **Default alphabetical sorting** by internship title
+- [x] **Filter persistence** across menu navigation (reset on logout)
 - [x] Data persistence for all user types
 - [x] Proper validation and error messages
 - [x] CSV file-based storage (no database)
+- [x] **Unified "process" pattern** eliminates code duplication (DRY principle)
 
 ---
 
@@ -299,5 +472,62 @@ java InternshipPlacementSystem
 1. Login as company rep
 2. Try to approve/reject with invalid application ID
 3. Should show error message instead of false success
+
+#### Test 9: Unified Process Workflows
+
+1. Login as Career Staff
+2. Select "Process Company Representatives" - should show list and prompt for single decision
+3. Select "Process Internships" - should show list and prompt for approve/reject
+4. Select "Process Withdrawal Requests" - unified workflow
+5. Verify menu has 8 options (consolidated from previous version)
+
+#### Test 10: Auto-Visibility on Approval
+
+1. Login as Career Staff
+2. Process (approve) a pending internship
+3. Logout and login as student
+4. Verify the internship is now visible without Company Rep manually toggling it
+
+#### Test 11: Student View Applied Internships
+
+1. Login as student and apply to an internship
+2. Login as Company Rep and toggle that internship's visibility to OFF
+3. Login back as student
+4. Select "View All Internships" - should still see the applied internship with "Visible: No (You applied)"
+
+#### Test 12: Filter Functionality for All Users
+
+1. **Student Filtering**:
+
+   - Login as student
+   - Select "Manage Filters" (option 7)
+   - Set status filter to "Approved"
+   - Set level filter to "Undergraduate"
+   - Return to menu and view internships - should only show approved undergraduate internships
+   - Verify filters persist when navigating between different menu options
+   - Logout and login again - filters should be reset
+
+2. **Company Rep Filtering**:
+
+   - Login as company rep
+   - Select "View All Internships (Filtered)" (option 7)
+   - Use "Manage Filters" (option 8) to filter by major "CS"
+   - View again - should show only CS internships from all companies
+   - Change sort to "Company" - verify alphabetical sorting by company name
+
+3. **Career Staff Filtering**:
+   - Login as career staff
+   - Select "View All Internships (Filtered)" (option 4)
+   - Use "Manage Filters" (option 5) to set multiple filters
+   - Verify default sorting is alphabetical by title
+   - Change sort to "Closing" - verify sorting by closing date
+
+#### Test 13: Default Alphabetical Sorting
+
+1. Login as any user type
+2. View internships (without setting any filters)
+3. Verify internships are displayed in alphabetical order by title
+4. Set sort preference to "Company" - verify re-sorting
+5. Clear filters - should revert to default (title) sorting
 
 ---

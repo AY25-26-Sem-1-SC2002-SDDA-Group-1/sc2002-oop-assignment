@@ -1,4 +1,5 @@
 # sc2002-oop-assignment
+
 An Internship Placement System, designed with Object-Oriented Principles
 
 ## Features
@@ -9,21 +10,43 @@ An Internship Placement System, designed with Object-Oriented Principles
 - **Approval Workflows**: Career center staff approve company reps and internships
 - **Reporting**: Generate filtered reports on internship opportunities
 - **Data Persistence**: CSV-based storage for user data
+- **Batch Processing**: Space-separated IDs for mass operations (apply, process applications, toggle visibility)
+- **Waitlist System**: Automatic queue management for filled internships with FIFO processing
+- **Smart Status Management**: Automatic status updates when slots become available
+
+## Recent Enhancements
+
+### User Experience
+
+- **Pre-Display Lists**: Students see their successful/confirmed applications before being prompted
+- **Batch Operations**: Space-separated IDs for applying to multiple internships and processing applications
+- **Clean UI**: Removed emojis for professional appearance
+- **Password Security**: Prevents users from setting new password same as current
+
+### Advanced Features
+
+- **Waitlist Queue**: Students added to queue when internship is full, automatically confirmed when slots open
+- **Manual Withdrawal Tracking**: Prevents reapplication to internships students manually withdrew from
+- **Auto Status Updates**: Internships automatically change from "Filled" to "Approved" when slots become available
+- **Queue Processing**: Automatic confirmation of queued applications in FIFO order
 
 ## System Architecture
 
 ### Classes
+
 - `User`: Base class for all users
-- `Student`: Extends User, handles student operations
+- `Student`: Extends User, handles student operations with enhanced validation
 - `CompanyRepresentative`: Extends User, manages company internships
-- `CareerCenterStaff`: Extends User, admin functions
+- `CareerCenterStaff`: Extends User, admin functions with queue processing
 - `InternshipOpportunity`: Represents internship postings
-- `Application`: Manages student applications
+- `Application`: Manages student applications with manual withdrawal tracking
 - `Database`: Handles data persistence and CSV operations
 - `Report`: Generates filtered reports
-- `InternshipPlacementSystem`: Main CLI application
+- `InternshipPlacementSystem`: Main CLI application with batch processing
+- `UIHelper`: Centralized UI formatting utilities
 
 ### Data Storage
+
 - Users are loaded from CSV files:
   - `sample_student_list.csv`
   - `sample_staff_list.csv`
@@ -33,15 +56,18 @@ An Internship Placement System, designed with Object-Oriented Principles
 ## Usage
 
 ### Compile and Run
+
 ```bash
 javac *.java
 java InternshipPlacementSystem
 ```
 
 ### Default Login Credentials
+
 All users have default password: `password`
 
 #### Students
+
 - U2310001A (Tan Wei Ling, Computer Science, Year 2)
 - U2310002B (Ng Jia Hao, Data Science & AI, Year 3)
 - U2310003C (Lim Yi Xuan, Computer Engineering, Year 4)
@@ -49,6 +75,7 @@ All users have default password: `password`
 - U2310005E (Wong Shu Hui, Computer Science, Year 3)
 
 #### Career Center Staff
+
 - sng001 (Dr. Sng Hui Lin)
 - tan002 (Mr. Tan Boon Kiat)
 - lee003 (Ms. Lee Mei Ling)
@@ -154,12 +181,15 @@ classDiagram
         -InternshipOpportunity opportunity
         -String status
         -Date appliedDate
+        -boolean manuallyWithdrawn
         +updateStatus(newStatus: String): void
         +getApplicationID(): String
         +getApplicant(): Student
         +getOpportunity(): InternshipOpportunity
         +getStatus(): String
         +getAppliedDate(): Date
+        +isManuallyWithdrawn(): boolean
+        +setManuallyWithdrawn(withdrawn: boolean): void
     }
 
     class Database {
@@ -270,13 +300,13 @@ sequenceDiagram
 
     participant applicationDB
 
-  
+
 
     student->>system: login(userID, password)
 
     system-->>student: loginSuccess()
 
-  
+
 
     student->>system: viewEligibleInternships()
 
@@ -286,7 +316,7 @@ sequenceDiagram
 
     system->>student: showList()
 
-  
+
 
     student->>system: applyForInternship(opportunityID)
 
@@ -294,13 +324,13 @@ sequenceDiagram
 
     Database-->>system: InternshipOpportunity
 
-  
+
 
     system->>InternshipOpportunity: isOpen()
 
     system->>InternshipOpportunity: isVisible()
 
-  
+
 
     alt Eligible and Visible
 
@@ -318,6 +348,7 @@ sequenceDiagram
 ```
 
 ## Create Internship
+
 ```mermaid
 sequenceDiagram
     participant companyRep
@@ -345,6 +376,7 @@ sequenceDiagram
 ```
 
 ## Accept Internship
+
 ```mermaid
 sequenceDiagram
     participant student
@@ -375,6 +407,7 @@ sequenceDiagram
 ```
 
 ## Withdraw from Application
+
 ```mermaid
 sequenceDiagram
 
@@ -386,7 +419,7 @@ sequenceDiagram
 
     participant Database
 
-  
+
 
     student->>system: requestWithdrawal(applicationID)
 
@@ -394,7 +427,7 @@ sequenceDiagram
 
     system->>careerStaff: notifyWithdrawalRequest(applicationID)
 
-  
+
 
     careerStaff->>system: reviewWithdrawalRequest(applicationID)
 
@@ -402,7 +435,7 @@ sequenceDiagram
 
     Database-->>system: application
 
-  
+
 
     careerStaff->>system: approveWithdrawal(applicationID)
 
@@ -412,6 +445,7 @@ sequenceDiagram
 ```
 
 ## Generate Report
+
 ```mermaid
 sequenceDiagram
     participant careerStaff
@@ -436,6 +470,7 @@ sequenceDiagram
 ```
 
 ## Approve Application
+
 ```mermaid
 sequenceDiagram
     participant companyRep
@@ -460,6 +495,7 @@ sequenceDiagram
 ```
 
 ## Approve Rep Acct
+
 ```mermaid
 sequenceDiagram
     participant companyRep

@@ -42,18 +42,18 @@ public class UIHelper {
     
     public static void printSuccessMessage(String message) {
         System.out.println();
-        System.out.println("  ✓ " + message);
+        System.out.println("  " + message);
         System.out.println();
     }
     
     public static void printErrorMessage(String message) {
         System.out.println();
-        System.out.println("  ✖ " + message);
+        System.out.println("  " + message);
     }
     
     public static void printWarningMessage(String message) {
         System.out.println();
-        System.out.println("  ⏳ " + message);
+        System.out.println("  " + message);
     }
     
     public static void printSectionHeader(String title) {
