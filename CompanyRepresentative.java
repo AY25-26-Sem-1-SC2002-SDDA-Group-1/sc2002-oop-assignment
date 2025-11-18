@@ -19,11 +19,11 @@ public class CompanyRepresentative extends User {
         this.isApproved = false;
     }
 
-    public boolean createInternship(String title, String description, String level, 
-                                  String preferredMajor, Date openingDate, Date closingDate, 
-                                  int maxSlots) {
+    public boolean createInternship(String title, String description, String level,
+                                   String preferredMajor, Date openingDate, Date closingDate,
+                                   int maxSlots, double minGPA) {
         if (!isApproved) return false;
-        
+
         // Check if company rep has already created 5 internships
         int internshipCount = 0;
         for (InternshipOpportunity opp : Database.getInternships()) {
@@ -32,9 +32,12 @@ public class CompanyRepresentative extends User {
             }
         }
         if (internshipCount >= 5) return false;
-        
+
         // Validate max slots (max of 10)
         if (maxSlots > 10 || maxSlots < 1) return false;
+
+        // Validate min GPA (0.0 to 4.0)
+        if (minGPA < 0.0 || minGPA > 4.0) return false;
 
         InternshipOpportunity opportunity = new InternshipOpportunity(
             Database.generateInternshipID(),
@@ -45,6 +48,7 @@ public class CompanyRepresentative extends User {
             openingDate,
             closingDate,
             maxSlots,
+            minGPA,
             this
         );
 

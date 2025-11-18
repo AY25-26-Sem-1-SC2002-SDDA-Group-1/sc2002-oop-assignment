@@ -9,10 +9,12 @@ An Internship Placement System, designed with Object-Oriented Principles
 - **Application Process**: Students can apply for internships, track applications, and accept offers
 - **Approval Workflows**: Career center staff approve company reps and internships
 - **Reporting**: Generate filtered reports on internship opportunities
-- **Data Persistence**: CSV-based storage for user data
+- **Data Persistence**: CSV-based storage for user data and applications
 - **Batch Processing**: Space-separated IDs for mass operations (apply, process applications, toggle visibility)
 - **Waitlist System**: Automatic queue management for filled internships with FIFO processing
 - **Smart Status Management**: Automatic status updates when slots become available
+- **GPA Filtering**: Minimum GPA requirements for internships with eligibility checking
+- **Statistics Dashboard**: Comprehensive stats for students and company representatives
 
 ## Recent Enhancements (v2.0.0)
 
@@ -42,23 +44,26 @@ An Internship Placement System, designed with Object-Oriented Principles
 ### Classes
 
 - `User`: Base class for all users
-- `Student`: Extends User, handles student operations with enhanced validation
+- `Student`: Extends User, handles student operations with GPA and enhanced validation
 - `CompanyRepresentative`: Extends User, manages company internships
 - `CareerCenterStaff`: Extends User, admin functions with queue processing
-- `InternshipOpportunity`: Represents internship postings
+- `InternshipOpportunity`: Represents internship postings with GPA requirements
 - `Application`: Manages student applications with manual withdrawal tracking
-- `Database`: Handles data persistence and CSV operations
+- `Database`: Handles data persistence and CSV operations for users and applications
 - `Report`: Generates filtered reports
 - `InternshipPlacementSystem`: Main CLI application with batch processing
 - `UIHelper`: Centralized UI formatting utilities
+- `FilterSettings`: Manages persistent filter preferences including GPA
+- `Statistics`: Provides comprehensive statistics for users
 
 ### Data Storage
 
 - Users are loaded from CSV files:
-  - `sample_student_list.csv`
+  - `sample_student_list.csv` (includes GPA)
   - `sample_staff_list.csv`
   - `sample_company_representative_list.csv`
-- Internships and applications are stored in memory during runtime
+- Applications are persisted to `applications.csv`
+- Internships are stored in memory during runtime
 
 ## Usage
 
@@ -126,6 +131,25 @@ All users have default password: `password`
 - Prevents abuse of placement system
 - Tracked via `manuallyWithdrawn` flag in Application class
 
+### GPA Filtering System
+
+- **Student GPA**: Each student has a GPA field loaded from CSV
+- **Internship Requirements**: Company reps can set minimum GPA requirements when creating internships
+- **Eligibility Checking**: Students can only apply to internships where their GPA meets or exceeds the minimum requirement
+- **Filter Options**: GPA-based filtering available in the filter settings
+
+### Statistics Dashboard
+
+- **Student Statistics**: View application counts, success rates, acceptance rates by level
+- **Company Rep Statistics**: View internship creation stats, application received stats, fill rates
+- **Personalized Insights**: Detailed breakdowns of user activity and performance
+
+### Application Persistence
+
+- **CSV Storage**: Applications are saved to `applications.csv` with all necessary fields
+- **Session Persistence**: Application data survives system restarts
+- **Data Integrity**: Proper loading and saving of application states
+
 ## Documentation
 
 - **CHANGELOG.md**: Complete version history and feature additions
@@ -153,13 +177,16 @@ classDiagram
     class Student {
         -int yearOfStudy
         -String major
+        -double gpa
         +viewEligibleInternships(): List~InternshipOpportunity~
         +applyForInternship(opportunityID: String): bool
         +viewApplications(): List~Application~
         +acceptInternship(applicationID: String): void
         +requestWithdrawal(applicationID: String): void
+        +isEligibleForInternship(opportunity: InternshipOpportunity): bool
         +getYearOfStudy(): int
         +getMajor(): String
+        +getGpa(): double
     }
 
     class CompanyRepresentative {
@@ -202,6 +229,7 @@ classDiagram
         -String status
         -int maxSlots
         -boolean visibility
+        -double minGPA
         -CompanyRepresentative createdBy
         +isOpen(): bool
         +isVisible(): bool
@@ -217,6 +245,8 @@ classDiagram
         +getMaxSlots(): int
         +isVisibility(): bool
         +setVisibility(visibility: bool): void
+        +getMinGPA(): double
+        +setMinGPA(minGPA: double): void
         +getCreatedBy(): CompanyRepresentative
     }
 
@@ -243,23 +273,30 @@ classDiagram
         -static List~Application~ applications
         -static int applicationCounter
         -static int internshipCounter
+        -static int companyRepCounter
         +loadUsersFromCSV(): void
         +loadStudents(): void
         +loadStaff(): void
         +loadCompanyRepresentatives(): void
+        +loadApplications(): void
         +saveData(): void
+        +saveStudents(): void
+        +saveStaff(): void
         +saveCompanyRepresentatives(): void
+        +saveApplications(): void
         +getUser(userID: String): User
         +getUsers(): List~User~
         +addUser(user: User): void
         +getInternship(opportunityID: String): InternshipOpportunity
         +getInternships(): List~InternshipOpportunity~
         +addInternship(opportunity: InternshipOpportunity): void
+        +removeInternship(opportunityID: String): void
         +getApplication(applicationID: String): Application
         +getApplications(): List~Application~
         +addApplication(application: Application): void
         +generateApplicationID(): String
         +generateInternshipID(): String
+        +generateCompanyRepID(): String
     }
 
     class Report {
@@ -270,9 +307,40 @@ classDiagram
         +getFilters(): Map~String,String~
     }
 
+    class FilterSettings {
+        -String statusFilter
+        -String levelFilter
+        -String majorFilter
+        -double minGPAFilter
+        -String sortBy
+        +setStatusFilter(status: String): void
+        +setLevelFilter(level: String): void
+        +setMajorFilter(major: String): void
+        +setMinGPAFilter(minGPA: double): void
+        +setSortBy(sortBy: String): void
+        +hasActiveFilters(): bool
+        +clearFilters(): void
+        +applyFilters(opportunities: List~InternshipOpportunity~): List~InternshipOpportunity~
+        +toString(): String
+    }
+
+    class Statistics {
+        -Map~String,Integer~ applicationCounts
+        -Map~String,Integer~ acceptanceCounts
+        -Map~String,Integer~ rejectionCounts
+        -Map~String,Double~ averageGPAByLevel
+        -int totalApplications
+        -int totalAcceptances
+        -int totalRejections
+        +displayStudentStatistics(student: Student): void
+        +displayCompanyRepresentativeStatistics(rep: CompanyRepresentative): void
+        +displaySystemStatistics(): void
+    }
+
     class InternshipPlacementSystem {
         -static Scanner scanner
         -static User currentUser
+        -static FilterSettings userFilters
         +main(args: String[]): void
         -showMainMenu(): void
         -login(): void
@@ -297,6 +365,9 @@ classDiagram
         -approveWithdrawal(staff: CareerCenterStaff): void
         -rejectWithdrawal(staff: CareerCenterStaff): void
         -generateReports(staff: CareerCenterStaff): void
+        -manageFilters(): void
+        -viewStudentStatistics(student: Student): void
+        -viewCompanyRepStatistics(rep: CompanyRepresentative): void
     }
 
     User <|-- Student
@@ -324,9 +395,16 @@ classDiagram
     InternshipPlacementSystem ..> InternshipOpportunity : displays
     InternshipPlacementSystem ..> Application : displays
     InternshipPlacementSystem ..> Report : generates
+    InternshipPlacementSystem ..> FilterSettings : manages
+    InternshipPlacementSystem ..> Statistics : uses
 
     CareerCenterStaff ..> Report : creates
     Report ..> InternshipOpportunity : contains
+
+    Statistics ..> Student : analyzes
+    Statistics ..> CompanyRepresentative : analyzes
+    Statistics ..> InternshipOpportunity : analyzes
+    Statistics ..> Application : analyzes
 
 ```
 
@@ -375,9 +453,9 @@ sequenceDiagram
 
     system->>InternshipOpportunity: isVisible()
 
+    system->>Student: isEligibleForInternship(InternshipOpportunity)
 
-
-    alt Eligible and Visible
+    alt Eligible and Visible and GPA meets requirement
 
         system->>Database: addApplication(Application)
 
@@ -487,6 +565,31 @@ sequenceDiagram
     system->>Application: updateStatus("Withdrawn")
 
     system-->>student: withdrawalApproved()
+```
+
+## View Statistics
+
+```mermaid
+sequenceDiagram
+    participant user
+    participant system
+    participant Database
+    participant Statistics
+
+    user->>system: login()
+    system-->>user: loginSuccess()
+
+    user->>system: viewStatistics()
+    system->>Database: getApplications()
+    Database-->>system: allApplications
+    system->>Database: getInternships()
+    Database-->>system: allInternships
+    system->>Statistics: displayUserStatistics(user)
+    Statistics->>Database: getApplications()
+    Statistics->>Database: getInternships()
+    Statistics-->>system: statisticsData
+    system-->>user: displayStatistics()
+
 ```
 
 ## Generate Report

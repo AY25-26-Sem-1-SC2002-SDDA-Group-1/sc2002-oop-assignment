@@ -12,6 +12,11 @@ public class Database {
 
     static {
         loadUsersFromCSV();
+        try {
+            loadApplications();
+        } catch (IOException e) {
+            System.err.println("Error loading applications: " + e.getMessage());
+        }
     }
 
     public static void loadUsersFromCSV() {
@@ -19,8 +24,9 @@ public class Database {
             loadStudents();
             loadStaff();
             loadCompanyRepresentatives();
+            loadApplications();
         } catch (IOException e) {
-            System.err.println("Error loading users: " + e.getMessage());
+            System.err.println("Error loading data: " + e.getMessage());
         }
     }
 
@@ -29,13 +35,14 @@ public class Database {
         String line = reader.readLine();
         while ((line = reader.readLine()) != null && !line.trim().isEmpty()) {
             String[] parts = line.split(",");
-            if (parts.length >= 4) {
+            if (parts.length >= 5) {
                 Student student = new Student(
                     parts[0].trim(),
                     parts[1].trim(),
                     "password",
                     Integer.parseInt(parts[3].trim()),
-                    parts[2].trim()
+                    parts[2].trim(),
+                    Double.parseDouble(parts[4].trim())
                 );
                 users.add(student);
             }
@@ -80,6 +87,34 @@ public class Database {
                     rep.setApproved(true);
                 }
                 users.add(rep);
+            }
+        }
+        reader.close();
+    }
+
+    private static void loadApplications() throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader("applications.csv"));
+        String line = reader.readLine(); // Skip header
+        while ((line = reader.readLine()) != null && !line.trim().isEmpty()) {
+            String[] parts = line.split(",");
+            if (parts.length >= 5) {
+                String applicationID = parts[0].trim();
+                String studentID = parts[1].trim();
+                String opportunityID = parts[2].trim();
+                String status = parts[3].trim();
+                boolean manuallyWithdrawn = Boolean.parseBoolean(parts[4].trim());
+
+                Student student = (Student) getUser(studentID);
+                InternshipOpportunity opportunity = getInternship(opportunityID);
+
+                if (student != null && opportunity != null) {
+                    Application application = new Application(applicationID, student, opportunity, status);
+                    // Set manually withdrawn if needed
+                    if (manuallyWithdrawn) {
+                        application.setManuallyWithdrawn(true);
+                    }
+                    applications.add(application);
+                }
             }
         }
         reader.close();
@@ -173,6 +208,7 @@ public class Database {
             saveStudents();
             saveStaff();
             saveCompanyRepresentatives();
+            saveApplications();
         } catch (IOException e) {
             System.err.println("Error saving data: " + e.getMessage());
         }
@@ -180,22 +216,39 @@ public class Database {
     
     private static void saveStudents() throws IOException {
         BufferedWriter writer = new BufferedWriter(new FileWriter("sample_student_list.csv"));
-        writer.write("UserID,Name,Major,YearOfStudy");
+        writer.write("UserID,Name,Major,YearOfStudy,GPA");
         writer.newLine();
-        
+
         for (User user : users) {
             if (user instanceof Student) {
                 Student student = (Student) user;
                 writer.write(student.getUserID() + "," +
                            student.getName() + "," +
                            student.getMajor() + "," +
-                           student.getYearOfStudy());
+                           student.getYearOfStudy() + "," +
+                           student.getGpa());
                 writer.newLine();
             }
         }
         writer.close();
     }
-    
+
+    private static void saveApplications() throws IOException {
+        BufferedWriter writer = new BufferedWriter(new FileWriter("applications.csv"));
+        writer.write("ApplicationID,StudentID,OpportunityID,Status,ManuallyWithdrawn");
+        writer.newLine();
+
+        for (Application app : applications) {
+            writer.write(app.getApplicationID() + "," +
+                        app.getApplicant().getUserID() + "," +
+                        app.getOpportunity().getOpportunityID() + "," +
+                        app.getStatus() + "," +
+                        app.isManuallyWithdrawn());
+            writer.newLine();
+        }
+        writer.close();
+    }
+
     private static void saveStaff() throws IOException {
         BufferedWriter writer = new BufferedWriter(new FileWriter("sample_staff_list.csv"));
         writer.write("StaffID,Name,Email,StaffDepartment");

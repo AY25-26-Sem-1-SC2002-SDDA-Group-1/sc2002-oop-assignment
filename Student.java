@@ -4,19 +4,22 @@ import java.util.List;
 public class Student extends User {
     private final int yearOfStudy;
     private final String major;
+    private final double gpa;
 
-    public Student(String userID, String name, String password, int yearOfStudy, String major) {
+    public Student(String userID, String name, String password, int yearOfStudy, String major, double gpa) {
         super(userID, name, password);
         this.yearOfStudy = yearOfStudy;
         this.major = major;
+        this.gpa = gpa;
     }
 
     public List<InternshipOpportunity> viewEligibleInternships() {
         List<InternshipOpportunity> eligible = new ArrayList<>();
         for (InternshipOpportunity opportunity : Database.getInternships()) {
-            if (opportunity.isVisible() && 
+            if (opportunity.isVisible() &&
                 opportunity.getPreferredMajor().equalsIgnoreCase(this.major) &&
-                isEligibleForLevel(opportunity.getLevel())) {
+                isEligibleForLevel(opportunity.getLevel()) &&
+                this.gpa >= opportunity.getMinGPA()) {
                 eligible.add(opportunity);
             }
         }
@@ -54,9 +57,12 @@ public class Student extends User {
         if (!opportunity.isOpen() || !opportunity.isVisible()) return false;
         
         if (!opportunity.getPreferredMajor().equalsIgnoreCase(this.major)) return false;
-        
+
         // Check if student is eligible for this level
         if (!isEligibleForLevel(opportunity.getLevel())) return false;
+
+        // Check GPA requirement
+        if (this.gpa < opportunity.getMinGPA()) return false;
         
         // Check if already applied
         for (Application app : Database.getApplications()) {
@@ -209,5 +215,16 @@ public class Student extends User {
 
     public String getMajor() {
         return major;
+    }
+
+    public double getGpa() {
+        return gpa;
+    }
+
+    public boolean isEligibleForInternship(InternshipOpportunity opportunity) {
+        return opportunity.isVisible() &&
+               opportunity.getPreferredMajor().equalsIgnoreCase(this.major) &&
+               isEligibleForLevel(opportunity.getLevel()) &&
+               this.gpa >= opportunity.getMinGPA();
     }
 }

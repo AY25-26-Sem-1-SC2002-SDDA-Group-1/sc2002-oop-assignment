@@ -11,26 +11,30 @@ class FilterSettings {
     private String statusFilter = "";
     private String levelFilter = "";
     private String majorFilter = "";
+    private double minGPAFilter = 0.0; // Minimum GPA filter
     private String sortBy = "title"; // Default sort by title (alphabetical)
     
     public void setStatusFilter(String status) { this.statusFilter = status; }
     public void setLevelFilter(String level) { this.levelFilter = level; }
     public void setMajorFilter(String major) { this.majorFilter = major; }
+    public void setMinGPAFilter(double minGPA) { this.minGPAFilter = minGPA; }
     public void setSortBy(String sortBy) { this.sortBy = sortBy; }
-    
+
     public String getStatusFilter() { return statusFilter; }
     public String getLevelFilter() { return levelFilter; }
     public String getMajorFilter() { return majorFilter; }
+    public double getMinGPAFilter() { return minGPAFilter; }
     public String getSortBy() { return sortBy; }
     
     public boolean hasActiveFilters() {
-        return !statusFilter.isEmpty() || !levelFilter.isEmpty() || !majorFilter.isEmpty();
+        return !statusFilter.isEmpty() || !levelFilter.isEmpty() || !majorFilter.isEmpty() || minGPAFilter > 0.0;
     }
     
     public void clearFilters() {
         statusFilter = "";
         levelFilter = "";
         majorFilter = "";
+        minGPAFilter = 0.0;
     }
     
     public List<InternshipOpportunity> applyFilters(List<InternshipOpportunity> opportunities) {
@@ -38,6 +42,7 @@ class FilterSettings {
             .filter(opp -> statusFilter.isEmpty() || opp.getStatus().equalsIgnoreCase(statusFilter))
             .filter(opp -> levelFilter.isEmpty() || opp.getLevel().equalsIgnoreCase(levelFilter))
             .filter(opp -> majorFilter.isEmpty() || opp.getPreferredMajor().equalsIgnoreCase(majorFilter))
+            .filter(opp -> minGPAFilter == 0.0 || opp.getMinGPA() >= minGPAFilter)
             .sorted(getComparator())
             .collect(Collectors.toList());
     }
@@ -63,6 +68,7 @@ class FilterSettings {
         if (!statusFilter.isEmpty()) sb.append("Status=").append(statusFilter).append(" ");
         if (!levelFilter.isEmpty()) sb.append("Level=").append(levelFilter).append(" ");
         if (!majorFilter.isEmpty()) sb.append("Major=").append(majorFilter).append(" ");
+        if (minGPAFilter > 0.0) sb.append("Min GPA>=").append(minGPAFilter).append(" ");
         sb.append("| Sort by: ").append(sortBy);
         return sb.toString();
     }
@@ -96,9 +102,15 @@ public class InternshipPlacementSystem {
                     login();
                     break;
                 case "2":
-                    registerCompanyRep();
+                    registerStudent();
                     break;
                 case "3":
+                    registerStaff();
+                    break;
+                case "4":
+                    registerCompanyRep();
+                    break;
+                case "5":
                     UIHelper.printGoodbyeMessage();
                     Database.saveData();
                     System.exit(0);
@@ -155,30 +167,154 @@ public class InternshipPlacementSystem {
         }
     }
     
-    private static void registerCompanyRep() {
+    private static void registerStudent() {
         try {
-            UIHelper.printSectionHeader("COMPANY REPRESENTATIVE REGISTRATION");
-            
+            UIHelper.printSectionHeader("STUDENT REGISTRATION");
+
             System.out.print("Enter User ID (this will be used for login): ");
             String userID = scanner.nextLine().trim();
             if (userID.isEmpty()) {
                 System.out.println("User ID cannot be empty.");
                 return;
             }
-            
+
             // Check if user ID already exists
             if (Database.getUser(userID) != null) {
                 System.out.println("User ID already exists. Please choose a different ID.");
                 return;
             }
-            
+
             System.out.print("Enter Name: ");
             String name = scanner.nextLine().trim();
             if (name.isEmpty()) {
                 System.out.println("Name cannot be empty.");
                 return;
             }
-            
+
+            System.out.print("Enter Password: ");
+            String password = scanner.nextLine().trim();
+            if (password.isEmpty()) {
+                System.out.println("Password cannot be empty.");
+                return;
+            }
+
+            System.out.print("Enter Year of Study (1-4): ");
+            int yearOfStudy;
+            try {
+                yearOfStudy = Integer.parseInt(scanner.nextLine().trim());
+                if (yearOfStudy < 1 || yearOfStudy > 4) {
+                    System.out.println("Year of study must be between 1 and 4.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid year of study. Please enter a number between 1 and 4.");
+                return;
+            }
+
+            System.out.print("Enter Major (CS/EEE/BM): ");
+            String major = scanner.nextLine().trim().toUpperCase();
+            if (!major.equals("CS") && !major.equals("EEE") && !major.equals("BM")) {
+                System.out.println("Invalid major. Please enter CS, EEE, or BM.");
+                return;
+            }
+
+            System.out.print("Enter GPA (0.0-4.0): ");
+            double gpa;
+            try {
+                gpa = Double.parseDouble(scanner.nextLine().trim());
+                if (gpa < 0.0 || gpa > 4.0) {
+                    System.out.println("GPA must be between 0.0 and 4.0.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid GPA format. Please enter a number between 0.0 and 4.0.");
+                return;
+            }
+
+            Student newStudent = new Student(userID, name, password, yearOfStudy, major, gpa);
+            Database.addUser(newStudent);
+            Database.saveData();
+            System.out.println("Registration successful!");
+            System.out.println("Your User ID is: " + userID);
+            System.out.println("You can now login to access the system.");
+        } catch (Exception e) {
+            System.out.println("Error during registration. Please try again.");
+        }
+    }
+
+    private static void registerStaff() {
+        try {
+            UIHelper.printSectionHeader("CAREER CENTER STAFF REGISTRATION");
+
+            System.out.print("Enter User ID (this will be used for login): ");
+            String userID = scanner.nextLine().trim();
+            if (userID.isEmpty()) {
+                System.out.println("User ID cannot be empty.");
+                return;
+            }
+
+            // Check if user ID already exists
+            if (Database.getUser(userID) != null) {
+                System.out.println("User ID already exists. Please choose a different ID.");
+                return;
+            }
+
+            System.out.print("Enter Name: ");
+            String name = scanner.nextLine().trim();
+            if (name.isEmpty()) {
+                System.out.println("Name cannot be empty.");
+                return;
+            }
+
+            System.out.print("Enter Password: ");
+            String password = scanner.nextLine().trim();
+            if (password.isEmpty()) {
+                System.out.println("Password cannot be empty.");
+                return;
+            }
+
+            System.out.print("Enter Staff Department: ");
+            String staffDepartment = scanner.nextLine().trim();
+            if (staffDepartment.isEmpty()) {
+                System.out.println("Staff department cannot be empty.");
+                return;
+            }
+
+            CareerCenterStaff newStaff = new CareerCenterStaff(userID, name, password, staffDepartment);
+            Database.addUser(newStaff);
+            Database.saveData();
+            System.out.println("Registration successful!");
+            System.out.println("Your User ID is: " + userID);
+            System.out.println("You can now login to access the system.");
+        } catch (Exception e) {
+            System.out.println("Error during registration. Please try again.");
+        }
+    }
+
+    private static void registerCompanyRep() {
+        try {
+            UIHelper.printSectionHeader("COMPANY REPRESENTATIVE REGISTRATION");
+
+            System.out.print("Enter User ID (this will be used for login): ");
+            String userID = scanner.nextLine().trim();
+            if (userID.isEmpty()) {
+                System.out.println("User ID cannot be empty.");
+                return;
+            }
+
+            // Check if user ID already exists
+            if (Database.getUser(userID) != null) {
+                System.out.println("User ID already exists. Please choose a different ID.");
+                return;
+            }
+
+            System.out.print("Enter Name: ");
+            String name = scanner.nextLine().trim();
+            if (name.isEmpty()) {
+                System.out.println("Name cannot be empty.");
+                return;
+            }
+
             String email = "";
             boolean validEmail = false;
             while (!validEmail) {
@@ -192,35 +328,35 @@ public class InternshipPlacementSystem {
                     validEmail = true;
                 }
             }
-            
+
             System.out.print("Enter Password: ");
             String password = scanner.nextLine().trim();
             if (password.isEmpty()) {
                 System.out.println("Password cannot be empty.");
                 return;
             }
-            
+
             System.out.print("Enter Company Name: ");
             String companyName = scanner.nextLine().trim();
             if (companyName.isEmpty()) {
                 System.out.println("Company name cannot be empty.");
                 return;
             }
-            
+
             System.out.print("Enter Department: ");
             String department = scanner.nextLine().trim();
             if (department.isEmpty()) {
                 System.out.println("Department cannot be empty.");
                 return;
             }
-            
+
             System.out.print("Enter Position: ");
             String position = scanner.nextLine().trim();
             if (position.isEmpty()) {
                 System.out.println("Position cannot be empty.");
                 return;
             }
-            
+
             CompanyRepresentative newRep = new CompanyRepresentative(
                 userID, name, password, companyName, department, position, email
             );
@@ -254,7 +390,8 @@ public class InternshipPlacementSystem {
         System.out.println("5. Request Withdrawal");
         System.out.println("6. Manage Filters");
         System.out.println("7. Change Password");
-        System.out.println("8. Logout");
+        System.out.println("8. View Statistics");
+        System.out.println("9. Logout");
         System.out.print("\nEnter your choice: ");
         
         String choice = scanner.nextLine();
@@ -282,6 +419,9 @@ public class InternshipPlacementSystem {
                 changePassword(currentUser);
                 break;
             case "8":
+                viewStudentStatistics(student);
+                break;
+            case "9":
                 logout();
                 break;
             default:
@@ -302,7 +442,8 @@ public class InternshipPlacementSystem {
         System.out.println("8. View All Internships (Filtered)");
         System.out.println("9. Manage Filters");
         System.out.println("10. Change Password");
-        System.out.println("11. Logout");
+        System.out.println("11. View Statistics");
+        System.out.println("12. Logout");
         System.out.print("\nEnter your choice: ");
         
         String choice = scanner.nextLine();
@@ -339,6 +480,9 @@ public class InternshipPlacementSystem {
                 changePassword(currentUser);
                 break;
             case "11":
+                viewCompanyRepStatistics(rep);
+                break;
+            case "12":
                 logout();
                 break;
             default:
@@ -391,10 +535,12 @@ public class InternshipPlacementSystem {
         }
     }
 
-    private static void logout() {
-        currentUser.logout();
-        currentUser = null;
-        System.out.println("Logged out successfully.");
+    public static void logout() {
+        if (currentUser != null) {
+            currentUser.logout();
+            currentUser = null;
+            System.out.println("Logged out successfully.");
+        }
     }
     
     private static void changePassword(User user) {
@@ -454,6 +600,7 @@ public class InternshipPlacementSystem {
                 System.out.println("Company: " + internship.getCreatedBy().getCompanyName());
                 System.out.println("Level: " + internship.getLevel());
                 System.out.println("Preferred Major: " + internship.getPreferredMajor());
+                System.out.println("Minimum GPA: " + internship.getMinGPA());
                 System.out.println("Max Slots: " + internship.getMaxSlots());
                 System.out.println("Opening Date: " + dateFormat.format(internship.getOpeningDate()));
                 System.out.println("Closing Date: " + dateFormat.format(internship.getClosingDate()));
@@ -660,6 +807,13 @@ public class InternshipPlacementSystem {
                 System.out.println("Max slots must be between 1 and 10.");
                 return;
             }
+
+            System.out.print("Enter Minimum GPA (0.0-4.0): ");
+            double minGPA = Double.parseDouble(scanner.nextLine());
+            if (minGPA < 0.0 || minGPA > 4.0) {
+                System.out.println("Minimum GPA must be between 0.0 and 4.0.");
+                return;
+            }
             
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             dateFormat.setLenient(false);
@@ -704,7 +858,7 @@ public class InternshipPlacementSystem {
                 }
             }
             
-            if (rep.createInternship(title, description, level, preferredMajor, openingDate, closingDate, maxSlots)) {
+            if (rep.createInternship(title, description, level, preferredMajor, openingDate, closingDate, maxSlots, minGPA)) {
                 System.out.println("Internship created successfully! It's pending approval from Career Center Staff.");
             } else {
                 System.out.println("Failed to create internship. Please check all requirements.");
@@ -1384,9 +1538,10 @@ public class InternshipPlacementSystem {
         System.out.println("1. Set Status Filter (Pending/Approved/Rejected)");
         System.out.println("2. Set Level Filter (Undergraduate/Graduate/Both)");
         System.out.println("3. Set Major Filter (CS/EEE/BM/All)");
-        System.out.println("4. Change Sort By (Title/Company/Level/Closing)");
-        System.out.println("5. Clear All Filters");
-        System.out.println("6. Back to Main Menu");
+        System.out.println("4. Set Minimum GPA Filter (0.0-4.0)");
+        System.out.println("5. Change Sort By (Title/Company/Level/Closing)");
+        System.out.println("6. Clear All Filters");
+        System.out.println("7. Back to Main Menu");
         System.out.print("\nEnter your choice: ");
         
         String choice = scanner.nextLine();
@@ -1408,6 +1563,20 @@ public class InternshipPlacementSystem {
                 UIHelper.printSuccessMessage("Major filter updated!");
                 break;
             case "4":
+                System.out.print("Enter minimum GPA (0.0-4.0) or 0 to disable: ");
+                try {
+                    double minGPA = Double.parseDouble(scanner.nextLine().trim());
+                    if (minGPA < 0.0 || minGPA > 4.0) {
+                        UIHelper.printErrorMessage("GPA must be between 0.0 and 4.0.");
+                    } else {
+                        userFilters.setMinGPAFilter(minGPA);
+                        UIHelper.printSuccessMessage("GPA filter updated!");
+                    }
+                } catch (NumberFormatException e) {
+                    UIHelper.printErrorMessage("Invalid GPA format.");
+                }
+                break;
+            case "5":
                 System.out.print("Sort by (Title/Company/Level/Closing): ");
                 String sortBy = scanner.nextLine().trim();
                 if (!sortBy.isEmpty()) {
@@ -1415,11 +1584,11 @@ public class InternshipPlacementSystem {
                     UIHelper.printSuccessMessage("Sort preference updated!");
                 }
                 break;
-            case "5":
+            case "6":
                 userFilters.clearFilters();
                 UIHelper.printSuccessMessage("All filters cleared!");
                 break;
-            case "6":
+            case "7":
                 return;
             default:
                 UIHelper.printErrorMessage("Invalid choice.");
@@ -1452,5 +1621,147 @@ public class InternshipPlacementSystem {
                 System.out.println("-------------------");
             }
         }
+    }
+
+    private static void viewStudentStatistics(Student student) {
+        UIHelper.printSectionHeader("STUDENT STATISTICS");
+
+        int totalApplications = 0;
+        int pendingApplications = 0;
+        int successfulApplications = 0;
+        int unsuccessfulApplications = 0;
+        int confirmedPlacements = 0;
+        int withdrawnApplications = 0;
+
+        for (Application app : Database.getApplications()) {
+            if (app.getApplicant().getUserID().equals(student.getUserID())) {
+                totalApplications++;
+                switch (app.getStatus()) {
+                    case "Pending":
+                        pendingApplications++;
+                        break;
+                    case "Successful":
+                        successfulApplications++;
+                        break;
+                    case "Unsuccessful":
+                        unsuccessfulApplications++;
+                        break;
+                    case "Confirmed":
+                        confirmedPlacements++;
+                        break;
+                    case "Withdrawn":
+                        withdrawnApplications++;
+                        break;
+                }
+            }
+        }
+
+        System.out.println("Personal Information:");
+        System.out.println("  Name: " + student.getName());
+        System.out.println("  Student ID: " + student.getUserID());
+        System.out.println("  Year of Study: Year " + student.getYearOfStudy());
+        System.out.println("  Major: " + student.getMajor());
+        System.out.println("  GPA: " + student.getGpa());
+        System.out.println();
+
+        System.out.println("Application Statistics:");
+        System.out.println("  Total Applications: " + totalApplications);
+        System.out.println("  Pending: " + pendingApplications);
+        System.out.println("  Successful: " + successfulApplications);
+        System.out.println("  Unsuccessful: " + unsuccessfulApplications);
+        System.out.println("  Confirmed Placements: " + confirmedPlacements);
+        System.out.println("  Withdrawn: " + withdrawnApplications);
+        System.out.println();
+
+        double successRate = totalApplications > 0 ? (double) (successfulApplications + confirmedPlacements) / totalApplications * 100 : 0;
+        System.out.println("Success Rate: " + String.format("%.1f", successRate) + "%");
+    }
+
+    private static void viewCompanyRepStatistics(CompanyRepresentative rep) {
+        UIHelper.printSectionHeader("COMPANY REPRESENTATIVE STATISTICS");
+
+        int totalInternships = 0;
+        int pendingInternships = 0;
+        int approvedInternships = 0;
+        int rejectedInternships = 0;
+        int filledInternships = 0;
+        int visibleInternships = 0;
+
+        int totalApplications = 0;
+        int pendingApplications = 0;
+        int successfulApplications = 0;
+        int unsuccessfulApplications = 0;
+        int confirmedPlacements = 0;
+
+        for (InternshipOpportunity opp : Database.getInternships()) {
+            if (opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
+                totalInternships++;
+                switch (opp.getStatus()) {
+                    case "Pending":
+                        pendingInternships++;
+                        break;
+                    case "Approved":
+                        approvedInternships++;
+                        break;
+                    case "Rejected":
+                        rejectedInternships++;
+                        break;
+                    case "Filled":
+                        filledInternships++;
+                        break;
+                }
+                if (opp.isVisible()) {
+                    visibleInternships++;
+                }
+
+                // Count applications for this internship
+                for (Application app : Database.getApplications()) {
+                    if (app.getOpportunity().getOpportunityID().equals(opp.getOpportunityID())) {
+                        totalApplications++;
+                        switch (app.getStatus()) {
+                            case "Pending":
+                                pendingApplications++;
+                                break;
+                            case "Successful":
+                                successfulApplications++;
+                                break;
+                            case "Unsuccessful":
+                                unsuccessfulApplications++;
+                                break;
+                            case "Confirmed":
+                                confirmedPlacements++;
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+
+        System.out.println("Personal Information:");
+        System.out.println("  Name: " + rep.getName());
+        System.out.println("  Company: " + rep.getCompanyName());
+        System.out.println("  Position: " + rep.getPosition());
+        System.out.println("  Department: " + rep.getDepartment());
+        System.out.println();
+
+        System.out.println("Internship Statistics:");
+        System.out.println("  Total Internships Created: " + totalInternships);
+        System.out.println("  Pending Approval: " + pendingInternships);
+        System.out.println("  Approved: " + approvedInternships);
+        System.out.println("  Rejected: " + rejectedInternships);
+        System.out.println("  Filled: " + filledInternships);
+        System.out.println("  Currently Visible: " + visibleInternships);
+        System.out.println();
+
+        System.out.println("Application Statistics:");
+        System.out.println("  Total Applications Received: " + totalApplications);
+        System.out.println("  Pending Review: " + pendingApplications);
+        System.out.println("  Approved: " + successfulApplications);
+        System.out.println("  Rejected: " + unsuccessfulApplications);
+        System.out.println("  Confirmed Placements: " + confirmedPlacements);
+        System.out.println();
+
+        double fillRate = approvedInternships > 0 ? (double) filledInternships / approvedInternships * 100 : 0;
+        System.out.println("Internship Fill Rate: " + String.format("%.1f", fillRate) + "%");
     }
 }

@@ -11,11 +11,12 @@ public class InternshipOpportunity {
     private String status;
     private int maxSlots;
     private boolean visibility;
+    private double minGPA;
     private final CompanyRepresentative createdBy;
 
-    public InternshipOpportunity(String opportunityID, String title, String description, 
-                               String level, String preferredMajor, Date openingDate, 
-                               Date closingDate, int maxSlots, CompanyRepresentative createdBy) {
+    public InternshipOpportunity(String opportunityID, String title, String description,
+                                String level, String preferredMajor, Date openingDate,
+                                Date closingDate, int maxSlots, double minGPA, CompanyRepresentative createdBy) {
         this.opportunityID = opportunityID;
         this.title = title;
         this.description = description;
@@ -26,6 +27,7 @@ public class InternshipOpportunity {
         this.status = "Pending";
         this.maxSlots = maxSlots;
         this.visibility = false;
+        this.minGPA = minGPA;
         this.createdBy = createdBy;
     }
 
@@ -117,5 +119,13 @@ public class InternshipOpportunity {
 
     public CompanyRepresentative getCreatedBy() {
         return createdBy;
+    }
+
+    public double getMinGPA() {
+        return minGPA;
+    }
+
+    public void setMinGPA(double minGPA) {
+        this.minGPA = minGPA;
     }
 }

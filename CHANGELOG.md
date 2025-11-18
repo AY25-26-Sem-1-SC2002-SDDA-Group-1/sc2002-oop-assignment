@@ -1,118 +1,55 @@
 # Changelog
 
-All notable changes to the Internship Placement System project.
+Hey there! Here's what's been cooking in the Internship Placement System. We've been busy adding features, fixing bugs, and making things smoother for everyone.
 
-## [2.0.0] - 2025-11-16
+## Version 2.0.0 - November 16, 2025
 
-### Major Features Added
+### Big New Stuff
 
-#### Flexible Withdrawal System
+**Flexible Withdrawals**: Students can now back out of applications at any point - pending, successful, or even confirmed. The system handles this smartly, only messing with queues when it's a confirmed placement.
 
-- **Enhanced Withdrawal Capability**: Students can now request withdrawal at any application stage (Pending, Successful, or Confirmed)
-- **Smart Status Management**: Career staff approval intelligently handles withdrawals based on original status
-- **Queue Processing**: Automatic queue advancement only for confirmed placement withdrawals
-- **Status Display**: UI shows current application status when viewing withdrawable applications
+**Batch Operations**: Tired of doing things one by one? Now you can apply to multiple internships, process applications, or toggle visibility for several internships all at once using space-separated IDs.
 
-#### Batch Processing
+**Waitlist System**: When an internship fills up, students get queued automatically. First in, first out - and when a spot opens up, the next person gets confirmed right away.
 
-- **Space-Separated IDs**: Apply to multiple internships in one command
-- **Mass Operations**: Process multiple applications simultaneously (approve/reject)
-- **Bulk Visibility Toggle**: Change visibility for multiple internships at once
-- **Efficiency Boost**: Reduces repetitive tasks for all user types
+**GPA Filtering**: Internships can now have minimum GPA requirements, and students are filtered based on their GPA eligibility.
 
-#### Waitlist Queue System
+**Statistics Dashboard**: Both students and company reps get detailed statistics on their activities - application success rates, internship fill rates, and more.
 
-- **Automatic Queueing**: Students added to waitlist when internship is full
-- **FIFO Processing**: First-come-first-served queue management
-- **Auto-Confirmation**: Queued students automatically confirmed when slots open
-- **Smart Status Updates**: Internship status changes from "Filled" to "Approved" when slots available
+**Application Persistence**: Applications are now saved to CSV files, so they persist between sessions.
 
-### User Experience Improvements
+### Better User Experience
 
-#### Pre-Display Lists
+**Pre-Show Lists**: Before you make decisions, you see what's available. Whether it's accepting offers or requesting withdrawals, you get the full picture first.
 
-- **Application Preview**: Students see successful/confirmed applications before accepting
-- **Withdrawal Preview**: View all withdrawable applications with status indicators
-- **Informed Decisions**: See complete context before making selections
-- **Apply Preview**: Eligible internships shown before prompting for application IDs
+**Clean UI**: Ditched the emojis for professional text markers like [SUCCESS] and [FAILED]. Everything looks consistent now.
 
-#### Clean Professional UI
+**Password Smarts**: Can't set your new password to be the same as your old one. Basic security, but hey, it works.
 
-- **Emoji-Free Interface**: All emoji icons replaced with text markers ([SUCCESS], [FAILED])
-- **Consistent Formatting**: Professional appearance across all menus
-- **Clear Status Indicators**: Text-based markers for all feedback messages
+### Under the Hood Improvements
 
-#### Password Security
+**Smart Tracking**: We remember if you withdrew manually so you can't just reapply to the same internship.
 
-- **Reuse Prevention**: System prevents setting new password same as current
-- **Validation**: Current password verification before allowing changes
-- **Confirmation**: Double-entry confirmation for new passwords
+**Auto Status Updates**: Internships that were filled become available again when spots open up.
 
-### Advanced Features
+**Better Code Organization**: Centralized UI helpers, persistent filters, and solid validation everywhere.
 
-#### Manual Withdrawal Tracking
+**Data Persistence**: Everything saves properly now, including application states and queue info.
 
-- **Reapplication Prevention**: Students cannot reapply to internships they manually withdrew from
-- **Persistent Flag**: `manuallyWithdrawn` field tracks withdrawal history
-- **Validation**: System checks withdrawal history before allowing applications
+### Bug Squashes
 
-#### Smart Status Management
+- Fixed visibility issues for students
+- Application limits now work correctly
+- Status changes propagate properly
+- Queue edge cases handled
 
-- **Auto-Status Updates**: Internships automatically change from "Filled" to "Approved" when slots open
-- **Queue Integration**: Status updates trigger automatic queue processing
-- **Consistency**: All views reflect current status across entire system
+### Docs and Stuff
 
-### Technical Improvements
+- README updated with all the new features
+- Better workflow docs
+- Updated diagrams
+- Test verification docs
 
-#### Code Organization
+## Version 1.0.0 - Initial Release
 
-- **UIHelper Class**: Centralized UI formatting utilities
-- **FilterSettings Class**: Cross-menu filter persistence
-- **Enhanced Validation**: Comprehensive input validation across all operations
-
-#### Data Persistence
-
-- **CSV Updates**: Automatic saving of company representative changes
-- **State Management**: Proper persistence of application statuses
-- **Queue State**: Waitlist information maintained across sessions
-
-### Bug Fixes
-
-- Fixed internship visibility logic for students
-- Corrected application limit validation
-- Resolved status update propagation issues
-- Fixed queue processing edge cases
-
-### Documentation
-
-- Updated README with new features
-- Added comprehensive workflow documentation
-- Updated UML diagrams to reflect new functionality
-- Created IMPROVEMENTS.md documenting all enhancements
-- Created TEST_VERIFICATION.md with test case validation
-
-## [1.0.0] - Initial Release
-
-### Core Features
-
-- User authentication system (Students, Company Representatives, Career Center Staff)
-- Internship creation and management
-- Application submission and tracking
-- Approval workflows for representatives and internships
-- Basic reporting functionality
-- CSV-based data persistence
-- Major-based eligibility filtering
-- Year-based level restrictions
-- Date-based application windows
-
-### User Roles
-
-- **Students**: View, apply, accept internships
-- **Company Representatives**: Create and manage internships, process applications
-- **Career Center Staff**: Approve users/internships, process withdrawals, generate reports
-
-### Data Management
-
-- CSV file loading for users
-- In-memory storage for internships and applications
-- Basic CRUD operations
+The basics: login system for students, company reps, and staff. Create internships, apply, approve, track everything. CSV data storage, filtering by major/year/dates. Simple but solid foundation.
