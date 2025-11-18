@@ -2,6 +2,40 @@
 
 Hey there! Here's what's been cooking in the Internship Placement System. We've been busy adding features, fixing bugs, and making things smoother for everyone.
 
+## Version 3.0.0 - November 18, 2025
+
+### Major Architectural Refactor
+
+**SOLID Principles Implementation**: Completely refactored the codebase to follow SOLID principles for better maintainability, testability, and extensibility.
+
+- **Single Responsibility**: Each class now has one clear purpose (repositories for data, services for logic, handlers for UI).
+- **Open/Closed**: New features can be added without modifying existing code.
+- **Liskov Substitution**: Subclasses properly replace base classes.
+- **Interface Segregation**: Specific interfaces for different concerns.
+- **Dependency Inversion**: High-level modules depend on abstractions, not concretions.
+
+**Repository Pattern**: Introduced interfaces and implementations for data access (IUserRepository, IInternshipRepository, IApplicationRepository) with CSV-based storage.
+
+**Service Layer**: Created business logic services (UserService, InternshipService, ApplicationService) to encapsulate domain rules.
+
+**Handler Pattern**: Implemented menu handlers (StudentMenuHandler, CompanyRepMenuHandler, CareerStaffMenuHandler) for UI logic separation.
+
+**Dependency Injection**: Main application now uses constructor injection to provide dependencies, reducing coupling.
+
+**High Cohesion and Loose Coupling**: Achieved through layered architecture with clear separation of concerns.
+
+### Documentation Updates
+
+- **DESIGN_PRINCIPLES.md**: New document explaining SOLID principles and design patterns used.
+- **UML.md**: Updated with class diagram and 20+ sequence diagrams for the new architecture.
+- **README.md**: Updated class descriptions and documentation references.
+
+### Code Quality Improvements
+
+- Eliminated monolithic classes (e.g., old Database and InternshipPlacementSystem).
+- Improved error handling and validation.
+- Enhanced modularity for future enhancements.
+
 ## Version 2.0.0 - November 16, 2025
 
 ### Big New Stuff

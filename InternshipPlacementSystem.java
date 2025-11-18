@@ -1,102 +1,45 @@
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Collectors;
-
-class FilterSettings {
-    private String statusFilter = "";
-    private String levelFilter = "";
-    private String majorFilter = "";
-    private double minGPAFilter = 0.0; // Minimum GPA filter
-    private String sortBy = "title"; // Default sort by title (alphabetical)
-    
-    public void setStatusFilter(String status) { this.statusFilter = status; }
-    public void setLevelFilter(String level) { this.levelFilter = level; }
-    public void setMajorFilter(String major) { this.majorFilter = major; }
-    public void setMinGPAFilter(double minGPA) { this.minGPAFilter = minGPA; }
-    public void setSortBy(String sortBy) { this.sortBy = sortBy; }
-
-    public String getStatusFilter() { return statusFilter; }
-    public String getLevelFilter() { return levelFilter; }
-    public String getMajorFilter() { return majorFilter; }
-    public double getMinGPAFilter() { return minGPAFilter; }
-    public String getSortBy() { return sortBy; }
-    
-    public boolean hasActiveFilters() {
-        return !statusFilter.isEmpty() || !levelFilter.isEmpty() || !majorFilter.isEmpty() || minGPAFilter > 0.0;
-    }
-    
-    public void clearFilters() {
-        statusFilter = "";
-        levelFilter = "";
-        majorFilter = "";
-        minGPAFilter = 0.0;
-    }
-    
-    public List<InternshipOpportunity> applyFilters(List<InternshipOpportunity> opportunities) {
-        return opportunities.stream()
-            .filter(opp -> statusFilter.isEmpty() || opp.getStatus().equalsIgnoreCase(statusFilter))
-            .filter(opp -> levelFilter.isEmpty() || opp.getLevel().equalsIgnoreCase(levelFilter))
-            .filter(opp -> majorFilter.isEmpty() || opp.getPreferredMajor().equalsIgnoreCase(majorFilter))
-            .filter(opp -> minGPAFilter == 0.0 || opp.getMinGPA() >= minGPAFilter)
-            .sorted(getComparator())
-            .collect(Collectors.toList());
-    }
-    
-    private Comparator<InternshipOpportunity> getComparator() {
-        switch (sortBy.toLowerCase()) {
-            case "title":
-                return Comparator.comparing(InternshipOpportunity::getTitle);
-            case "company":
-                return Comparator.comparing(opp -> opp.getCreatedBy().getCompanyName());
-            case "level":
-                return Comparator.comparing(InternshipOpportunity::getLevel);
-            case "closing":
-                return Comparator.comparing(InternshipOpportunity::getClosingDate);
-            default:
-                return Comparator.comparing(InternshipOpportunity::getTitle);
-        }
-    }
-    
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder("Active Filters: ");
-        if (!statusFilter.isEmpty()) sb.append("Status=").append(statusFilter).append(" ");
-        if (!levelFilter.isEmpty()) sb.append("Level=").append(levelFilter).append(" ");
-        if (!majorFilter.isEmpty()) sb.append("Major=").append(majorFilter).append(" ");
-        if (minGPAFilter > 0.0) sb.append("Min GPA>=").append(minGPAFilter).append(" ");
-        sb.append("| Sort by: ").append(sortBy);
-        return sb.toString();
-    }
-}
 
 public class InternshipPlacementSystem {
-    private static final Scanner scanner = new Scanner(System.in);
-    private static User currentUser = null;
-    private static FilterSettings userFilters = new FilterSettings(); // Persistent filter settings
+    private final Scanner scanner = new Scanner(System.in);
+    private User currentUser = null;
+    private final IUserRepository userRepository = new CsvUserRepository();
+    private final IInternshipRepository internshipRepository = new CsvInternshipRepository();
+    private final IApplicationRepository applicationRepository = new CsvApplicationRepository();
+    private final UserService userService = new UserService(userRepository);
+    private final InternshipService internshipService = new InternshipService(internshipRepository, userRepository);
+    private final ApplicationService applicationService = new ApplicationService(applicationRepository, internshipRepository, userRepository);
 
     public static void main(String[] args) {
         UIHelper.printWelcomeBanner();
-        
+        new InternshipPlacementSystem().run();
+    }
+
+    private void run() {
         while (true) {
             if (currentUser == null) {
                 showMainMenu();
             } else {
-                showUserMenu();
+                getMenuHandler().showMenu();
             }
         }
     }
 
-    private static void showMainMenu() {
+    private IMenuHandler getMenuHandler() {
+        if (currentUser instanceof Student) {
+            return new StudentMenuHandler((Student) currentUser, internshipService, applicationService, scanner);
+        } else if (currentUser instanceof CompanyRepresentative) {
+            return new CompanyRepMenuHandler((CompanyRepresentative) currentUser, internshipService, applicationService, scanner);
+        } else if (currentUser instanceof CareerCenterStaff) {
+            return new CareerStaffMenuHandler((CareerCenterStaff) currentUser, userService, internshipService, applicationService, scanner);
+        }
+        return null;
+    }
+
+    private void showMainMenu() {
         UIHelper.printMainMenu();
-        
         try {
             String choice = scanner.nextLine().trim();
-            
             switch (choice) {
                 case "1":
                     login();
@@ -112,7 +55,8 @@ public class InternshipPlacementSystem {
                     break;
                 case "5":
                     UIHelper.printGoodbyeMessage();
-                    Database.saveData();
+                    userRepository.saveUsers();
+                    applicationRepository.saveApplications();
                     System.exit(0);
                     break;
                 default:
@@ -122,6 +66,114 @@ public class InternshipPlacementSystem {
             System.out.println("Error reading input. Please try again.");
         }
     }
+
+    private void login() {
+        try {
+            UIHelper.printSectionHeader("USER LOGIN");
+            System.out.print("  User ID: ");
+            String userID = scanner.nextLine().trim();
+            System.out.print("  Password: ");
+            String password = scanner.nextLine().trim();
+
+            User user = userService.login(userID, password);
+            if (user == null) {
+                System.out.println("Invalid user ID or password.");
+                return;
+            }
+
+            // Check if company representative is approved
+            if (user instanceof CompanyRepresentative) {
+                CompanyRepresentative rep = (CompanyRepresentative) user;
+                if (!rep.isApproved()) {
+                    System.out.println("Your account is pending approval.");
+                    return;
+                }
+            }
+
+            currentUser = user;
+            System.out.println("Login successful! Welcome, " + user.getName() + "!");
+        } catch (Exception e) {
+            System.out.println("Error during login. Please try again.");
+        }
+    }
+
+    private void registerStudent() {
+        try {
+            UIHelper.printSectionHeader("STUDENT REGISTRATION");
+            System.out.print("Enter User ID: ");
+            String userID = scanner.nextLine().trim();
+            System.out.print("Enter Name: ");
+            String name = scanner.nextLine().trim();
+            System.out.print("Enter Password: ");
+            String password = scanner.nextLine().trim();
+            System.out.print("Enter Year of Study (1-4): ");
+            int yearOfStudy = Integer.parseInt(scanner.nextLine().trim());
+            System.out.print("Enter Major (CS/EEE/BM): ");
+            String major = scanner.nextLine().trim().toUpperCase();
+            System.out.print("Enter GPA (0.0-4.0): ");
+            double gpa = Double.parseDouble(scanner.nextLine().trim());
+
+            if (userService.registerStudent(userID, name, password, yearOfStudy, major, gpa)) {
+                System.out.println("Registration successful!");
+            } else {
+                System.out.println("Registration failed.");
+            }
+        } catch (Exception e) {
+            System.out.println("Error during registration. Please try again.");
+        }
+    }
+
+    private void registerStaff() {
+        try {
+            UIHelper.printSectionHeader("CAREER CENTER STAFF REGISTRATION");
+            System.out.print("Enter User ID: ");
+            String userID = scanner.nextLine().trim();
+            System.out.print("Enter Name: ");
+            String name = scanner.nextLine().trim();
+            System.out.print("Enter Password: ");
+            String password = scanner.nextLine().trim();
+            System.out.print("Enter Staff Department: ");
+            String department = scanner.nextLine().trim();
+
+            if (userService.registerStaff(userID, name, password, department)) {
+                System.out.println("Registration successful!");
+            } else {
+                System.out.println("Registration failed.");
+            }
+        } catch (Exception e) {
+            System.out.println("Error during registration. Please try again.");
+        }
+    }
+
+    private void registerCompanyRep() {
+        try {
+            UIHelper.printSectionHeader("COMPANY REPRESENTATIVE REGISTRATION");
+            System.out.print("Enter User ID: ");
+            String userID = scanner.nextLine().trim();
+            System.out.print("Enter Name: ");
+            String name = scanner.nextLine().trim();
+            System.out.print("Enter Password: ");
+            String password = scanner.nextLine().trim();
+            System.out.print("Enter Company Name: ");
+            String company = scanner.nextLine().trim();
+            System.out.print("Enter Department: ");
+            String department = scanner.nextLine().trim();
+            System.out.print("Enter Position: ");
+            String position = scanner.nextLine().trim();
+            System.out.print("Enter Email: ");
+            String email = scanner.nextLine().trim();
+
+            if (userService.registerCompanyRep(userID, name, password, company, department, position, email)) {
+                System.out.println("Registration successful! Pending approval.");
+            } else {
+                System.out.println("Registration failed.");
+            }
+        } catch (Exception e) {
+            System.out.println("Error during registration. Please try again.");
+        }
+    }
+
+
 
     private static void login() {
         try {

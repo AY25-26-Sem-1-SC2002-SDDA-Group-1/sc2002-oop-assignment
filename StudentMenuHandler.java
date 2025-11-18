@@ -1,13 +1,22 @@
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
-public class StudentMenuHandler {
-    private static final Scanner scanner = new Scanner(System.in);
+public class StudentMenuHandler implements IMenuHandler {
+    private final Student student;
+    private final InternshipService internshipService;
+    private final ApplicationService applicationService;
+    private final Scanner scanner;
 
-    public static void showStudentMenu(Student student) {
+    public StudentMenuHandler(Student student, InternshipService internshipService, ApplicationService applicationService, Scanner scanner) {
+        this.student = student;
+        this.internshipService = internshipService;
+        this.applicationService = applicationService;
+        this.scanner = scanner;
+    }
+
+    @Override
+    public void showMenu() {
         UIHelper.printStudentMenu();
         System.out.println("1. View Eligible Internships");
         System.out.println("2. Apply for Internship");
@@ -55,7 +64,7 @@ public class StudentMenuHandler {
         }
     }
 
-    private static void viewEligibleInternships(Student student) {
+    private void viewEligibleInternships() {
         UIHelper.printSectionHeader("ELIGIBLE INTERNSHIPS");
 
         if (FilterManager.hasActiveFilters()) {
