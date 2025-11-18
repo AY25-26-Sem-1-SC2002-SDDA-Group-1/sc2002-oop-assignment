@@ -18,6 +18,8 @@ Hey there! Here's what's been cooking in the Internship Placement System. We've 
 
 **Application Persistence**: Applications are now saved to CSV files, so they persist between sessions.
 
+**User Registration System**: Added self-registration for students and career center staff, plus approval-based registration for company representatives. No more reliance on pre-loaded CSV files only.
+
 ### Better User Experience
 
 **Pre-Show Lists**: Before you make decisions, you see what's available. Whether it's accepting offers or requesting withdrawals, you get the full picture first.

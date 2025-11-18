@@ -9,7 +9,7 @@
 - [ ] **User Authentication**: Login/logout works for all roles
 - [ ] **Student Restrictions**: Year 1-2 see only Basic level internships; max 3 active applications enforced; GPA eligibility for internships
 - [ ] **Company Rep Limits**: Max 5 internships, max 10 slots per internship, date validation (dd/MM/yyyy, closing > opening), GPA requirements (0.0-4.0)
-- [ ] **Registration**: New company reps get auto-generated IDs (CR001, etc.), CSV updates immediately
+- [ ] **Registration**: Students and staff can self-register with custom IDs; Company reps register but require approval, CSV updates immediately
 - [ ] **Password Change**: Cannot reuse current password, verification works
 - [ ] **Workflow Integration**: Staff approves rep → rep creates internship → staff approves (auto-visibility) → rep toggles visibility → student applies → rep processes → student accepts → auto-withdrawals
 - [ ] **Unified Process Workflows**: Career staff process company reps, internships, withdrawals in single workflows with pending item listings
@@ -64,18 +64,20 @@
 - [ ] **All Appendix A Test Cases**: 20 cases implemented and passing
 
 ## Test Scenarios
-1. **Company Rep Registration**: Register → approve as staff → login with new ID → verify CSV
-2. **Student Application Limits**: Apply to 4th internship → rejected
-3. **Internship Creation Limits**: Create 6th internship → rejected
-4. **Date Input**: Enter invalid format → loop until valid
-5. **Application Processing**: Approve/reject with full details display
-6. **Filter Persistence**: Set filters → navigate menus → filters retained
-7. **Withdrawal Queue**: Accept filled internship → auto-queue → withdrawal opens slot → auto-confirm
-8. **Manual Withdrawal**: Withdraw → cannot reapply to same internship
-9. **Batch Operations**: Apply to multiple with space-separated IDs
-10. **Auto-Visibility**: Staff approves internship → immediately visible to students
-11. **GPA Eligibility**: Student with GPA 3.0 cannot apply to internship requiring 3.5 GPA
-12. **Statistics Dashboard**: View student stats (applications, success rate) and company rep stats (internships, applications, fill rate)
+1. **Student Registration**: Register new student → login immediately → verify CSV update
+2. **Staff Registration**: Register new career staff → login immediately → verify CSV update
+3. **Company Rep Registration**: Register → approve as staff → login with new ID → verify CSV
+4. **Student Application Limits**: Apply to 4th internship → rejected
+5. **Internship Creation Limits**: Create 6th internship → rejected
+6. **Date Input**: Enter invalid format → loop until valid
+7. **Application Processing**: Approve/reject with full details display
+8. **Filter Persistence**: Set filters → navigate menus → filters retained
+9. **Withdrawal Queue**: Accept filled internship → auto-queue → withdrawal opens slot → auto-confirm
+10. **Manual Withdrawal**: Withdraw → cannot reapply to same internship
+11. **Batch Operations**: Apply to multiple with space-separated IDs
+12. **Auto-Visibility**: Staff approves internship → immediately visible to students
+13. **GPA Eligibility**: Student with GPA 3.0 cannot apply to internship requiring 3.5 GPA
+14. **Statistics Dashboard**: View student stats (applications, success rate) and company rep stats (internships, applications, fill rate)
 
 ## Appendix A Test Case Verification
 

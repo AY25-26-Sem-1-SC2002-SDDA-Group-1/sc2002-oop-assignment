@@ -4,7 +4,8 @@ An Internship Placement System, designed with Object-Oriented Principles
 
 ## Features
 
-- **User Management**: Three user types (Students, Company Representatives, Career Center Staff)
+- **User Management**: Three user types (Students, Company Representatives, Career Center Staff) with self-registration capabilities
+- **Registration System**: Students and Career Center Staff can register new accounts; Company Representatives require staff approval
 - **Internship Management**: Create, approve, and manage internship opportunities
 - **Application Process**: Students can apply for internships, track applications, and accept offers
 - **Approval Workflows**: Career center staff approve company reps and internships
@@ -38,6 +39,13 @@ An Internship Placement System, designed with Object-Oriented Principles
 - **Manual Withdrawal Tracking**: Prevents reapplication to internships students manually withdrew from
 - **Auto Status Updates**: Internships automatically change from "Filled" to "Approved" when slots become available
 - **Queue Processing**: Automatic confirmation of queued applications in FIFO order
+
+### Registration Workflows
+
+- **Student Self-Registration**: Students can create accounts with custom user IDs, including year of study, major, and GPA
+- **Staff Self-Registration**: Career Center Staff can register with custom user IDs and department information
+- **Company Representative Approval**: Company reps register but require staff approval before account activation
+- **Dynamic User Management**: System supports both pre-loaded users and dynamically registered accounts
 
 ## System Architecture
 
@@ -94,6 +102,7 @@ All users have default password: `password`
 
 ## Workflow
 
+0. **Registration**: Students and Career Center Staff can self-register; Company Representatives register but require staff approval
 1. **Company Representatives** must be approved by Career Center Staff before creating internships
 2. **Internships** start as "Pending" and must be approved by Career Center Staff
 3. **Students** can only apply to approved, visible internships matching their major
@@ -343,6 +352,9 @@ classDiagram
         -static FilterSettings userFilters
         +main(args: String[]): void
         -showMainMenu(): void
+        -registerStudent(): void
+        -registerStaff(): void
+        -registerCompanyRep(): void
         -login(): void
         -showUserMenu(): void
         -showStudentMenu(): void
@@ -665,6 +677,44 @@ sequenceDiagram
     system->>CompanyRepresentative: setApproved(true)
     system->>Database: saveData()
     Database-->>system: dataSaved
-    system-->>companyRep: notify("Account Approved")
+     system-->>companyRep: notify("Account Approved")
+
+```
+
+## Student Registration
+
+```mermaid
+sequenceDiagram
+    participant student
+    participant system
+    participant Database
+
+    student->>system: registerStudent(details)
+    system->>Database: checkUserID(userID)
+    Database-->>system: userIDAvailable
+    system->>Database: addUser(Student)
+    Database-->>system: userAdded
+    system->>Database: saveData()
+    Database-->>system: dataSaved
+    system-->>student: notify("Registration Successful - You can now login")
+
+```
+
+## Staff Registration
+
+```mermaid
+sequenceDiagram
+    participant staff
+    participant system
+    participant Database
+
+    staff->>system: registerStaff(details)
+    system->>Database: checkUserID(userID)
+    Database-->>system: userIDAvailable
+    system->>Database: addUser(CareerCenterStaff)
+    Database-->>system: userAdded
+    system->>Database: saveData()
+    Database-->>system: dataSaved
+    system-->>staff: notify("Registration Successful - You can now login")
 
 ```
