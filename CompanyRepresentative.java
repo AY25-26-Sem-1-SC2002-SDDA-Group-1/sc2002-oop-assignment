@@ -36,8 +36,8 @@ public class CompanyRepresentative extends User {
         // Validate max slots (max of 10)
         if (maxSlots > 10 || maxSlots < 1) return false;
 
-        // Validate min GPA (0.0 to 4.0)
-        if (minGPA < 0.0 || minGPA > 4.0) return false;
+        // Validate min GPA (0.0 to 5.0)
+        if (minGPA < 0.0 || minGPA > 5.0) return false;
 
         InternshipOpportunity opportunity = new InternshipOpportunity(
             Database.generateInternshipID(),

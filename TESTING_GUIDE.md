@@ -1,14 +1,16 @@
 # Testing Guide
 
 ## Setup
+
 - Compile: `javac *.java`
 - Run: `java InternshipPlacementSystem`
 - Test credentials: Student (U2310005E/password), Company Rep (JH/password), Career Staff (sng001/password)
 
 ## Core Functionality Checklist
+
 - [ ] **User Authentication**: Login/logout works for all roles
 - [ ] **Student Restrictions**: Year 1-2 see only Basic level internships; max 3 active applications enforced; GPA eligibility for internships
-- [ ] **Company Rep Limits**: Max 5 internships, max 10 slots per internship, date validation (dd/MM/yyyy, closing > opening), GPA requirements (0.0-4.0)
+- [ ] **Company Rep Limits**: Max 5 internships, max 10 slots per internship, date validation (dd/MM/yyyy, closing > opening), GPA requirements (0.0-5.0)
 - [ ] **Registration**: Students and staff can self-register with custom IDs; Company reps register but require approval, CSV updates immediately
 - [ ] **Password Change**: Cannot reuse current password, verification works
 - [ ] **Workflow Integration**: Staff approves rep → rep creates internship → staff approves (auto-visibility) → rep toggles visibility → student applies → rep processes → student accepts → auto-withdrawals
@@ -28,6 +30,7 @@
 - [ ] **Application Persistence**: Applications are saved to and loaded from applications.csv
 
 ## Process Applications Feature Checklist
+
 - [ ] **No Applications**: Shows "⚠ No applications to process." when empty
 - [ ] **Pending Display**: Lists all pending applications with ID, student name/ID/year/major, internship title, applied date
 - [ ] **Approve/Reject**: Processes valid pending applications, updates status to Successful/Unsuccessful, auto-saves
@@ -37,6 +40,7 @@
 - [ ] **Integration**: Works with existing database, UIHelper formatting, no breaking changes
 
 ## Edge Cases and Error Handling
+
 - [ ] **Invalid Inputs**: Empty fields, wrong formats, out-of-range values handled gracefully
 - [ ] **Permission Checks**: Users cannot access unauthorized data/actions
 - [ ] **Data Persistence**: All changes saved to CSV, survives restarts
@@ -46,6 +50,7 @@
 - [ ] **Status Transitions**: Proper state changes, no invalid transitions allowed
 
 ## Performance and Integration
+
 - [ ] **Large Data Sets**: Handles multiple internships/applications without slowdown
 - [ ] **Report Generation**: Career staff reports reflect all processed data
 - [ ] **Cross-User Consistency**: Changes by one user visible to others after refresh
@@ -53,6 +58,7 @@
 - [ ] **File I/O**: CSV reads/writes work reliably, no corruption
 
 ## Verification Against Requirements
+
 - [ ] **Unified Process Pattern**: All approve/reject consolidated into single methods
 - [ ] **Filters for All Users**: Status, level, major, closing date, min GPA available
 - [ ] **Alphabetical Default Sort**: Internships sorted by title unless changed
@@ -64,6 +70,7 @@
 - [ ] **All Appendix A Test Cases**: 20 cases implemented and passing
 
 ## Test Scenarios
+
 1. **Student Registration**: Register new student → login immediately → verify CSV update
 2. **Staff Registration**: Register new career staff → login immediately → verify CSV update
 3. **Company Rep Registration**: Register → approve as staff → login with new ID → verify CSV
@@ -83,34 +90,35 @@
 
 ### Test Case Summary Matrix
 
-| Test # | Test Case                      | Status | Implementation Notes |
-| ------ | ------------------------------ | ------ | -------------------- |
+| Test # | Test Case                      | Status | Implementation Notes                       |
+| ------ | ------------------------------ | ------ | ------------------------------------------ |
 | 1      | Valid User Login               | ✅     | Validates ID/password, role-specific menus |
-| 2      | Invalid ID                     | ✅     | Shows "Invalid user ID." |
-| 3      | Incorrect Password             | ✅     | Shows "Incorrect password." |
-| 4      | Password Change                | ✅     | Verifies current, updates password |
-| 5      | Company Rep Authorization      | ✅     | Blocks login until staff approval |
-| 6      | Visibility Based on Profile    | ✅     | Filters by year, major, level, visibility |
-| 7      | Application Eligibility        | ✅     | Max 3 apps, eligibility checks |
-| 8      | View Apps After Visibility Off | ✅     | Students see all their applications |
-| 10     | Single Placement Acceptance    | ✅     | Auto-withdraws others, updates slots |
-| 13     | Opportunity Creation Limits    | ✅     | Max 5 internships, slots 1-10 |
-| 14     | Approval Status Viewing        | ✅     | Reps see all their internships |
-| 15     | Detail Access for Reps         | ✅     | Always accessible to creators |
-| 16     | Edit Restriction (Approved)    | ✅     | Only pending internships editable |
+| 2      | Invalid ID                     | ✅     | Shows "Invalid user ID."                   |
+| 3      | Incorrect Password             | ✅     | Shows "Incorrect password."                |
+| 4      | Password Change                | ✅     | Verifies current, updates password         |
+| 5      | Company Rep Authorization      | ✅     | Blocks login until staff approval          |
+| 6      | Visibility Based on Profile    | ✅     | Filters by year, major, level, visibility  |
+| 7      | Application Eligibility        | ✅     | Max 3 apps, eligibility checks             |
+| 8      | View Apps After Visibility Off | ✅     | Students see all their applications        |
+| 10     | Single Placement Acceptance    | ✅     | Auto-withdraws others, updates slots       |
+| 13     | Opportunity Creation Limits    | ✅     | Max 5 internships, slots 1-10              |
+| 14     | Approval Status Viewing        | ✅     | Reps see all their internships             |
+| 15     | Detail Access for Reps         | ✅     | Always accessible to creators              |
+| 16     | Edit Restriction (Approved)    | ✅     | Only pending internships editable          |
 | 18     | Application Management         | ✅     | View/process applications, slot management |
-| 19     | Confirmation Status Update     | ✅     | Status changes to Confirmed |
-| 20     | Create/Edit/Delete Listings    | ✅     | Full CRUD with validations |
-| 21     | Staff Opportunity Approval     | ✅     | Approve/reject pending internships |
-| 22     | Toggle Visibility              | ✅     | Changes reflected in student view |
-| 23     | Withdrawal Management          | ✅     | Process withdrawals, update slots |
-| 24     | Report Generation & Filtering  | ✅     | Filtered reports by status/level/major |
+| 19     | Confirmation Status Update     | ✅     | Status changes to Confirmed                |
+| 20     | Create/Edit/Delete Listings    | ✅     | Full CRUD with validations                 |
+| 21     | Staff Opportunity Approval     | ✅     | Approve/reject pending internships         |
+| 22     | Toggle Visibility              | ✅     | Changes reflected in student view          |
+| 23     | Withdrawal Management          | ✅     | Process withdrawals, update slots          |
+| 24     | Report Generation & Filtering  | ✅     | Filtered reports by status/level/major     |
 
 **All 20 Appendix A Test Cases: ✅ PASS**
 
 ### Quick Test Scenarios
 
 #### Scenario 1: Company Rep Registration & Approval
+
 1. Main Menu → Option 2 (Register)
 2. Enter: test@company.com, John Doe, password, TechCorp, IT, Manager
 3. Try login with test@company.com → BLOCKED (pending approval)
@@ -119,6 +127,7 @@
 6. Logout and login as test@company.com → SUCCESS
 
 #### Scenario 2: Year 1-2 Student Restrictions
+
 1. Login as U2310004D (Year 1)/password
 2. Staff creates and approves Basic & Intermediate internships
 3. Company rep toggles visibility ON
@@ -126,27 +135,32 @@
 5. Try apply to Intermediate → BLOCKED with error message
 
 #### Scenario 3: Max 3 Applications
+
 1. Login as student
 2. Apply to 3 different Basic internships
 3. Try apply to 4th → BLOCKED "maximum of 3 active applications"
 
 #### Scenario 4: Single Acceptance, Auto-Withdraw
+
 1. Company rep approves 3 applications
 2. Student sees 3 "Successful" applications
 3. Accept first application → Status "Confirmed"
 4. Check other applications → Auto "Withdrawn"
 
 #### Scenario 5: Edit Restriction
+
 1. Company rep creates internship (Status: Pending)
 2. Menu Option 3 (Edit) → Can edit title, description
 3. Staff approves internship (Status: Approved)
 4. Rep tries Option 3 again → Only pending shown, approved blocked
 
 #### Scenario 6: Max 5 Internships
+
 1. Company rep creates 5 internships
 2. Try create 6th → BLOCKED "maximum limit of 5 internships"
 
 #### Scenario 7: Password Change
+
 1. Login as any user
 2. Select "Change Password" option
 3. Enter current: password, new: newpass123, confirm: newpass123
@@ -155,6 +169,7 @@
 6. Login with newpass123 → SUCCESS
 
 #### Scenario 8: Report Filtering
+
 1. Login as staff
 2. Option 6 (Generate Reports)
 3. Filter by Status: Approved, Level: Basic, Major: Computer Science
@@ -164,34 +179,35 @@
 
 ### Test Case Summary Matrix
 
-| Test # | Test Case                      | Status | Implementation Notes |
-| ------ | ------------------------------ | ------ | -------------------- |
+| Test # | Test Case                      | Status | Implementation Notes                       |
+| ------ | ------------------------------ | ------ | ------------------------------------------ |
 | 1      | Valid User Login               | ✅     | Validates ID/password, role-specific menus |
-| 2      | Invalid ID                     | ✅     | Shows "Invalid user ID." |
-| 3      | Incorrect Password             | ✅     | Shows "Incorrect password." |
-| 4      | Password Change                | ✅     | Verifies current, updates password |
-| 5      | Company Rep Authorization      | ✅     | Blocks login until staff approval |
-| 6      | Visibility Based on Profile    | ✅     | Filters by year, major, level, visibility |
-| 7      | Application Eligibility        | ✅     | Max 3 apps, eligibility checks |
-| 8      | View Apps After Visibility Off | ✅     | Students see all their applications |
-| 10     | Single Placement Acceptance    | ✅     | Auto-withdraws others, updates slots |
-| 13     | Opportunity Creation Limits    | ✅     | Max 5 internships, slots 1-10 |
-| 14     | Approval Status Viewing        | ✅     | Reps see all their internships |
-| 15     | Detail Access for Reps         | ✅     | Always accessible to creators |
-| 16     | Edit Restriction (Approved)    | ✅     | Only pending internships editable |
+| 2      | Invalid ID                     | ✅     | Shows "Invalid user ID."                   |
+| 3      | Incorrect Password             | ✅     | Shows "Incorrect password."                |
+| 4      | Password Change                | ✅     | Verifies current, updates password         |
+| 5      | Company Rep Authorization      | ✅     | Blocks login until staff approval          |
+| 6      | Visibility Based on Profile    | ✅     | Filters by year, major, level, visibility  |
+| 7      | Application Eligibility        | ✅     | Max 3 apps, eligibility checks             |
+| 8      | View Apps After Visibility Off | ✅     | Students see all their applications        |
+| 10     | Single Placement Acceptance    | ✅     | Auto-withdraws others, updates slots       |
+| 13     | Opportunity Creation Limits    | ✅     | Max 5 internships, slots 1-10              |
+| 14     | Approval Status Viewing        | ✅     | Reps see all their internships             |
+| 15     | Detail Access for Reps         | ✅     | Always accessible to creators              |
+| 16     | Edit Restriction (Approved)    | ✅     | Only pending internships editable          |
 | 18     | Application Management         | ✅     | View/process applications, slot management |
-| 19     | Confirmation Status Update     | ✅     | Status changes to Confirmed |
-| 20     | Create/Edit/Delete Listings    | ✅     | Full CRUD with validations |
-| 21     | Staff Opportunity Approval     | ✅     | Approve/reject pending internships |
-| 22     | Toggle Visibility              | ✅     | Changes reflected in student view |
-| 23     | Withdrawal Management          | ✅     | Process withdrawals, update slots |
-| 24     | Report Generation & Filtering  | ✅     | Filtered reports by status/level/major |
+| 19     | Confirmation Status Update     | ✅     | Status changes to Confirmed                |
+| 20     | Create/Edit/Delete Listings    | ✅     | Full CRUD with validations                 |
+| 21     | Staff Opportunity Approval     | ✅     | Approve/reject pending internships         |
+| 22     | Toggle Visibility              | ✅     | Changes reflected in student view          |
+| 23     | Withdrawal Management          | ✅     | Process withdrawals, update slots          |
+| 24     | Report Generation & Filtering  | ✅     | Filtered reports by status/level/major     |
 
 **All 20 Appendix A Test Cases: ✅ PASS**
 
 ### Quick Test Scenarios
 
 #### Scenario 1: Company Rep Registration & Approval
+
 1. Main Menu → Option 2 (Register)
 2. Enter: test@company.com, John Doe, password, TechCorp, IT, Manager
 3. Try login with test@company.com → BLOCKED (pending approval)
@@ -200,6 +216,7 @@
 6. Logout and login as test@company.com → SUCCESS
 
 #### Scenario 2: Year 1-2 Student Restrictions
+
 1. Login as U2310004D (Year 1)/password
 2. Staff creates and approves Basic & Intermediate internships
 3. Company rep toggles visibility ON
@@ -207,27 +224,32 @@
 5. Try apply to Intermediate → BLOCKED with error message
 
 #### Scenario 3: Max 3 Applications
+
 1. Login as student
 2. Apply to 3 different Basic internships
 3. Try apply to 4th → BLOCKED "maximum of 3 active applications"
 
 #### Scenario 4: Single Acceptance, Auto-Withdraw
+
 1. Company rep approves 3 applications
 2. Student sees 3 "Successful" applications
 3. Accept first application → Status "Confirmed"
 4. Check other applications → Auto "Withdrawn"
 
 #### Scenario 5: Edit Restriction
+
 1. Company rep creates internship (Status: Pending)
 2. Menu Option 3 (Edit) → Can edit title, description
 3. Staff approves internship (Status: Approved)
 4. Rep tries Option 3 again → Only pending shown, approved blocked
 
 #### Scenario 6: Max 5 Internships
+
 1. Company rep creates 5 internships
 2. Try create 6th → BLOCKED "maximum limit of 5 internships"
 
 #### Scenario 7: Password Change
+
 1. Login as any user
 2. Select "Change Password" option
 3. Enter current: password, new: newpass123, confirm: newpass123
@@ -236,12 +258,14 @@
 6. Login with newpass123 → SUCCESS
 
 #### Scenario 8: Report Filtering
+
 1. Login as staff
 2. Option 6 (Generate Reports)
 3. Filter by Status: Approved, Level: Basic, Major: Computer Science
 4. Report shows only matching opportunities
 
 ## Post-Test Cleanup
+
 - [ ] Reset CSV files to original state if needed
 - [ ] Verify no exceptions in logs
 - [ ] Confirm all success/error messages use consistent formatting

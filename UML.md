@@ -318,6 +318,7 @@ classDiagram
         +main(args: String[]): void
         -run(): void
         -showMainMenu(): void
+        -showRegistrationMenu(): void
         -login(): void
         -registerStudent(): void
         -registerStaff(): void

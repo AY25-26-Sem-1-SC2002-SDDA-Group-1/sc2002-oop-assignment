@@ -179,12 +179,12 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 }
             }
 
-            System.out.print("Enter Minimum GPA Required (0.0-4.0): ");
+            System.out.print("Enter Minimum GPA Required (0.0-5.0): ");
             double minimumGPA = 0.0;
             try {
-                minimumGPA = Double.parseDouble(scanner.nextLine());
-                if (minimumGPA < 0.0 || minimumGPA > 4.0) {
-                    System.out.println("Minimum GPA must be between 0.0 and 4.0.");
+                minimumGPA = Double.parseDouble(scanner.nextLine().trim());
+                if (minimumGPA < 0.0 || minimumGPA > 5.0) {
+                    System.out.println("Minimum GPA must be between 0.0 and 5.0.");
                     return;
                 }
             } catch (NumberFormatException e) {
@@ -343,15 +343,15 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             }
         }
 
-        System.out.print("Enter new Minimum GPA (0.0-4.0) [" + opp.getMinGPA() + "]: ");
+        System.out.print("Enter new Minimum GPA (0.0-5.0) [" + opp.getMinGPA() + "]: ");
         String minimumGPAStr = scanner.nextLine().trim();
         if (!minimumGPAStr.isEmpty()) {
             try {
                 double minimumGPA = Double.parseDouble(minimumGPAStr);
-                if (minimumGPA >= 0.0 && minimumGPA <= 4.0) {
+                if (minimumGPA >= 0.0 && minimumGPA <= 5.0) {
                     opp.setMinGPA(minimumGPA);
                 } else {
-                    System.out.println("Minimum GPA must be between 0.0 and 4.0. Keeping current value.");
+                    System.out.println("Minimum GPA must be between 0.0 and 5.0. Keeping current value.");
                 }
             } catch (NumberFormatException e) {
                 System.out.println("Invalid GPA format. Keeping current value.");

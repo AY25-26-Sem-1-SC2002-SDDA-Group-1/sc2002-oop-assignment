@@ -20,7 +20,7 @@ public class InternshipService {
         long count = internshipRepository.getAllInternships().stream().filter(i -> i.getCreatedBy().getUserID().equals(userId)).count();
         if (count >= 5) return false;
 
-        if (maxSlots < 1 || maxSlots > 10 || minGPA < 0 || minGPA > 4.0) return false;
+        if (maxSlots < 1 || maxSlots > 10 || minGPA < 0 || minGPA > 5.0) return false;
 
         InternshipOpportunity opp = new InternshipOpportunity(
             internshipRepository.generateInternshipId(),

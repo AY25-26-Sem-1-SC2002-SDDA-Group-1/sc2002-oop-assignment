@@ -2,6 +2,32 @@
 
 Hey there! Here's what's been cooking in the Internship Placement System. We've been busy adding features, fixing bugs, and making things smoother for everyone.
 
+## Version 3.1.0 - November 19, 2025
+
+### User Experience Improvements
+
+**Streamlined Registration Flow**: Consolidated the main menu registration options into a single "Register New Account" option that expands into a submenu. This provides a cleaner, more intuitive interface by reducing main menu clutter from 5 options to 3.
+
+- Main menu now shows: Login, Register, Exit
+- Registration submenu offers: Student, Career Center Staff, Company Representative, or Back to Main Menu
+- Improved menu hierarchy for better navigation
+
+### System Updates
+
+**GPA Range Expansion**: Updated the GPA scale from 0.0-4.0 to 0.0-5.0 across the entire system to accommodate different grading systems.
+
+- Student registration now accepts GPA values up to 5.0
+- Internship minimum GPA requirements updated to 5.0 maximum
+- All validation logic, error messages, and prompts updated consistently
+- Documentation updated in TESTING_GUIDE.md
+
+### Code Quality
+
+- Added `showRegistrationMenu()` method to InternshipPlacementSystem
+- Updated validation logic in CompanyRepresentative, CompanyRepMenuHandler, and InternshipService
+- Enhanced UIHelper with new `printRegistrationMenu()` method
+- UML diagrams updated to reflect new menu structure
+
 ## Version 3.0.0 - November 18, 2025
 
 ### Major Architectural Refactor

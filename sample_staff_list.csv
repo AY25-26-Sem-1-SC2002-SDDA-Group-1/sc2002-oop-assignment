@@ -1,4 +1,4 @@
-StaffID,Name,Email,StaffDepartment
-sng001,Dr. Sng Hui Lin,sng001@ntu.edu.sg,CCDS
-tan002,Mr. Tan Boon Kiat,tan002@ntu.edu.sg,CCDS
-lee003,Ms. Lee Mei Ling,lee003@ntu.edu.sg,CCDS
+UserID,Name,Password,Department
+sng001,Dr. Sng Hui Lin,password,CCDS
+tan002,Mr. Tan Boon Kiat,password,CCDS
+lee003,Ms. Lee Mei Ling,password,CCDS

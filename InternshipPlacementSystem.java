@@ -49,19 +49,38 @@ public class InternshipPlacementSystem {
                     login();
                     break;
                 case "2":
-                    registerStudent();
+                    showRegistrationMenu();
                     break;
                 case "3":
-                    registerStaff();
-                    break;
-                case "4":
-                    registerCompanyRep();
-                    break;
-                case "5":
                     UIHelper.printGoodbyeMessage();
                     userRepository.saveUsers();
                     applicationRepository.saveApplications();
                     System.exit(0);
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        } catch (Exception e) {
+            System.out.println("Error reading input. Please try again.");
+        }
+    }
+    
+    private void showRegistrationMenu() {
+        UIHelper.printRegistrationMenu();
+        try {
+            String choice = scanner.nextLine().trim();
+            switch (choice) {
+                case "1":
+                    registerStudent();
+                    break;
+                case "2":
+                    registerStaff();
+                    break;
+                case "3":
+                    registerCompanyRep();
+                    break;
+                case "4":
+                    // Back to main menu - do nothing, loop continues
                     break;
                 default:
                     System.out.println("Invalid choice. Please try again.");
@@ -114,7 +133,7 @@ public class InternshipPlacementSystem {
             int yearOfStudy = Integer.parseInt(scanner.nextLine().trim());
             System.out.print("Enter Major (CS/EEE/BM): ");
             String major = scanner.nextLine().trim().toUpperCase();
-            System.out.print("Enter GPA (0.0-4.0): ");
+            System.out.print("Enter GPA (0.0-5.0): ");
             double gpa = Double.parseDouble(scanner.nextLine().trim());
 
             if (userService.registerStudent(userID, name, password, yearOfStudy, major, gpa)) {

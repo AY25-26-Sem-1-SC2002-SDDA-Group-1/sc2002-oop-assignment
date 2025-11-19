@@ -1,4 +1,4 @@
-CompanyRepID,Name,CompanyName,Department,Position,Email,Status
-JH,Jensen Huang,Nvidia,recruitment,CEO,nvidia@gmail.com,Approved
-Nachi,Nachiappan Hari,NTU,Recruitment,CEO,r240019@nushigh.edu.in,Approved
-Sori,Nachiappan Sori,ISRO,Recruitment,Manager,ariyakudi@nattarasankottai.com,Approved
+UserID,Name,Password,Company,Department,Position,Contact,Status
+JH,Jensen Huang,password,Nvidia,recruitment,CEO,nvidia@gmail.com,Approved
+Nachi,Nachiappan Hari,password,NTU,Recruitment,CEO,r240019@nushigh.edu.in,Approved
+Sori,Nachiappan Sori,password,ISRO,Recruitment,Manager,ariyakudi@nattarasankottai.com,Approved
