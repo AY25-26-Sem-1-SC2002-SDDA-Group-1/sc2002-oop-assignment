@@ -39,26 +39,29 @@ classDiagram
         -String department
         -String position
         -boolean isApproved
+        -String email
         +createInternship(title: String, description: String, level: String, preferredMajor: String, openingDate: Date, closingDate: Date, maxSlots: int): bool
         +viewApplications(): List~Application~
         +viewApplications(opportunityID: String): List~Application~
-        +approveApplication(applicationID: String): void
-        +rejectApplication(applicationID: String): void
+        +processApplication(applicationID: String, approve: boolean): void
+        +getPendingApplications(): List~Application~
         +toggleVisibility(opportunityID: String, visible: bool): void
         +getCompanyName(): String
         +getDepartment(): String
         +getPosition(): String
         +isApproved(): bool
         +setApproved(approved: bool): void
+        +getEmail(): String
     }
 
     class CareerCenterStaff {
         -String staffDepartment
-        +approveCompanyRep(repID: String): void
-        +approveInternship(opportunityID: String): void
-        +rejectInternship(opportunityID: String): void
-        +approveWithdrawal(applicationID: String): void
-        +rejectWithdrawal(applicationID: String): void
+        +processCompanyRep(repID: String, approve: boolean): void
+        +processInternship(opportunityID: String, approve: boolean): void
+        +processWithdrawal(applicationID: String, approve: boolean): void
+        +getPendingCompanyReps(): List~CompanyRepresentative~
+        +getPendingInternships(): List~InternshipOpportunity~
+        +getWithdrawalRequests(): List~Application~
         +generateReports(filters: Map~String,String~): Report
         +getStaffDepartment(): String
     }
@@ -80,14 +83,21 @@ classDiagram
         +isVisible(): bool
         +getOpportunityID(): String
         +getTitle(): String
+        +setTitle(title: String): void
         +getDescription(): String
+        +setDescription(description: String): void
         +getLevel(): String
+        +setLevel(level: String): void
         +getPreferredMajor(): String
+        +setPreferredMajor(major: String): void
         +getOpeningDate(): Date
+        +setOpeningDate(date: Date): void
         +getClosingDate(): Date
+        +setClosingDate(date: Date): void
         +getStatus(): String
         +setStatus(status: String): void
         +getMaxSlots(): int
+        +setMaxSlots(slots: int): void
         +isVisibility(): bool
         +setVisibility(visibility: bool): void
         +getMinGPA(): double

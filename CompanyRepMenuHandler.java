@@ -4,10 +4,21 @@ import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
-public class CompanyRepMenuHandler {
-    private static final Scanner scanner = new Scanner(System.in);
+public class CompanyRepMenuHandler implements IMenuHandler {
+    private final CompanyRepresentative rep;
+    private final InternshipService internshipService;
+    private final ApplicationService applicationService;
+    private final Scanner scanner;
 
-    public static void showCompanyRepMenu(CompanyRepresentative rep) {
+    public CompanyRepMenuHandler(CompanyRepresentative rep, InternshipService internshipService, ApplicationService applicationService, Scanner scanner) {
+        this.rep = rep;
+        this.internshipService = internshipService;
+        this.applicationService = applicationService;
+        this.scanner = scanner;
+    }
+
+    @Override
+    public void showMenu() {
         UIHelper.printCompanyRepMenu();
         System.out.println("1. Create New Internship");
         System.out.println("2. View My Internships");
@@ -27,28 +38,28 @@ public class CompanyRepMenuHandler {
 
         switch (choice) {
             case "1":
-                createInternship(rep);
+                createInternship();
                 break;
             case "2":
-                viewMyInternships(rep);
+                viewMyInternships();
                 break;
             case "3":
-                editInternship(rep);
+                editInternship();
                 break;
             case "4":
-                deleteInternship(rep);
+                deleteInternship();
                 break;
             case "5":
-                viewApplicationDetails(rep);
+                viewApplicationDetails();
                 break;
             case "6":
-                processApplications(rep);
+                processApplications();
                 break;
             case "7":
-                toggleVisibility(rep);
+                toggleVisibility();
                 break;
             case "8":
-                viewCompanyRepStatistics(rep);
+                viewCompanyRepStatistics();
                 break;
             case "9":
                 viewAllInternshipsFiltered();
@@ -57,7 +68,7 @@ public class CompanyRepMenuHandler {
                 FilterManager.manageFilters();
                 break;
             case "11":
-                changePassword(rep);
+                changePassword();
                 break;
             case "12":
                 logout();
@@ -67,7 +78,7 @@ public class CompanyRepMenuHandler {
         }
     }
 
-    private static void createInternship(CompanyRepresentative rep) {
+    private void createInternship() {
         if (!rep.isApproved()) {
             System.out.println("Your account is not approved yet. Please wait for Career Center Staff approval.");
             return;
@@ -191,7 +202,7 @@ public class CompanyRepMenuHandler {
         }
     }
 
-    private static void viewMyInternships(CompanyRepresentative rep) {
+    private void viewMyInternships() {
         UIHelper.printSectionHeader("MY INTERNSHIPS");
         boolean found = false;
         for (InternshipOpportunity opp : Database.getInternships()) {
@@ -214,7 +225,7 @@ public class CompanyRepMenuHandler {
         }
     }
 
-    private static void editInternship(CompanyRepresentative rep) {
+    private void editInternship() {
         UIHelper.printSectionHeader("EDIT INTERNSHIP (Pending/Rejected Only)");
         // Show only pending and rejected internships
         boolean foundEditable = false;
@@ -351,7 +362,7 @@ public class CompanyRepMenuHandler {
         System.out.println("Internship updated successfully!");
     }
 
-    private static void deleteInternship(CompanyRepresentative rep) {
+    private void deleteInternship() {
         UIHelper.printSectionHeader("DELETE INTERNSHIP");
         // Show all internships created by rep
         boolean found = false;
@@ -393,7 +404,7 @@ public class CompanyRepMenuHandler {
         }
     }
 
-    private static void viewApplicationDetails(CompanyRepresentative rep) {
+    private void viewApplicationDetails() {
         UIHelper.printSectionHeader("VIEW APPLICATION DETAILS");
 
         // Show rep's internships
@@ -451,7 +462,7 @@ public class CompanyRepMenuHandler {
         System.out.println("=".repeat(70));
     }
 
-    private static void processApplications(CompanyRepresentative rep) {
+    private void processApplications() {
         UIHelper.printSectionHeader("PROCESS APPLICATIONS");
 
         List<Application> pendingApplications = rep.getPendingApplications();
@@ -543,7 +554,7 @@ public class CompanyRepMenuHandler {
         System.out.println("=".repeat(50));
     }
 
-    private static void toggleVisibility(CompanyRepresentative rep) {
+    private void toggleVisibility() {
         UIHelper.printSectionHeader("TOGGLE INTERNSHIP VISIBILITY");
 
         // Show rep's approved internships
@@ -623,12 +634,12 @@ public class CompanyRepMenuHandler {
         System.out.println("=".repeat(50));
     }
 
-    private static void viewCompanyRepStatistics(CompanyRepresentative rep) {
+    private void viewCompanyRepStatistics() {
         Statistics stats = new Statistics();
         stats.displayCompanyRepresentativeStatistics(rep);
     }
 
-    private static void viewAllInternshipsFiltered() {
+    private void viewAllInternshipsFiltered() {
         UIHelper.printSectionHeader("ALL INTERNSHIPS (FILTERED)");
 
         if (FilterManager.hasActiveFilters()) {
@@ -657,12 +668,12 @@ public class CompanyRepMenuHandler {
         }
     }
 
-    private static void changePassword(User user) {
+    private void changePassword() {
         System.out.print("Enter current password: ");
         String currentPassword = scanner.nextLine().trim();
 
         // Verify current password
-        if (!user.verifyPassword(currentPassword)) {
+        if (!rep.verifyPassword(currentPassword)) {
             System.out.println("Current password is incorrect.");
             return;
         }
@@ -689,11 +700,12 @@ public class CompanyRepMenuHandler {
             return;
         }
 
-        user.changePassword(newPassword);
+        rep.changePassword(newPassword);
         System.out.println("Password changed successfully!");
     }
 
-    private static void logout() {
-        InternshipPlacementSystem.logout();
+    private void logout() {
+        System.out.println("Logging out...");
+        rep.logout();
     }
 }

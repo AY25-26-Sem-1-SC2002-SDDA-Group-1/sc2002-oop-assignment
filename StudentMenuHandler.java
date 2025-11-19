@@ -33,28 +33,28 @@ public class StudentMenuHandler implements IMenuHandler {
 
         switch (choice) {
             case "1":
-                viewEligibleInternships(student);
+                viewEligibleInternships();
                 break;
             case "2":
-                applyForInternship(student);
+                applyForInternship();
                 break;
             case "3":
-                viewMyApplications(student);
+                viewMyApplications();
                 break;
             case "4":
-                acceptInternship(student);
+                acceptInternship();
                 break;
             case "5":
-                requestWithdrawal(student);
+                requestWithdrawal();
                 break;
             case "6":
-                viewStudentStatistics(student);
+                viewStudentStatistics();
                 break;
             case "7":
                 FilterManager.manageFilters();
                 break;
             case "8":
-                changePassword(student);
+                changePassword();
                 break;
             case "9":
                 logout();
@@ -94,9 +94,9 @@ public class StudentMenuHandler implements IMenuHandler {
         }
     }
 
-    private static void applyForInternship(Student student) {
+    private void applyForInternship() {
         // Display eligible internships first
-        viewEligibleInternships(student);
+        viewEligibleInternships();
 
         System.out.print("\nEnter Internship ID(s) (space-separated for multiple): ");
         String input = scanner.nextLine().trim();
@@ -142,7 +142,7 @@ public class StudentMenuHandler implements IMenuHandler {
         System.out.println("=".repeat(50));
     }
 
-    private static void viewMyApplications(Student student) {
+    private void viewMyApplications() {
         UIHelper.printSectionHeader("MY APPLICATIONS");
         var applications = student.viewApplications();
         if (applications.isEmpty()) {
@@ -168,7 +168,7 @@ public class StudentMenuHandler implements IMenuHandler {
         }
     }
 
-    private static void acceptInternship(Student student) {
+    private void acceptInternship() {
         // Show successful applications first
         List<Application> successfulApps = new java.util.ArrayList<>();
         for (Application app : student.viewApplications()) {
@@ -202,7 +202,7 @@ public class StudentMenuHandler implements IMenuHandler {
         student.acceptInternship(applicationID);
     }
 
-    private static void requestWithdrawal(Student student) {
+    private void requestWithdrawal() {
         // Show withdrawable applications (Pending, Successful, or Confirmed)
         List<Application> withdrawableApps = new java.util.ArrayList<>();
         for (Application app : student.viewApplications()) {
@@ -238,17 +238,17 @@ public class StudentMenuHandler implements IMenuHandler {
         student.requestWithdrawal(applicationID);
     }
 
-    private static void viewStudentStatistics(Student student) {
+    private void viewStudentStatistics() {
         Statistics stats = new Statistics();
         stats.displayStudentStatistics(student);
     }
 
-    private static void changePassword(User user) {
+    private void changePassword() {
         System.out.print("Enter current password: ");
         String currentPassword = scanner.nextLine().trim();
 
         // Verify current password
-        if (!user.verifyPassword(currentPassword)) {
+        if (!student.verifyPassword(currentPassword)) {
             System.out.println("Current password is incorrect.");
             return;
         }
@@ -275,11 +275,12 @@ public class StudentMenuHandler implements IMenuHandler {
             return;
         }
 
-        user.changePassword(newPassword);
+        student.changePassword(newPassword);
         System.out.println("Password changed successfully!");
     }
 
-    private static void logout() {
-        InternshipPlacementSystem.logout();
+    private void logout() {
+        System.out.println("Logging out...");
+        student.logout();
     }
 }

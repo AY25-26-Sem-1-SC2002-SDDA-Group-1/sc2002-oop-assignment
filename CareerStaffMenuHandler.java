@@ -2,10 +2,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
-public class CareerStaffMenuHandler {
-    private static final Scanner scanner = new Scanner(System.in);
+public class CareerStaffMenuHandler implements IMenuHandler {
+    private final CareerCenterStaff staff;
+    private final UserService userService;
+    private final InternshipService internshipService;
+    private final ApplicationService applicationService;
+    private final Scanner scanner;
 
-    public static void showCareerStaffMenu(CareerCenterStaff staff) {
+    public CareerStaffMenuHandler(CareerCenterStaff staff, UserService userService, InternshipService internshipService, ApplicationService applicationService, Scanner scanner) {
+        this.staff = staff;
+        this.userService = userService;
+        this.internshipService = internshipService;
+        this.applicationService = applicationService;
+        this.scanner = scanner;
+    }
+
+    @Override
+    public void showMenu() {
         UIHelper.printCareerStaffMenu();
         System.out.println("1. Process Company Representatives");
         System.out.println("2. Process Internships");
@@ -21,13 +34,13 @@ public class CareerStaffMenuHandler {
 
         switch (choice) {
             case "1":
-                processCompanyReps(staff);
+                processCompanyReps();
                 break;
             case "2":
-                processInternships(staff);
+                processInternships();
                 break;
             case "3":
-                processWithdrawals(staff);
+                processWithdrawals();
                 break;
             case "4":
                 viewAllInternshipsFiltered();
@@ -36,10 +49,10 @@ public class CareerStaffMenuHandler {
                 FilterManager.manageFilters();
                 break;
             case "6":
-                generateReports(staff);
+                generateReports();
                 break;
             case "7":
-                changePassword(staff);
+                changePassword();
                 break;
             case "8":
                 logout();
@@ -49,7 +62,7 @@ public class CareerStaffMenuHandler {
         }
     }
 
-    private static void processCompanyReps(CareerCenterStaff staff) {
+    private void processCompanyReps() {
         UIHelper.printSectionHeader("PROCESS COMPANY REPRESENTATIVES");
 
         List<CompanyRepresentative> pendingReps = staff.getPendingCompanyReps();
@@ -115,7 +128,7 @@ public class CareerStaffMenuHandler {
         }
     }
 
-    private static void processInternships(CareerCenterStaff staff) {
+    private void processInternships() {
         UIHelper.printSectionHeader("PROCESS INTERNSHIPS");
 
         List<InternshipOpportunity> pendingInternships = staff.getPendingInternships();
@@ -203,7 +216,7 @@ public class CareerStaffMenuHandler {
         System.out.println("=".repeat(50));
     }
 
-    private static void processWithdrawals(CareerCenterStaff staff) {
+    private void processWithdrawals() {
         UIHelper.printSectionHeader("PROCESS WITHDRAWAL REQUESTS");
 
         List<Application> withdrawalRequests = staff.getWithdrawalRequests();
@@ -273,7 +286,7 @@ public class CareerStaffMenuHandler {
         }
     }
 
-    private static void viewAllInternshipsFiltered() {
+    private void viewAllInternshipsFiltered() {
         UIHelper.printSectionHeader("ALL INTERNSHIPS (FILTERED)");
 
         if (FilterManager.hasActiveFilters()) {
@@ -302,7 +315,7 @@ public class CareerStaffMenuHandler {
         }
     }
 
-    private static void generateReports(CareerCenterStaff staff) {
+    private void generateReports() {
         UIHelper.printSectionHeader("GENERATE REPORTS");
 
         System.out.println("Enter filters (leave blank to skip):");
@@ -344,12 +357,12 @@ public class CareerStaffMenuHandler {
         }
     }
 
-    private static void changePassword(User user) {
+    private void changePassword() {
         System.out.print("Enter current password: ");
         String currentPassword = scanner.nextLine().trim();
 
         // Verify current password
-        if (!user.verifyPassword(currentPassword)) {
+        if (!staff.verifyPassword(currentPassword)) {
             System.out.println("Current password is incorrect.");
             return;
         }
@@ -376,11 +389,12 @@ public class CareerStaffMenuHandler {
             return;
         }
 
-        user.changePassword(newPassword);
+        staff.changePassword(newPassword);
         System.out.println("Password changed successfully!");
     }
 
-    private static void logout() {
-        InternshipPlacementSystem.logout();
+    private void logout() {
+        System.out.println("Logging out...");
+        staff.logout();
     }
 }
