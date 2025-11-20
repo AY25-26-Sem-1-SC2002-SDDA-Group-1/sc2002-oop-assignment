@@ -1,0 +1,6 @@
+*.class
+.git/
+docs/
+test/
+*.md
+.vscode/
