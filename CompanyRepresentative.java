@@ -179,4 +179,20 @@ public class CompanyRepresentative extends User {
             this.isRejected = false;
         }
     }
+
+    @Override
+    public IMenuHandler createMenuHandler(
+        InternshipService internshipService,
+        ApplicationService applicationService,
+        UserService userService,
+        java.util.Scanner scanner
+    ) {
+        return new CompanyRepMenuHandler(this, internshipService, applicationService, userService, scanner);
+    }
+
+    @Override
+    public boolean isCompanyRepresentative() { return true; }
+    
+    @Override
+    public CompanyRepresentative asCompanyRepresentative() { return this; }
 }

@@ -61,14 +61,7 @@ public class InternshipPlacementSystem {
     }
 
     private IMenuHandler getMenuHandler() {
-        if (currentUser instanceof Student) {
-            return new StudentMenuHandler((Student) currentUser, internshipService, applicationService, userService, scanner);
-        } else if (currentUser instanceof CompanyRepresentative) {
-            return new CompanyRepMenuHandler((CompanyRepresentative) currentUser, internshipService, applicationService, userService, scanner);
-        } else if (currentUser instanceof CareerCenterStaff) {
-            return new CareerStaffMenuHandler((CareerCenterStaff) currentUser, userService, internshipService, applicationService, scanner);
-        }
-        return null;
+        return currentUser.createMenuHandler(internshipService, applicationService, userService, scanner);
     }
 
     private void showMainMenu() {
@@ -136,8 +129,8 @@ public class InternshipPlacementSystem {
             }
 
             // Check if company representative is approved
-            if (user instanceof CompanyRepresentative) {
-                CompanyRepresentative rep = (CompanyRepresentative) user;
+            if (user.isCompanyRepresentative()) {
+                CompanyRepresentative rep = user.asCompanyRepresentative();
                 if (rep.isRejected()) {
                     System.out.println("Your account is rejected.");
                     return;

@@ -12,8 +12,8 @@ public class InternshipService {
 
     public boolean createInternship(String userId, String title, String description, String level, String preferredMajor, Date openingDate, Date closingDate, int maxSlots, double minGPA) {
         User user = userRepository.getUserById(userId);
-        if (!(user instanceof CompanyRepresentative)) return false;
-        CompanyRepresentative rep = (CompanyRepresentative) user;
+        if (!user.isCompanyRepresentative()) return false;
+        CompanyRepresentative rep = user.asCompanyRepresentative();
         if (!rep.isApproved()) return false;
 
         // Check count

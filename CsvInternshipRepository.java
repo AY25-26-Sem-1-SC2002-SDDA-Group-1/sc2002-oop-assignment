@@ -50,11 +50,11 @@ public class CsvInternshipRepository implements IInternshipRepository {
                         String creatorId = parts[11].trim();
                         
                         User creator = userRepository.getUserById(creatorId);
-                        if (creator instanceof CompanyRepresentative) {
+                        if (creator.isCompanyRepresentative()) {
                             InternshipOpportunity opp = new InternshipOpportunity(
                                 oppId, title, description, level, preferredMajor,
                                 openingDate, closingDate, maxSlots, minGPA,
-                                (CompanyRepresentative) creator
+                                creator.asCompanyRepresentative()
                             );
                             opp.setStatus(status);
                             opp.setVisibility(visibility);

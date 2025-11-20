@@ -24,10 +24,10 @@ public class CsvUserRepository implements IUserRepository {
         this.internshipRepository = internshipRepository;
         // Update repository references in all user objects
         for (User user : users) {
-            if (user instanceof Student) {
-                ((Student) user).setInternshipRepository(internshipRepository);
-            } else if (user instanceof CompanyRepresentative) {
-                ((CompanyRepresentative) user).setInternshipRepository(internshipRepository);
+            if (user.isStudent()) {
+                user.asStudent().setInternshipRepository(internshipRepository);
+            } else if (user.isCompanyRepresentative()) {
+                user.asCompanyRepresentative().setInternshipRepository(internshipRepository);
             }
         }
     }
@@ -36,10 +36,10 @@ public class CsvUserRepository implements IUserRepository {
         this.applicationRepository = applicationRepository;
         // Update repository references in all user objects
         for (User user : users) {
-            if (user instanceof Student) {
-                ((Student) user).setApplicationRepository(applicationRepository);
-            } else if (user instanceof CompanyRepresentative) {
-                ((CompanyRepresentative) user).setApplicationRepository(applicationRepository);
+            if (user.isStudent()) {
+                user.asStudent().setApplicationRepository(applicationRepository);
+            } else if (user.isCompanyRepresentative()) {
+                user.asCompanyRepresentative().setApplicationRepository(applicationRepository);
             }
         }
     }
@@ -223,8 +223,8 @@ public class CsvUserRepository implements IUserRepository {
         PrintWriter writer = new PrintWriter(new FileWriter("data/sample_student_list.csv"));
         writer.println("UserID,Name,Major,Year,GPA,PasswordHash,Salt");
         for (User user : users) {
-            if (user instanceof Student) {
-                Student s = (Student) user;
+            if (user.isStudent()) {
+                Student s = user.asStudent();
                 writer.println(s.getUserID() + "," + s.getName() + "," + s.getMajor() + "," +
                               s.getYearOfStudy() + "," + s.getGpa() + "," +
                               s.getPasswordHash() + "," + s.getSalt());
@@ -237,8 +237,8 @@ public class CsvUserRepository implements IUserRepository {
         PrintWriter writer = new PrintWriter(new FileWriter("data/sample_staff_list.csv"));
         writer.println("UserID,Name,Department,PasswordHash,Salt");
         for (User user : users) {
-            if (user instanceof CareerCenterStaff) {
-                CareerCenterStaff s = (CareerCenterStaff) user;
+            if (user.isCareerCenterStaff()) {
+                CareerCenterStaff s = user.asCareerCenterStaff();
                 writer.println(s.getUserID() + "," + s.getName() + "," + s.getStaffDepartment() + "," +
                               s.getPasswordHash() + "," + s.getSalt());
             }
@@ -250,8 +250,8 @@ public class CsvUserRepository implements IUserRepository {
         PrintWriter writer = new PrintWriter(new FileWriter("data/sample_company_representative_list.csv"));
         writer.println("CompanyRepID,Name,CompanyName,Department,Position,Email,PasswordHash,Salt,Status");
         for (User user : users) {
-            if (user instanceof CompanyRepresentative) {
-                CompanyRepresentative r = (CompanyRepresentative) user;
+            if (user.isCompanyRepresentative()) {
+                CompanyRepresentative r = user.asCompanyRepresentative();
                 String status = r.isApproved() ? "Approved" : (r.isRejected() ? "Rejected" : "Pending");
                 writer.println(r.getUserID() + "," + r.getName() + "," + r.getCompanyName() + "," +
                               r.getDepartment() + "," + r.getPosition() + "," + r.getEmail() + "," +

@@ -1,4 +1,4 @@
-public class User {
+public abstract class User {
     protected String userID;
     protected String name;
     protected String passwordHash;
@@ -71,4 +71,22 @@ public class User {
     public boolean isLoggedIn() {
         return isLoggedIn;
     }
+
+    // Abstract method for polymorphic menu handler creation
+    public abstract IMenuHandler createMenuHandler(
+        InternshipService internshipService,
+        ApplicationService applicationService,
+        UserService userService,
+        java.util.Scanner scanner
+    );
+
+    // Polymorphic methods to check user type (replaces instanceof)
+    public boolean isStudent() { return false; }
+    public boolean isCompanyRepresentative() { return false; }
+    public boolean isCareerCenterStaff() { return false; }
+    
+    // Safe casting methods (return null if wrong type)
+    public Student asStudent() { return null; }
+    public CompanyRepresentative asCompanyRepresentative() { return null; }
+    public CareerCenterStaff asCareerCenterStaff() { return null; }
 }

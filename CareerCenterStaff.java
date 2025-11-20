@@ -43,8 +43,8 @@ public class CareerCenterStaff extends User {
         // Prefer repository if available for SOLID compliance
         List<User> sourceUsers = userRepository.getAllUsers();
         for (User user : sourceUsers) {
-            if (user instanceof CompanyRepresentative) {
-                CompanyRepresentative rep = (CompanyRepresentative) user;
+            if (user.isCompanyRepresentative()) {
+                CompanyRepresentative rep = user.asCompanyRepresentative();
                 if (!rep.isApproved() && !rep.isRejected()) {
                     pendingReps.add(rep);
                 }
@@ -55,8 +55,8 @@ public class CareerCenterStaff extends User {
 
     public boolean processCompanyRep(String repID, boolean approve) {
         User user = userRepository.getUserById(repID);
-        if (user instanceof CompanyRepresentative) {
-            CompanyRepresentative rep = (CompanyRepresentative) user;
+        if (user.isCompanyRepresentative()) {
+            CompanyRepresentative rep = user.asCompanyRepresentative();
             if (approve && !rep.isApproved() && !rep.isRejected()) {
                 rep.setApproved(true);
                 // sync legacy Database copy if different instance
@@ -232,4 +232,20 @@ public class CareerCenterStaff extends User {
     public String getStaffDepartment() {
         return staffDepartment;
     }
+
+    @Override
+    public IMenuHandler createMenuHandler(
+        InternshipService internshipService,
+        ApplicationService applicationService,
+        UserService userService,
+        java.util.Scanner scanner
+    ) {
+        return new CareerStaffMenuHandler(this, userService, internshipService, applicationService, scanner);
+    }
+
+    @Override
+    public boolean isCareerCenterStaff() { return true; }
+    
+    @Override
+    public CareerCenterStaff asCareerCenterStaff() { return this; }
 }

@@ -267,11 +267,11 @@ public class Statistics {
         int totalStaff = 0;
         
         for (User user : userRepository.getAllUsers()) {
-            if (user instanceof Student) {
+            if (user.isStudent()) {
                 totalStudents++;
-            } else if (user instanceof CompanyRepresentative) {
+            } else if (user.isCompanyRepresentative()) {
                 totalCompanyReps++;
-            } else if (user instanceof CareerCenterStaff) {
+            } else if (user.isCareerCenterStaff()) {
                 totalStaff++;
             }
         }

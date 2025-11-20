@@ -10,7 +10,8 @@ This document contains the UML diagrams for the refactored Internship Placement 
 
 - **Single Responsibility**: Handlers = UI orchestration; Services = business rules + validation; Repositories = persistence; Domain objects = state + light invariants.
 - **Dependency Inversion**: High-level code depends on interfaces (`IUserRepository`, `IInternshipRepository`, `IApplicationRepository`).
-- **Open/Closed**: New persistence strategies can be added behind repository interfaces.
+- **Open/Closed**: New persistence strategies can be added behind repository interfaces. New user types can extend `User` without modifying existing code.
+- **Liskov Substitution**: Code works with `User` base type; polymorphic methods eliminate `instanceof` checks.
 - **Security**: Password hashing with salt; comprehensive input validation; secure data handling.
 
 **Data Layer Status**:
@@ -90,33 +91,39 @@ test/
 ### Test Coverage
 
 **UserService Tests (6 tests)**:
+
 - Student, Staff, and Company Rep authentication
 - Invalid credential rejection
 - Registration input validation (user ID, GPA ranges)
 
 **Repository Tests (5 tests)**:
+
 - CSV file loading and parsing
 - Data retrieval by ID
 - Repository initialization
 - ID generation functionality
 
 **Business Logic Tests (2 tests)**:
+
 - GPA-based eligibility filtering
 - Internship validation rules
 
 ### Enhanced Testing Features
 
 **Verbose Output**:
+
 - Detailed logging of test conditions and object types (ASCII-compatible)
 - Value comparison showing expected vs actual results
 - Step-by-step verification of test assertions
 
 **Confirmation Bias Protection**:
+
 - Tests run against production code (not simplified test versions)
 - Object type verification ensures correct return types
 - Comprehensive assertion checking prevents false positives
 
 **Testing Mode**:
+
 - Application can run in testing mode for automated verification
 - Isolated test environment prevents interference with production data
 - Detailed reporting with pass rates and failure analysis
@@ -145,6 +152,7 @@ classDiagram
     }
 
     class User {
+        <<abstract>>
         -String userID
         -String name
         -String passwordHash
@@ -161,6 +169,13 @@ classDiagram
         +getPasswordHash(): String
         +getSalt(): String
         +isLoggedIn(): bool
+        +createMenuHandler(internshipService, applicationService, userService, scanner): IMenuHandler*
+        +isStudent(): bool
+        +isCompanyRepresentative(): bool
+        +isCareerCenterStaff(): bool
+        +asStudent(): Student
+        +asCompanyRepresentative(): CompanyRepresentative
+        +asCareerCenterStaff(): CareerCenterStaff
     }
 
     class Student {
@@ -179,6 +194,9 @@ classDiagram
         +getYearOfStudy(): int
         +getMajor(): String
         +getGpa(): double
+        +createMenuHandler(internshipService, applicationService, userService, scanner): IMenuHandler
+        +isStudent(): bool
+        +asStudent(): Student
         -datesOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean
     }
 
@@ -205,6 +223,9 @@ classDiagram
             +setRejected(rejected: bool): void
         +setApproved(approved: bool): void
         +getEmail(): String
+        +createMenuHandler(internshipService, applicationService, userService, scanner): IMenuHandler
+        +isCompanyRepresentative(): bool
+        +asCompanyRepresentative(): CompanyRepresentative
     }
 
     class CareerCenterStaff {
@@ -220,6 +241,9 @@ classDiagram
         +getWithdrawalRequests(): List~Application~
         +generateReports(filters: Map~String,String~): Report
         +getStaffDepartment(): String
+        +createMenuHandler(internshipService, applicationService, userService, scanner): IMenuHandler
+        +isCareerCenterStaff(): bool
+        +asCareerCenterStaff(): CareerCenterStaff
     }
 
     class InternshipOpportunity {

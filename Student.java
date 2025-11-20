@@ -400,4 +400,20 @@ public class Student extends User {
         // They overlap if: start1 <= end2 AND start2 <= end1
         return !start1.after(end2) && !start2.after(end1);
     }
+
+    @Override
+    public IMenuHandler createMenuHandler(
+        InternshipService internshipService,
+        ApplicationService applicationService,
+        UserService userService,
+        java.util.Scanner scanner
+    ) {
+        return new StudentMenuHandler(this, internshipService, applicationService, userService, scanner);
+    }
+
+    @Override
+    public boolean isStudent() { return true; }
+    
+    @Override
+    public Student asStudent() { return this; }
 }

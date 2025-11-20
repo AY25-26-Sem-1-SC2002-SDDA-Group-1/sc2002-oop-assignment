@@ -61,8 +61,8 @@ public class CsvApplicationRepository implements IApplicationRepository {
                         User student = userRepository.getUserById(studentId);
                         InternshipOpportunity internship = internshipRepository.getInternshipById(opportunityId);
                         
-                        if (student instanceof Student && internship != null) {
-                            Application app = new Application(appId, (Student) student, internship, status, appliedDate);
+                        if (student.isStudent() && internship != null) {
+                            Application app = new Application(appId, student.asStudent(), internship, status, appliedDate);
                             app.setManuallyWithdrawn(manuallyWithdrawn);
                             app.setPreviousStatus(previousStatus);
                             app.setQueuedDate(queuedDate);

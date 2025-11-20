@@ -14,8 +14,8 @@ public class ApplicationService {
 
     public boolean applyForInternship(String studentId, String opportunityId) {
         User user = userRepository.getUserById(studentId);
-        if (!(user instanceof Student)) return false;
-        Student student = (Student) user;
+        if (!user.isStudent()) return false;
+        Student student = user.asStudent();
 
         InternshipOpportunity opp = internshipRepository.getInternshipById(opportunityId);
         if (opp == null || !opp.isOpen() || !opp.isVisible() || !student.isEligibleForInternship(opp)) return false;

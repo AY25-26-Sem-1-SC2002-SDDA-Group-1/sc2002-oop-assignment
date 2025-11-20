@@ -60,7 +60,7 @@ public class UserService {
         User existing = userRepository.getUserById(userId);
         // Allow username reuse if existing account is a rejected company rep
         if (existing != null) {
-            if (existing instanceof CompanyRepresentative && ((CompanyRepresentative) existing).isRejected()) {
+            if (existing.isCompanyRepresentative() && existing.asCompanyRepresentative().isRejected()) {
                 // Remove rejected account to allow new registration with same ID
                 userRepository.removeUser(userId);
             } else {
@@ -76,8 +76,8 @@ public class UserService {
 
     public void approveCompanyRep(String repId) {
         User user = userRepository.getUserById(repId);
-        if (user instanceof CompanyRepresentative) {
-            ((CompanyRepresentative) user).setApproved(true);
+        if (user.isCompanyRepresentative()) {
+            user.asCompanyRepresentative().setApproved(true);
             userRepository.saveUsers();
         }
     }
@@ -90,7 +90,7 @@ public class UserService {
         User existing = userRepository.getUserById(userId);
         if (existing == null) return true;
         // For company rep registration, allow reuse of rejected usernames
-        if (allowRejectedCompanyRep && existing instanceof CompanyRepresentative && ((CompanyRepresentative) existing).isRejected()) {
+        if (allowRejectedCompanyRep && existing.isCompanyRepresentative() && existing.asCompanyRepresentative().isRejected()) {
             return true;
         }
         return false;
