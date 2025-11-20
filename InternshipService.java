@@ -34,6 +34,8 @@ public class InternshipService {
         InternshipOpportunity opp = internshipRepository.getInternshipById(opportunityId);
         if (opp != null) {
             opp.setStatus("Approved");
+            opp.setVisibility(true);
+            internshipRepository.saveInternships();
         }
     }
 
@@ -43,6 +45,10 @@ public class InternshipService {
             opp.setStatus("Rejected");
             internshipRepository.removeInternship(opportunityId);
         }
+    }
+
+    public void deleteInternship(String opportunityId) {
+        internshipRepository.removeInternship(opportunityId);
     }
 
     public List<InternshipOpportunity> getAllInternships() {
@@ -57,6 +63,11 @@ public class InternshipService {
         InternshipOpportunity opp = internshipRepository.getInternshipById(opportunityId);
         if (opp != null) {
             opp.setVisibility(visible);
+            internshipRepository.saveInternships();
         }
+    }
+
+    public IInternshipRepository getInternshipRepository() {
+        return internshipRepository;
     }
 }

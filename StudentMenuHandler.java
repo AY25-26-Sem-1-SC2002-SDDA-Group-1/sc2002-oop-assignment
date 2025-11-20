@@ -1,18 +1,27 @@
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class StudentMenuHandler implements IMenuHandler {
     private final Student student;
     private final InternshipService internshipService;
     private final ApplicationService applicationService;
+    private final UserService userService;
     private final Scanner scanner;
+    private final FilterManager filterManager;
 
     public StudentMenuHandler(Student student, InternshipService internshipService, ApplicationService applicationService, Scanner scanner) {
+        this(student, internshipService, applicationService, null, scanner);
+    }
+
+    public StudentMenuHandler(Student student, InternshipService internshipService, ApplicationService applicationService, UserService userService, Scanner scanner) {
         this.student = student;
         this.internshipService = internshipService;
         this.applicationService = applicationService;
+        this.userService = userService;
         this.scanner = scanner;
+        this.filterManager = new FilterManager(scanner);
     }
 
     @Override
@@ -51,7 +60,7 @@ public class StudentMenuHandler implements IMenuHandler {
                 viewStudentStatistics();
                 break;
             case "7":
-                FilterManager.manageFilters();
+                filterManager.manageFilters();
                 break;
             case "8":
                 changePassword();
@@ -67,13 +76,16 @@ public class StudentMenuHandler implements IMenuHandler {
     private void viewEligibleInternships() {
         UIHelper.printSectionHeader("ELIGIBLE INTERNSHIPS");
 
-        if (FilterManager.hasActiveFilters()) {
-            System.out.println(FilterManager.getFilterSettings().toString());
+        if (filterManager.hasActiveFilters()) {
+            System.out.println(filterManager.getFilterSettings().toString());
             System.out.println();
         }
 
-        var internships = student.viewEligibleInternships();
-        internships = FilterManager.getFilterSettings().applyFilters(internships);
+        // Use InternshipService to get all internships
+        List<InternshipOpportunity> internships = internshipService.getAllInternships().stream()
+            .filter(i -> i.isVisible() && i.getStatus().equals("Approved") && i.getPreferredMajor().equalsIgnoreCase(student.getMajor()) && student.isEligibleForInternship(i) && student.getGpa() >= i.getMinGPA())
+            .collect(Collectors.toList());
+        internships = filterManager.getFilterSettings().applyFilters(internships);
 
         if (internships.isEmpty()) {
             System.out.println("No eligible internships found.");
@@ -111,13 +123,33 @@ public class StudentMenuHandler implements IMenuHandler {
 
         for (String internshipID : internshipIDs) {
             internshipID = internshipID.trim();
-            boolean result = student.applyForInternship(internshipID);
+            boolean result = applicationService.applyForInternship(student.getUserID(), internshipID);
 
             if (result) {
-                System.out.println("[SUCCESS] " + internshipID + ": Application submitted successfully!");
+                // Determine final status to tailor message (Pending vs Queued)
+                InternshipOpportunity opp = internshipService.getInternship(internshipID);
+                String status = null;
+                for (Application app : applicationService
+                        .getAllApplicationsForStudent(student.getUserID())) {
+                    if (app.getOpportunity().getOpportunityID().equals(internshipID)) {
+                        status = app.getStatus();
+                    }
+                }
+                if ("Queued".equals(status)) {
+                    long confirmed = applicationService.getAllApplicationsForInternship(internshipID).stream()
+                        .filter(a -> "Confirmed".equals(a.getStatus()))
+                        .count();
+                    long queued = applicationService.getAllApplicationsForInternship(internshipID).stream()
+                        .filter(a -> "Queued".equals(a.getStatus()))
+                        .count();
+                    System.out.println("[WAITLISTED] " + internshipID + ": Internship is full (" + confirmed + "/" + opp.getMaxSlots() + ")");
+                    System.out.println("You have been added to the waitlist. Current waitlist size: " + queued + ".");
+                } else {
+                    System.out.println("[SUCCESS] " + internshipID + ": Application submitted successfully!");
+                }
                 successCount++;
             } else {
-                InternshipOpportunity opp = Database.getInternship(internshipID);
+                InternshipOpportunity opp = internshipService.getInternship(internshipID);
                 if (opp == null) {
                     System.out.println("[FAILED] " + internshipID + ": Internship not found.");
                 } else if (!opp.isVisible() || !opp.getStatus().equals("Approved")) {
@@ -187,7 +219,7 @@ public class StudentMenuHandler implements IMenuHandler {
             InternshipOpportunity opp = app.getOpportunity();
             System.out.println("\nApplication ID: " + app.getApplicationID());
             System.out.println("Internship: " + opp.getTitle());
-            System.out.println("Company: " + opp.getCreatedBy().getName());
+            System.out.println("Company: " + opp.getCreatedBy().getCompanyName());
             System.out.println("Level: " + opp.getLevel());
             System.out.println("Max Slots: " + opp.getMaxSlots());
             System.out.println("-".repeat(50));
@@ -223,7 +255,7 @@ public class StudentMenuHandler implements IMenuHandler {
             System.out.println("\nApplication ID: " + app.getApplicationID());
             System.out.println("Status: " + app.getStatus());
             System.out.println("Internship: " + opp.getTitle());
-            System.out.println("Company: " + opp.getCreatedBy().getName());
+            System.out.println("Company: " + opp.getCreatedBy().getCompanyName());
             System.out.println("Level: " + opp.getLevel());
             System.out.println("Applied Date: " + app.getAppliedDate());
             System.out.println("-".repeat(50));
@@ -239,7 +271,14 @@ public class StudentMenuHandler implements IMenuHandler {
     }
 
     private void viewStudentStatistics() {
-        Statistics stats = new Statistics();
+        IUserRepository userRepo = (userService != null) ? userService.getUserRepository() : null;
+        if (userRepo == null) {
+            System.out.println("Error: User repository not available.");
+            return;
+        }
+        Statistics stats = new Statistics(applicationService.getApplicationRepository(),
+                                         internshipService.getInternshipRepository(),
+                                         userRepo);
         stats.displayStudentStatistics(student);
     }
 

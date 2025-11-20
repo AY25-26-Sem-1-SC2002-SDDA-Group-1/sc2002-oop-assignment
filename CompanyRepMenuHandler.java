@@ -8,13 +8,17 @@ public class CompanyRepMenuHandler implements IMenuHandler {
     private final CompanyRepresentative rep;
     private final InternshipService internshipService;
     private final ApplicationService applicationService;
+    private final UserService userService;
     private final Scanner scanner;
+    private final FilterManager filterManager;
 
-    public CompanyRepMenuHandler(CompanyRepresentative rep, InternshipService internshipService, ApplicationService applicationService, Scanner scanner) {
+    public CompanyRepMenuHandler(CompanyRepresentative rep, InternshipService internshipService, ApplicationService applicationService, UserService userService, Scanner scanner) {
         this.rep = rep;
         this.internshipService = internshipService;
         this.applicationService = applicationService;
+        this.userService = userService;
         this.scanner = scanner;
+        this.filterManager = new FilterManager(scanner);
     }
 
     @Override
@@ -59,13 +63,13 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 toggleVisibility();
                 break;
             case "8":
-                viewCompanyRepStatistics();
+                viewCompanyRepresentativeStatistics();
                 break;
             case "9":
                 viewAllInternshipsFiltered();
                 break;
             case "10":
-                FilterManager.manageFilters();
+                filterManager.manageFilters();
                 break;
             case "11":
                 changePassword();
@@ -86,7 +90,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
 
         // Check if rep has already created 5 internships
         int internshipCount = 0;
-        for (InternshipOpportunity opp : Database.getInternships()) {
+        for (InternshipOpportunity opp : internshipService.getAllInternships()) {
             if (opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
                 internshipCount++;
             }
@@ -192,7 +196,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 return;
             }
 
-            if (rep.createInternship(title, description, level, preferredMajor, openingDate, closingDate, maxSlots, minimumGPA)) {
+            if (internshipService.createInternship(rep.getUserID(), title, description, level, preferredMajor, openingDate, closingDate, maxSlots, minimumGPA)) {
                 System.out.println("Internship created successfully! It's pending approval from Career Center Staff.");
             } else {
                 System.out.println("Failed to create internship. Please check all requirements.");
@@ -205,7 +209,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
     private void viewMyInternships() {
         UIHelper.printSectionHeader("MY INTERNSHIPS");
         boolean found = false;
-        for (InternshipOpportunity opp : Database.getInternships()) {
+        for (InternshipOpportunity opp : internshipService.getAllInternships()) {
             if (opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
                 System.out.println("ID: " + opp.getOpportunityID());
                 System.out.println("Title: " + opp.getTitle());
@@ -227,9 +231,8 @@ public class CompanyRepMenuHandler implements IMenuHandler {
 
     private void editInternship() {
         UIHelper.printSectionHeader("EDIT INTERNSHIP (Pending/Rejected Only)");
-        // Show only pending and rejected internships
         boolean foundEditable = false;
-        for (InternshipOpportunity opp : Database.getInternships()) {
+        for (InternshipOpportunity opp : internshipService.getAllInternships()) {
             if (opp.getCreatedBy().getUserID().equals(rep.getUserID()) &&
                 (opp.getStatus().equals("Pending") || opp.getStatus().equals("Rejected"))) {
                 System.out.println("ID: " + opp.getOpportunityID());
@@ -239,50 +242,40 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 foundEditable = true;
             }
         }
-
         if (!foundEditable) {
             System.out.println("No editable internships found. Note: Only pending or rejected internships can be edited.");
             return;
         }
-
         System.out.print("Enter Internship ID to edit: ");
         String internshipID = scanner.nextLine().trim();
         if (internshipID.isEmpty()) {
             System.out.println("ID cannot be empty.");
             return;
         }
-
-        InternshipOpportunity opp = Database.getInternship(internshipID);
+        InternshipOpportunity opp = internshipService.getInternship(internshipID);
         if (opp == null || !opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
             System.out.println("Internship not found or you don't have permission to edit it.");
             return;
         }
-
         if (!opp.getStatus().equals("Pending") && !opp.getStatus().equals("Rejected")) {
             System.out.println("Cannot edit internship. Only pending or rejected internships can be edited (Status: " + opp.getStatus() + ")");
             return;
         }
-
-        // If editing a rejected internship, change status back to Pending
         if (opp.getStatus().equals("Rejected")) {
             opp.setStatus("Pending");
             System.out.println("Note: This internship status has been changed from Rejected to Pending for re-review.");
         }
-
         System.out.println("Leave field blank to keep current value.");
-
         System.out.print("Enter new Title [" + opp.getTitle() + "]: ");
         String title = scanner.nextLine().trim();
         if (!title.isEmpty()) {
             opp.setTitle(title);
         }
-
         System.out.print("Enter new Description [" + opp.getDescription() + "]: ");
         String description = scanner.nextLine().trim();
         if (!description.isEmpty()) {
             opp.setDescription(description);
         }
-
         System.out.print("Enter new Level (Basic/Intermediate/Advanced) [" + opp.getLevel() + "]: ");
         String level = scanner.nextLine().trim();
         if (!level.isEmpty()) {
@@ -292,13 +285,11 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 System.out.println("Invalid level. Keeping current value.");
             }
         }
-
         System.out.print("Enter new Preferred Major [" + opp.getPreferredMajor() + "]: ");
         String preferredMajor = scanner.nextLine().trim();
         if (!preferredMajor.isEmpty()) {
             opp.setPreferredMajor(preferredMajor);
         }
-
         System.out.print("Enter new Max Slots (1-10) [" + opp.getMaxSlots() + "]: ");
         String maxSlotsStr = scanner.nextLine().trim();
         if (!maxSlotsStr.isEmpty()) {
@@ -313,10 +304,8 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 System.out.println("Invalid number. Keeping current value.");
             }
         }
-
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
         dateFormat.setLenient(false);
-
         System.out.print("Enter new Opening Date (dd/MM/yyyy) [" + dateFormat.format(opp.getOpeningDate()) + "]: ");
         String openingDateStr = scanner.nextLine().trim();
         if (!openingDateStr.isEmpty()) {
@@ -327,7 +316,6 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 System.out.println("Invalid date format. Keeping current value.");
             }
         }
-
         System.out.print("Enter new Closing Date (dd/MM/yyyy) [" + dateFormat.format(opp.getClosingDate()) + "]: ");
         String closingDateStr = scanner.nextLine().trim();
         if (!closingDateStr.isEmpty()) {
@@ -342,7 +330,6 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 System.out.println("Invalid date format. Keeping current value.");
             }
         }
-
         System.out.print("Enter new Minimum GPA (0.0-5.0) [" + opp.getMinGPA() + "]: ");
         String minimumGPAStr = scanner.nextLine().trim();
         if (!minimumGPAStr.isEmpty()) {
@@ -357,16 +344,14 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 System.out.println("Invalid GPA format. Keeping current value.");
             }
         }
-
-        Database.saveData();
+        internshipService.getAllInternships(); // To trigger persistence if needed
         System.out.println("Internship updated successfully!");
     }
 
     private void deleteInternship() {
         UIHelper.printSectionHeader("DELETE INTERNSHIP");
-        // Show all internships created by rep
         boolean found = false;
-        for (InternshipOpportunity opp : Database.getInternships()) {
+        for (InternshipOpportunity opp : internshipService.getAllInternships()) {
             if (opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
                 System.out.println("ID: " + opp.getOpportunityID());
                 System.out.println("Title: " + opp.getTitle());
@@ -375,30 +360,26 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 found = true;
             }
         }
-
         if (!found) {
             System.out.println("No internships to delete.");
             return;
         }
-
         System.out.print("Enter Internship ID to delete: ");
         String internshipID = scanner.nextLine().trim();
         if (internshipID.isEmpty()) {
             System.out.println("ID cannot be empty.");
             return;
         }
-
-        InternshipOpportunity opp = Database.getInternship(internshipID);
+        InternshipOpportunity opp = internshipService.getInternship(internshipID);
         if (opp == null || !opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
             System.out.println("Internship not found or you don't have permission to delete it.");
             return;
         }
-
         System.out.print("Are you sure you want to delete '" + opp.getTitle() + "'? (yes/no): ");
         String confirm = scanner.nextLine().trim().toLowerCase();
         if (confirm.equals("yes")) {
-            Database.removeInternship(internshipID);
-            System.out.println("Internship deleted successfully.");
+            internshipService.deleteInternship(internshipID);
+            System.out.println("Internship deleted successfully!");
         } else {
             System.out.println("Deletion cancelled.");
         }
@@ -409,7 +390,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
 
         // Show rep's internships
         List<InternshipOpportunity> myInternships = new java.util.ArrayList<>();
-        for (InternshipOpportunity opp : Database.getInternships()) {
+        for (InternshipOpportunity opp : internshipService.getAllInternships()) {
             if (opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
                 myInternships.add(opp);
             }
@@ -441,7 +422,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         }
 
         System.out.println("\n" + "=".repeat(70));
-        System.out.println("APPLICATIONS FOR: " + Database.getInternship(internshipID).getTitle());
+        System.out.println("APPLICATIONS FOR: " + internshipService.getInternship(internshipID).getTitle());
         System.out.println("=".repeat(70));
 
         for (Application app : applications) {
@@ -559,7 +540,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
 
         // Show rep's approved internships
         List<InternshipOpportunity> myInternships = new java.util.ArrayList<>();
-        for (InternshipOpportunity opp : Database.getInternships()) {
+        for (InternshipOpportunity opp : internshipService.getAllInternships()) {
             if (opp.getCreatedBy().getUserID().equals(rep.getUserID()) &&
                 opp.getStatus().equals("Approved")) {
                 myInternships.add(opp);
@@ -628,27 +609,28 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             }
         }
 
-        Database.saveData();
         System.out.println("\n" + "=".repeat(50));
         System.out.println("Toggle complete: " + successCount + " succeeded, " + failCount + " failed.");
         System.out.println("=".repeat(50));
     }
 
-    private void viewCompanyRepStatistics() {
-        Statistics stats = new Statistics();
+    private void viewCompanyRepresentativeStatistics() {
+        Statistics stats = new Statistics(applicationService.getApplicationRepository(),
+                                         internshipService.getInternshipRepository(),
+                                         userService.getUserRepository());
         stats.displayCompanyRepresentativeStatistics(rep);
     }
 
     private void viewAllInternshipsFiltered() {
         UIHelper.printSectionHeader("ALL INTERNSHIPS (FILTERED)");
 
-        if (FilterManager.hasActiveFilters()) {
-            System.out.println(FilterManager.getFilterSettings().toString());
+        if (filterManager.hasActiveFilters()) {
+            System.out.println(filterManager.getFilterSettings().toString());
             System.out.println();
         }
 
-        List<InternshipOpportunity> allInternships = Database.getInternships();
-        allInternships = FilterManager.getFilterSettings().applyFilters(allInternships);
+        List<InternshipOpportunity> allInternships = internshipService.getAllInternships();
+        allInternships = filterManager.getFilterSettings().applyFilters(allInternships);
 
         if (allInternships.isEmpty()) {
             System.out.println("No internships match your filters.");

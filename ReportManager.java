@@ -5,6 +5,8 @@ import java.util.Map;
 
 public class ReportManager {
     private static ReportManager instance;
+    private IInternshipRepository internshipRepository;
+    private IApplicationRepository applicationRepository;
     
     private ReportManager() {}
     
@@ -15,19 +17,30 @@ public class ReportManager {
         return instance;
     }
     
+    // Initialize with repositories (must be called before using the manager)
+    public void initialize(IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
+        this.internshipRepository = internshipRepository;
+        this.applicationRepository = applicationRepository;
+    }
+    
     public Report generateReport(Map<String, String> filters) {
+        if (internshipRepository == null) {
+            System.out.println("Error: ReportManager not initialized with repositories.");
+            return new Report(new ArrayList<>(), filters);
+        }
+        
         List<InternshipOpportunity> filteredOpportunities = new ArrayList<>();
         
-        for (InternshipOpportunity opportunity : Database.getInternships()) {
+        for (InternshipOpportunity opportunity : internshipRepository.getAllInternships()) {
             boolean matches = true;
             
             if (filters.containsKey("status") && 
-                !opportunity.getStatus().equals(filters.get("status"))) {
+                !opportunity.getStatus().equalsIgnoreCase(filters.get("status"))) {
                 matches = false;
             }
             
             if (filters.containsKey("level") && 
-                !opportunity.getLevel().equals(filters.get("level"))) {
+                !opportunity.getLevel().equalsIgnoreCase(filters.get("level"))) {
                 matches = false;
             }
             
@@ -78,34 +91,41 @@ public class ReportManager {
             System.out.println();
             
             // Show application statistics for this internship
-            int totalApps = 0, pendingApps = 0, successfulApps = 0, confirmedApps = 0;
-            for (Application app : Database.getApplications()) {
-                if (app.getOpportunity().getOpportunityID().equals(opp.getOpportunityID())) {
-                    totalApps++;
-                    switch (app.getStatus()) {
-                        case "Pending":
-                            pendingApps++;
-                            break;
-                        case "Successful":
-                            successfulApps++;
-                            break;
-                        case "Confirmed":
-                            confirmedApps++;
-                            break;
+            if (applicationRepository != null) {
+                int totalApps = 0, pendingApps = 0, successfulApps = 0, confirmedApps = 0;
+                for (Application app : applicationRepository.getAllApplications()) {
+                    if (app.getOpportunity().getOpportunityID().equals(opp.getOpportunityID())) {
+                        totalApps++;
+                        switch (app.getStatus()) {
+                            case "Pending":
+                                pendingApps++;
+                                break;
+                            case "Successful":
+                                successfulApps++;
+                                break;
+                            case "Confirmed":
+                                confirmedApps++;
+                                break;
+                        }
                     }
                 }
+                System.out.println("  Applications: " + totalApps + " (Pending: " + pendingApps + 
+                                 ", Successful: " + successfulApps + ", Confirmed: " + confirmedApps + ")");
             }
-            System.out.println("  Applications: " + totalApps + " (Pending: " + pendingApps + 
-                             ", Successful: " + successfulApps + ", Confirmed: " + confirmedApps + ")");
             System.out.println();
         }
     }
     
     public Map<String, Integer> getApplicationStatistics() {
+        if (applicationRepository == null) {
+            System.out.println("Error: ReportManager not initialized with repositories.");
+            return new HashMap<>();
+        }
+        
         Map<String, Integer> stats = new HashMap<>();
         int total = 0, pending = 0, successful = 0, unsuccessful = 0, confirmed = 0, withdrawn = 0;
         
-        for (Application app : Database.getApplications()) {
+        for (Application app : applicationRepository.getAllApplications()) {
             total++;
             switch (app.getStatus()) {
                 case "Pending":
@@ -137,10 +157,15 @@ public class ReportManager {
     }
     
     public Map<String, Integer> getInternshipStatistics() {
+        if (internshipRepository == null) {
+            System.out.println("Error: ReportManager not initialized with repositories.");
+            return new HashMap<>();
+        }
+        
         Map<String, Integer> stats = new HashMap<>();
         int total = 0, pending = 0, approved = 0, rejected = 0, filled = 0;
         
-        for (InternshipOpportunity opp : Database.getInternships()) {
+        for (InternshipOpportunity opp : internshipRepository.getAllInternships()) {
             total++;
             switch (opp.getStatus()) {
                 case "Pending":

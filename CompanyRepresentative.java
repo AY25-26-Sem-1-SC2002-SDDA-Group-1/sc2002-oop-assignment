@@ -7,40 +7,47 @@ public class CompanyRepresentative extends User {
     private final String department;
     private final String position;
     private final String email;
-    private boolean isApproved;
+    private boolean isApproved; // true when approved by staff
+    private boolean isRejected; // true when explicitly rejected by staff
+    
+    // Repositories for data access
+    private final IInternshipRepository internshipRepository;
+    private final IApplicationRepository applicationRepository;
 
     public CompanyRepresentative(String userID, String name, String password, 
-                                String companyName, String department, String position, String email) {
+                                String companyName, String department, String position, String email,
+                                IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
         super(userID, name, password);
         this.companyName = companyName;
         this.department = department;
         this.position = position;
         this.email = email;
         this.isApproved = false;
+        this.isRejected = false;
+        this.internshipRepository = internshipRepository;
+        this.applicationRepository = applicationRepository;
     }
 
     public boolean createInternship(String title, String description, String level,
                                    String preferredMajor, Date openingDate, Date closingDate,
                                    int maxSlots, double minGPA) {
-        if (!isApproved) return false;
+        // Only approved (and not rejected) representatives can create internships
+        if (!isApproved || isRejected || internshipRepository == null) return false;
 
-        // Check if company rep has already created 5 internships
         int internshipCount = 0;
-        for (InternshipOpportunity opp : Database.getInternships()) {
+        for (InternshipOpportunity opp : internshipRepository.getAllInternships()) {
             if (opp.getCreatedBy().getUserID().equals(this.userID)) {
                 internshipCount++;
             }
         }
         if (internshipCount >= 5) return false;
 
-        // Validate max slots (max of 10)
         if (maxSlots > 10 || maxSlots < 1) return false;
-
-        // Validate min GPA (0.0 to 5.0)
         if (minGPA < 0.0 || minGPA > 5.0) return false;
 
+        String internshipId = internshipRepository.generateInternshipId();
         InternshipOpportunity opportunity = new InternshipOpportunity(
-            Database.generateInternshipID(),
+            internshipId,
             title,
             description,
             level,
@@ -51,14 +58,16 @@ public class CompanyRepresentative extends User {
             minGPA,
             this
         );
-
-        Database.addInternship(opportunity);
+        internshipRepository.addInternship(opportunity);
         return true;
     }
 
     public List<Application> viewApplications() {
+        if (applicationRepository == null) {
+            return new ArrayList<>();
+        }
         List<Application> myApplications = new ArrayList<>();
-        for (Application app : Database.getApplications()) {
+        for (Application app : applicationRepository.getAllApplications()) {
             if (app.getOpportunity().getCreatedBy().getUserID().equals(this.userID)) {
                 myApplications.add(app);
             }
@@ -67,8 +76,11 @@ public class CompanyRepresentative extends User {
     }
 
     public List<Application> viewApplications(String opportunityID) {
+        if (applicationRepository == null) {
+            return new ArrayList<>();
+        }
         List<Application> opportunityApplications = new ArrayList<>();
-        for (Application app : Database.getApplications()) {
+        for (Application app : applicationRepository.getAllApplications()) {
             if (app.getOpportunity().getOpportunityID().equals(opportunityID) &&
                 app.getOpportunity().getCreatedBy().getUserID().equals(this.userID)) {
                 opportunityApplications.add(app);
@@ -78,8 +90,11 @@ public class CompanyRepresentative extends User {
     }
 
     public List<Application> getPendingApplications() {
+        if (applicationRepository == null) {
+            return new ArrayList<>();
+        }
         List<Application> pendingApplications = new ArrayList<>();
-        for (Application app : Database.getApplications()) {
+        for (Application app : applicationRepository.getAllApplications()) {
             if (app.getOpportunity().getCreatedBy().getUserID().equals(this.userID) &&
                 app.getStatus().equals("Pending")) {
                 pendingApplications.add(app);
@@ -89,26 +104,31 @@ public class CompanyRepresentative extends User {
     }
 
     public boolean processApplication(String applicationID, boolean approve) {
-        Application application = Database.getApplication(applicationID);
-        if (application != null && 
-            application.getOpportunity().getCreatedBy().getUserID().equals(this.userID) &&
-            application.getStatus().equals("Pending")) {
-            if (approve) {
-                application.updateStatus("Successful");
-            } else {
-                application.updateStatus("Unsuccessful");
+        if (applicationRepository == null) return false;
+        Application target = null;
+        for (Application app : applicationRepository.getAllApplications()) {
+            if (app.getApplicationID().equals(applicationID)) {
+                target = app;
+                break;
             }
-            Database.saveData();
+        }
+        if (target != null &&
+            target.getOpportunity().getCreatedBy().getUserID().equals(this.userID) &&
+            target.getStatus().equals("Pending")) {
+            target.updateStatus(approve ? "Successful" : "Unsuccessful");
+            applicationRepository.saveApplications();
+            internshipRepository.saveInternships();
             return true;
         }
         return false;
     }
 
     public void toggleVisibility(String opportunityID, boolean visible) {
-        InternshipOpportunity opportunity = Database.getInternship(opportunityID);
-        if (opportunity != null && 
-            opportunity.getCreatedBy().getUserID().equals(this.userID)) {
+        if (internshipRepository == null) return;
+        InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
+        if (opportunity != null && opportunity.getCreatedBy().getUserID().equals(this.userID)) {
             opportunity.setVisibility(visible);
+            internshipRepository.saveInternships();
         }
     }
 
@@ -128,11 +148,22 @@ public class CompanyRepresentative extends User {
         return email;
     }
 
-    public boolean isApproved() {
-        return isApproved;
-    }
-
+    public boolean isApproved() { return isApproved; }
+    public boolean isRejected() { return isRejected; }
     public void setApproved(boolean approved) {
-        isApproved = approved;
+        if (approved) {
+            this.isApproved = true;
+            this.isRejected = false; // cannot be rejected if approved
+        } else {
+            this.isApproved = false;
+        }
+    }
+    public void setRejected(boolean rejected) {
+        if (rejected) {
+            this.isRejected = true;
+            this.isApproved = false; // cannot be approved if rejected
+        } else {
+            this.isRejected = false;
+        }
     }
 }

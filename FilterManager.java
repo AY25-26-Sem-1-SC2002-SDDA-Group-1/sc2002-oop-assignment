@@ -1,16 +1,21 @@
 public class FilterManager {
-    private static FilterSettings filterSettings = new FilterSettings();
-    private static final java.util.Scanner scanner = new java.util.Scanner(System.in);
+    private final FilterSettings filterSettings;
+    private final java.util.Scanner scanner;
 
-    public static FilterSettings getFilterSettings() {
+    public FilterManager(java.util.Scanner scanner) {
+        this.filterSettings = new FilterSettings();
+        this.scanner = scanner;
+    }
+
+    public FilterSettings getFilterSettings() {
         return filterSettings;
     }
 
-    public static boolean hasActiveFilters() {
+    public boolean hasActiveFilters() {
         return filterSettings.hasActiveFilters();
     }
 
-    public static void manageFilters() {
+    public void manageFilters() {
         UIHelper.printSectionHeader("MANAGE FILTERS");
         System.out.println("Current Settings:");
         System.out.println(filterSettings.toString());

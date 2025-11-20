@@ -3,12 +3,28 @@ import java.util.Scanner;
 public class InternshipPlacementSystem {
     private final Scanner scanner = new Scanner(System.in);
     private User currentUser = null;
-    private final IUserRepository userRepository = new CsvUserRepository();
-    private final IInternshipRepository internshipRepository = new CsvInternshipRepository();
-    private final IApplicationRepository applicationRepository = new CsvApplicationRepository();
-    private final UserService userService = new UserService(userRepository);
-    private final InternshipService internshipService = new InternshipService(internshipRepository, userRepository);
-    private final ApplicationService applicationService = new ApplicationService(applicationRepository, internshipRepository, userRepository);
+    private final IUserRepository userRepository;
+    private final IInternshipRepository internshipRepository;
+    private final IApplicationRepository applicationRepository;
+    private final UserService userService;
+    private final InternshipService internshipService;
+    private final ApplicationService applicationService;
+    
+    public InternshipPlacementSystem() {
+        // Initialize repositories with proper dependency injection
+        // Phase 1: Create placeholder repositories
+        this.internshipRepository = new CsvInternshipRepository(null);
+        this.applicationRepository = new CsvApplicationRepository(null, internshipRepository);
+        // Phase 2: Create user repository with dependencies
+        this.userRepository = new CsvUserRepository(internshipRepository, applicationRepository);
+        // Phase 3: Now set userRepository on other repositories and load their data
+        ((CsvInternshipRepository) this.internshipRepository).setUserRepository(userRepository);
+        ((CsvApplicationRepository) this.applicationRepository).setUserRepository(userRepository);
+        // Phase 4: Initialize services
+        this.userService = new UserService(userRepository, internshipRepository, applicationRepository);
+        this.internshipService = new InternshipService(internshipRepository, userRepository);
+        this.applicationService = new ApplicationService(applicationRepository, internshipRepository, userRepository);
+    }
 
     public static void main(String[] args) {
         UIHelper.printWelcomeBanner();
@@ -31,9 +47,9 @@ public class InternshipPlacementSystem {
 
     private IMenuHandler getMenuHandler() {
         if (currentUser instanceof Student) {
-            return new StudentMenuHandler((Student) currentUser, internshipService, applicationService, scanner);
+            return new StudentMenuHandler((Student) currentUser, internshipService, applicationService, userService, scanner);
         } else if (currentUser instanceof CompanyRepresentative) {
-            return new CompanyRepMenuHandler((CompanyRepresentative) currentUser, internshipService, applicationService, scanner);
+            return new CompanyRepMenuHandler((CompanyRepresentative) currentUser, internshipService, applicationService, userService, scanner);
         } else if (currentUser instanceof CareerCenterStaff) {
             return new CareerStaffMenuHandler((CareerCenterStaff) currentUser, userService, internshipService, applicationService, scanner);
         }
@@ -107,6 +123,10 @@ public class InternshipPlacementSystem {
             // Check if company representative is approved
             if (user instanceof CompanyRepresentative) {
                 CompanyRepresentative rep = (CompanyRepresentative) user;
+                if (rep.isRejected()) {
+                    System.out.println("Your account is rejected.");
+                    return;
+                }
                 if (!rep.isApproved()) {
                     System.out.println("Your account is pending approval.");
                     return;
@@ -125,14 +145,27 @@ public class InternshipPlacementSystem {
             UIHelper.printSectionHeader("STUDENT REGISTRATION");
             System.out.print("Enter User ID: ");
             String userID = scanner.nextLine().trim();
+            
+            // Check for duplicate User ID immediately
+            if (!userService.isUserIdAvailable(userID, false)) {
+                System.out.println("User ID already exists. Registration cancelled.");
+                return;
+            }
+            
             System.out.print("Enter Name: ");
             String name = scanner.nextLine().trim();
             System.out.print("Enter Password: ");
             String password = scanner.nextLine().trim();
             System.out.print("Enter Year of Study (1-4): ");
             int yearOfStudy = Integer.parseInt(scanner.nextLine().trim());
-            System.out.print("Enter Major (CS/EEE/BM): ");
-            String major = scanner.nextLine().trim().toUpperCase();
+            System.out.println("Enter Major:");
+            System.out.println("  - Computer Science");
+            System.out.println("  - Computer Engineering");
+            System.out.println("  - Data Science & AI");
+            System.out.println("  - Information Engineering & Media");
+            System.out.println("  - Biomedical Engineering");
+            System.out.print("Major: ");
+            String major = scanner.nextLine().trim();
             System.out.print("Enter GPA (0.0-5.0): ");
             double gpa = Double.parseDouble(scanner.nextLine().trim());
 
@@ -151,6 +184,13 @@ public class InternshipPlacementSystem {
             UIHelper.printSectionHeader("CAREER CENTER STAFF REGISTRATION");
             System.out.print("Enter User ID: ");
             String userID = scanner.nextLine().trim();
+            
+            // Check for duplicate User ID immediately
+            if (!userService.isUserIdAvailable(userID, false)) {
+                System.out.println("User ID already exists. Registration cancelled.");
+                return;
+            }
+            
             System.out.print("Enter Name: ");
             String name = scanner.nextLine().trim();
             System.out.print("Enter Password: ");
@@ -173,6 +213,13 @@ public class InternshipPlacementSystem {
             UIHelper.printSectionHeader("COMPANY REPRESENTATIVE REGISTRATION");
             System.out.print("Enter User ID: ");
             String userID = scanner.nextLine().trim();
+            
+            // Check for duplicate User ID immediately (allows rejected usernames to be reused)
+            if (!userService.isUserIdAvailable(userID, true)) {
+                System.out.println("User ID already exists. Registration cancelled.");
+                return;
+            }
+            
             System.out.print("Enter Name: ");
             String name = scanner.nextLine().trim();
             System.out.print("Enter Password: ");

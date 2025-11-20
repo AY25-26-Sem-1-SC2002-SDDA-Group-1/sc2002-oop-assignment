@@ -20,6 +20,7 @@ public class Database {
     }
 
     public static void loadUsersFromCSV() {
+        users.clear(); // Clear before loading to avoid duplicates
         try {
             loadStudents();
             loadStaff();
@@ -42,7 +43,9 @@ public class Database {
                     "password",
                     Integer.parseInt(parts[3].trim()),
                     parts[2].trim(),
-                    Double.parseDouble(parts[4].trim())
+                    Double.parseDouble(parts[4].trim()),
+                    null, // Legacy Database class - repositories not used
+                    null  // Legacy Database class - repositories not used
                 );
                 users.add(student);
             }
@@ -81,10 +84,17 @@ public class Database {
                     parts[2].trim(),
                     parts[3].trim(),
                     parts[4].trim(),
-                    parts[5].trim()
+                    parts[5].trim(),
+                    null,
+                    null
                 );
-                if (parts.length >= 7 && parts[6].trim().equalsIgnoreCase("Approved")) {
-                    rep.setApproved(true);
+                if (parts.length >= 7) {
+                    String status = parts[6].trim();
+                    if (status.equalsIgnoreCase("Approved")) {
+                        rep.setApproved(true);
+                    } else if (status.equalsIgnoreCase("Rejected")) {
+                        rep.setRejected(true);
+                    }
                 }
                 users.add(rep);
             }
@@ -135,6 +145,10 @@ public class Database {
 
     public static void addUser(User user) {
         users.add(user);
+    }
+
+    public static void removeUser(String userID) {
+        users.removeIf(u -> u.getUserID().equals(userID));
     }
 
     public static InternshipOpportunity getInternship(String opportunityID) {
@@ -275,6 +289,7 @@ public class Database {
         for (User user : users) {
             if (user instanceof CompanyRepresentative) {
                 CompanyRepresentative rep = (CompanyRepresentative) user;
+                String status = rep.isApproved() ? "Approved" : (rep.isRejected() ? "Rejected" : "Pending");
                 writer.write(String.format("%s,%s,%s,%s,%s,%s,%s",
                     rep.getUserID(),
                     rep.getName(),
@@ -282,7 +297,7 @@ public class Database {
                     rep.getDepartment(),
                     rep.getPosition(),
                     rep.getEmail(),
-                    rep.isApproved() ? "Approved" : "Pending"
+                    status
                 ));
                 writer.newLine();
             }

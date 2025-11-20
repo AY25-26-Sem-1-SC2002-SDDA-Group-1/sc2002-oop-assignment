@@ -8,6 +8,7 @@ public class CareerStaffMenuHandler implements IMenuHandler {
     private final InternshipService internshipService;
     private final ApplicationService applicationService;
     private final Scanner scanner;
+    private final FilterManager filterManager;
 
     public CareerStaffMenuHandler(CareerCenterStaff staff, UserService userService, InternshipService internshipService, ApplicationService applicationService, Scanner scanner) {
         this.staff = staff;
@@ -15,6 +16,7 @@ public class CareerStaffMenuHandler implements IMenuHandler {
         this.internshipService = internshipService;
         this.applicationService = applicationService;
         this.scanner = scanner;
+        this.filterManager = new FilterManager(scanner);
     }
 
     @Override
@@ -46,7 +48,7 @@ public class CareerStaffMenuHandler implements IMenuHandler {
                 viewAllInternshipsFiltered();
                 break;
             case "5":
-                FilterManager.manageFilters();
+                filterManager.manageFilters();
                 break;
             case "6":
                 generateReports();
@@ -122,7 +124,11 @@ public class CareerStaffMenuHandler implements IMenuHandler {
                 UIHelper.printErrorMessage("Failed to approve company representative.");
             }
         } else if (decision.equals("reject")) {
-            UIHelper.printWarningMessage("Company representative registration rejected. (Account remains pending)");
+            if (staff.processCompanyRep(repID, false)) {
+                UIHelper.printWarningMessage("Company representative registration rejected");
+            } else {
+                UIHelper.printErrorMessage("Failed to reject company representative.");
+            }
         } else {
             UIHelper.printErrorMessage("Invalid decision. Please enter 'approve' or 'reject'.");
         }
@@ -131,7 +137,10 @@ public class CareerStaffMenuHandler implements IMenuHandler {
     private void processInternships() {
         UIHelper.printSectionHeader("PROCESS INTERNSHIPS");
 
-        List<InternshipOpportunity> pendingInternships = staff.getPendingInternships();
+        // Get pending internships from service layer instead of domain object
+        List<InternshipOpportunity> pendingInternships = internshipService.getAllInternships().stream()
+            .filter(opp -> opp.getStatus().equals("Pending"))
+            .toList();
 
         if (pendingInternships.isEmpty()) {
             UIHelper.printWarningMessage("No pending internships to process.");
@@ -202,12 +211,15 @@ public class CareerStaffMenuHandler implements IMenuHandler {
                 continue;
             }
 
-            if (staff.processInternship(internshipID, isApprove)) {
-                System.out.println(internshipID + ": " + (isApprove ? "Approved and set to visible" : "Rejected"));
+            // Use service layer to process internship
+            if (isApprove) {
+                internshipService.approveInternship(internshipID);
+                System.out.println(internshipID + ": Approved and set to visible");
                 successCount++;
             } else {
-                System.out.println(internshipID + ": Failed to process");
-                failCount++;
+                internshipService.rejectInternship(internshipID);
+                System.out.println(internshipID + ": Internship proposal rejected.");
+                successCount++;
             }
         }
 
@@ -271,13 +283,13 @@ public class CareerStaffMenuHandler implements IMenuHandler {
 
         if (decision.equals("approve")) {
             if (staff.processWithdrawal(applicationID, true)) {
-                UIHelper.printSuccessMessage(" Withdrawal request approved. Application status changed to Withdrawn.");
+                UIHelper.printSuccessMessage("Withdrawal request approved. Application status changed to Withdrawn.");
             } else {
                 UIHelper.printErrorMessage("Failed to approve withdrawal.");
             }
         } else if (decision.equals("reject")) {
             if (staff.processWithdrawal(applicationID, false)) {
-                UIHelper.printSuccessMessage(" Withdrawal request rejected. Application remains Pending.");
+                UIHelper.printWarningMessage("Withdrawal request rejected. Application status reverted to Confirmed.");
             } else {
                 UIHelper.printErrorMessage("Failed to reject withdrawal.");
             }
@@ -289,13 +301,13 @@ public class CareerStaffMenuHandler implements IMenuHandler {
     private void viewAllInternshipsFiltered() {
         UIHelper.printSectionHeader("ALL INTERNSHIPS (FILTERED)");
 
-        if (FilterManager.hasActiveFilters()) {
-            System.out.println(FilterManager.getFilterSettings().toString());
+        if (filterManager.hasActiveFilters()) {
+            System.out.println(filterManager.getFilterSettings().toString());
             System.out.println();
         }
 
-        List<InternshipOpportunity> allInternships = Database.getInternships();
-        allInternships = FilterManager.getFilterSettings().applyFilters(allInternships);
+        List<InternshipOpportunity> allInternships = internshipService.getAllInternships();
+        allInternships = filterManager.getFilterSettings().applyFilters(allInternships);
 
         if (allInternships.isEmpty()) {
             System.out.println("No internships match your filters.");
@@ -337,7 +349,10 @@ public class CareerStaffMenuHandler implements IMenuHandler {
         String company = scanner.nextLine();
         if (!company.trim().isEmpty()) filters.put("company", company);
 
+        // Initialize ReportManager with repositories
         ReportManager reportManager = ReportManager.getInstance();
+        reportManager.initialize(internshipService.getInternshipRepository(), applicationService.getApplicationRepository());
+        
         Report report = reportManager.generateReport(filters);
         reportManager.displayDetailedReport(report);
 

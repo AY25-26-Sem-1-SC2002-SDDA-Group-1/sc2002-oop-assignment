@@ -1,4 +1,3 @@
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,19 +20,30 @@ public class ApplicationService {
         InternshipOpportunity opp = internshipRepository.getInternshipById(opportunityId);
         if (opp == null || !opp.isOpen() || !opp.isVisible() || !student.isEligibleForInternship(opp)) return false;
 
+        // Check if student already has a confirmed internship
+        boolean hasConfirmed = applicationRepository.getAllApplications().stream()
+            .anyMatch(a -> a.getApplicant().getUserID().equals(studentId) && "Confirmed".equals(a.getStatus()));
+        if (hasConfirmed) return false;
+
         // Check if already applied
         boolean alreadyApplied = applicationRepository.getAllApplications().stream()
             .anyMatch(a -> a.getApplicant().getUserID().equals(studentId) && a.getOpportunity().getOpportunityID().equals(opportunityId));
         if (alreadyApplied) return false;
 
+        // Determine if internship is already full -> place on waitlist
+        long confirmed = applicationRepository.getAllApplications().stream()
+            .filter(a -> a.getOpportunity().getOpportunityID().equals(opportunityId) && "Confirmed".equals(a.getStatus()))
+            .count();
+
+        String initialStatus = (confirmed >= opp.getMaxSlots()) ? "Queued" : "Pending";
+
         Application app = new Application(
             applicationRepository.generateApplicationId(),
             student,
             opp,
-            "Pending"
+            initialStatus
         );
         applicationRepository.addApplication(app);
-        applicationRepository.saveApplications();
         return true;
     }
 
@@ -72,6 +82,7 @@ public class ApplicationService {
                 .count();
             if (confirmed >= opp.getMaxSlots()) {
                 opp.setStatus("Filled");
+                internshipRepository.saveInternships();
             }
             applicationRepository.saveApplications();
         }
@@ -97,6 +108,19 @@ public class ApplicationService {
         }
     }
 
+    // Helper accessors for UI logic
+    public java.util.List<Application> getAllApplicationsForStudent(String studentId) {
+        return applicationRepository.getAllApplications().stream()
+            .filter(a -> a.getApplicant().getUserID().equals(studentId))
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    public java.util.List<Application> getAllApplicationsForInternship(String opportunityId) {
+        return applicationRepository.getAllApplications().stream()
+            .filter(a -> a.getOpportunity().getOpportunityID().equals(opportunityId))
+            .collect(java.util.stream.Collectors.toList());
+    }
+
     public List<Application> getApplicationsForStudent(String studentId) {
         return applicationRepository.getAllApplications().stream()
             .filter(a -> a.getApplicant().getUserID().equals(studentId))
@@ -113,5 +137,9 @@ public class ApplicationService {
         return applicationRepository.getAllApplications().stream()
             .filter(a -> a.getOpportunity().getOpportunityID().equals(opportunityId))
             .collect(Collectors.toList());
+    }
+
+    public IApplicationRepository getApplicationRepository() {
+        return applicationRepository;
     }
 }

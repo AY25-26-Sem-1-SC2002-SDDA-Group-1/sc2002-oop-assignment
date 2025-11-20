@@ -2,6 +2,59 @@
 
 This document contains the UML diagrams for the refactored Internship Placement System.
 
+## Architecture Notes
+
+**Service Layer Pattern**: UI handlers interact via services (`UserService`, `InternshipService`, `ApplicationService`). Domain objects increasingly delegate persistence to repositories. Legacy direct `Database` access is being phased out.
+
+**SOLID Principles Enforcement**:
+
+- **Single Responsibility**: Handlers = UI orchestration; Services = business rules; Repositories = persistence; Domain objects = state + light invariants.
+- **Dependency Inversion**: High-level code depends on interfaces (`IUserRepository`, `IInternshipRepository`, `IApplicationRepository`).
+- **Open/Closed**: New persistence strategies can be added behind repository interfaces.
+
+**Data Layer Status**:
+
+- `CompanyRepresentative` now fully repository-driven (no `Database` calls).
+- `ReportManager` refactored to use repository pattern via dependency injection (no direct `Database` calls).
+- Remaining legacy `Database` usages: application ID generation & some operations in `Student` and manager classes.
+- Next step: introduce `generateApplicationId()` in `IApplicationRepository`, migrate creation logic, then remove `Database`.
+- CRUD for internships & applications persist through CSV repositories; tests confirm end-to-end visibility.
+
+## Status Model
+
+The system uses the following application and internship statuses:
+
+- Application: `Pending`, `Successful`, `Unsuccessful`, `Confirmed`, `Withdrawn`, `Withdrawal Requested`, `Queued` (waitlist), `Withdrawal Rejected`
+- Internship: `Pending`, `Approved`, `Rejected`, `Filled`
+
+## Business Rules
+
+**Application Constraints**:
+
+- Students can have a maximum of 3 active applications (excludes `Withdrawn` and `Unsuccessful`).
+- Students with a `Confirmed` internship **cannot** apply to new internships.
+- Students cannot reapply to internships they manually withdrew from.
+- When an internship is full (confirmed ≥ `maxSlots`), new applications are assigned `Queued` status.
+
+**Queue Processing**:
+
+- When a `Confirmed` student withdraws, the system automatically processes the waitlist.
+- The oldest `Queued` application (by `appliedDate`) is promoted to `Confirmed`.
+- All other applications for that student are automatically withdrawn.
+- Process repeats until all available slots are filled or queue is exhausted.
+- Queue is processed during withdrawal approval by career center staff.
+
+**Status Transitions**:
+
+- `Withdrawal Requested` → `Withdrawal Rejected`: Restores `previousStatus` (typically `Successful` or `Confirmed`).
+- `Successful` → `Confirmed`: Auto-withdraws all other applications for that student.
+- `Queued` → `Confirmed`: Occurs automatically when a confirmed slot becomes available (via queue processing).
+
+**Error Messages**:
+
+- Application rejections include detailed explanations with `[BLOCKED]` or `[ERROR]` prefixes.
+- Context provided: current values vs requirements, related application details.
+
 ## UML Class Diagram
 
 ```mermaid
@@ -23,6 +76,8 @@ classDiagram
         -int yearOfStudy
         -String major
         -double gpa
+        -IInternshipRepository internshipRepository
+        -IApplicationRepository applicationRepository
         +viewEligibleInternships(): List~InternshipOpportunity~
         +applyForInternship(opportunityID: String): bool
         +viewApplications(): List~Application~
@@ -32,6 +87,7 @@ classDiagram
         +getYearOfStudy(): int
         +getMajor(): String
         +getGpa(): double
+        -datesOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean
     }
 
     class CompanyRepresentative {
@@ -40,22 +96,30 @@ classDiagram
         -String position
         -boolean isApproved
         -String email
-        +createInternship(title: String, description: String, level: String, preferredMajor: String, openingDate: Date, closingDate: Date, maxSlots: int): bool
+        -IInternshipRepository internshipRepository
+        -IApplicationRepository applicationRepository
+            -boolean isRejected
+        +createInternship(title: String, description: String, level: String, preferredMajor: String, openingDate: Date, closingDate: Date, maxSlots: int, minGPA: double): bool
         +viewApplications(): List~Application~
         +viewApplications(opportunityID: String): List~Application~
-        +processApplication(applicationID: String, approve: boolean): void
+        +processApplication(applicationID: String, approve: boolean): bool
         +getPendingApplications(): List~Application~
         +toggleVisibility(opportunityID: String, visible: bool): void
         +getCompanyName(): String
         +getDepartment(): String
         +getPosition(): String
         +isApproved(): bool
+            +isRejected(): bool
+            +setRejected(rejected: bool): void
         +setApproved(approved: bool): void
         +getEmail(): String
     }
 
     class CareerCenterStaff {
         -String staffDepartment
+        -IUserRepository userRepository
+        -IInternshipRepository internshipRepository
+        -IApplicationRepository applicationRepository
         +processCompanyRep(repID: String, approve: boolean): void
         +processInternship(opportunityID: String, approve: boolean): void
         +processWithdrawal(applicationID: String, approve: boolean): void
@@ -112,6 +176,9 @@ classDiagram
         -String status
         -Date appliedDate
         -boolean manuallyWithdrawn
+        -String previousStatus
+        +Application(applicationID: String, applicant: Student, opportunity: InternshipOpportunity, status: String)
+        +Application(applicationID: String, applicant: Student, opportunity: InternshipOpportunity, status: String, appliedDate: Date)
         +updateStatus(newStatus: String): void
         +getApplicationID(): String
         +getApplicant(): Student
@@ -120,6 +187,7 @@ classDiagram
         +getAppliedDate(): Date
         +isManuallyWithdrawn(): boolean
         +setManuallyWithdrawn(withdrawn: boolean): void
+        +getPreviousStatus(): String
     }
 
     class Database {
@@ -142,6 +210,7 @@ classDiagram
         +getUser(userID: String): User
         +getUsers(): List~User~
         +addUser(user: User): void
+        +removeUser(userID: String): void
         +getInternship(opportunityID: String): InternshipOpportunity
         +getInternships(): List~InternshipOpportunity~
         +addInternship(opportunity: InternshipOpportunity): void
@@ -179,23 +248,32 @@ classDiagram
         +toString(): String
     }
 
+    class FilterManager {
+        -Scanner scanner
+        -FilterSettings filterSettings
+        +FilterManager(scanner: Scanner)
+        +manageFilters(): void
+        +hasActiveFilters(): bool
+        +getFilterSettings(): FilterSettings
+        <<instance-based, one per menu handler>>
+    }
+
     class Statistics {
-        -Map~String,Integer~ applicationCounts
-        -Map~String,Integer~ acceptanceCounts
-        -Map~String,Integer~ rejectionCounts
-        -Map~String,Double~ averageGPAByLevel
-        -int totalApplications
-        -int totalAcceptances
-        -int totalRejections
+        -IApplicationRepository applicationRepository
+        -IInternshipRepository internshipRepository
+        -IUserRepository userRepository
+        +Statistics(appRepo: IApplicationRepository, internshipRepo: IInternshipRepository, userRepo: IUserRepository)
         +displayStudentStatistics(student: Student): void
         +displayCompanyRepresentativeStatistics(rep: CompanyRepresentative): void
         +displaySystemStatistics(): void
+        <<uses repositories instead of Database static methods>>
     }
 
     class IUserRepository {
         +getAllUsers(): List~User~
         +getUserById(userId: String): User
         +addUser(user: User): void
+        +removeUser(userId: String): void
         +saveUsers(): void
         +generateCompanyRepId(): String
     }
@@ -204,6 +282,7 @@ classDiagram
         +getAllUsers(): List~User~
         +getUserById(userId: String): User
         +addUser(user: User): void
+        +removeUser(userId: String): void
         +saveUsers(): void
         +generateCompanyRepId(): String
     }
@@ -218,6 +297,8 @@ classDiagram
     }
 
     class CsvInternshipRepository {
+        -IUserRepository userRepository
+        +CsvInternshipRepository(userRepository: IUserRepository)
         +getAllInternships(): List~InternshipOpportunity~
         +getInternshipById(opportunityId: String): InternshipOpportunity
         +addInternship(internship: InternshipOpportunity): void
@@ -235,6 +316,9 @@ classDiagram
     }
 
     class CsvApplicationRepository {
+        -IUserRepository userRepository
+        -IInternshipRepository internshipRepository
+        +CsvApplicationRepository(userRepository: IUserRepository, internshipRepository: IInternshipRepository)
         +getAllApplications(): List~Application~
         +getApplicationById(applicationId: String): Application
         +addApplication(application: Application): void
@@ -249,6 +333,7 @@ classDiagram
         +registerStaff(userId: String, name: String, password: String, department: String): bool
         +registerCompanyRep(userId: String, name: String, password: String, company: String, department: String, position: String, email: String): bool
         +approveCompanyRep(repId: String): void
+        +getUserRepository(): IUserRepository
     }
 
     class InternshipService {
@@ -260,6 +345,7 @@ classDiagram
         +getAllInternships(): List~InternshipOpportunity~
         +getInternship(id: String): InternshipOpportunity
         +toggleVisibility(opportunityId: String, visible: bool): void
+        +getInternshipRepository(): IInternshipRepository
     }
 
     class ApplicationService {
@@ -275,6 +361,7 @@ classDiagram
         +getApplicationsForStudent(studentId: String): List~Application~
         +getApplicationsForCompanyRep(repId: String): List~Application~
         +getApplicationsForInternship(opportunityId: String): List~Application~
+        +getApplicationRepository(): IApplicationRepository
     }
 
     class IMenuHandler {
@@ -285,7 +372,9 @@ classDiagram
         -Student student
         -InternshipService internshipService
         -ApplicationService applicationService
+        -UserService userService
         -Scanner scanner
+        -FilterManager filterManager
         +showMenu(): void
     }
 
@@ -293,7 +382,9 @@ classDiagram
         -CompanyRepresentative rep
         -InternshipService internshipService
         -ApplicationService applicationService
+        -UserService userService
         -Scanner scanner
+        -FilterManager filterManager
         +showMenu(): void
     }
 
@@ -303,6 +394,7 @@ classDiagram
         -InternshipService internshipService
         -ApplicationService applicationService
         -Scanner scanner
+        -FilterManager filterManager
         +showMenu(): void
     }
 
@@ -350,8 +442,11 @@ classDiagram
     CsvUserRepository ..> CareerCenterStaff : creates
 
     CsvInternshipRepository ..> InternshipOpportunity : manages
+    CsvInternshipRepository ..> IUserRepository : depends on
 
     CsvApplicationRepository ..> Application : manages
+    CsvApplicationRepository ..> IUserRepository : depends on
+    CsvApplicationRepository ..> IInternshipRepository : depends on
 
     UserService ..> IUserRepository : uses
     InternshipService ..> IInternshipRepository : uses
@@ -367,6 +462,14 @@ classDiagram
     CareerStaffMenuHandler ..> UserService : uses
     CareerStaffMenuHandler ..> InternshipService : uses
     CareerStaffMenuHandler ..> ApplicationService : uses
+
+    Student ..> IInternshipRepository : uses
+    Student ..> IApplicationRepository : uses
+    CompanyRepresentative ..> IInternshipRepository : uses
+    CompanyRepresentative ..> IApplicationRepository : uses
+    CareerCenterStaff ..> IUserRepository : uses
+    CareerCenterStaff ..> IInternshipRepository : uses
+    CareerCenterStaff ..> IApplicationRepository : uses
 
     InternshipPlacementSystem ..> IUserRepository : injects
     InternshipPlacementSystem ..> IInternshipRepository : injects
@@ -449,8 +552,8 @@ sequenceDiagram
 
     Main->>InternshipPlacementSystem: new InternshipPlacementSystem()
     InternshipPlacementSystem->>CsvUserRepository: new CsvUserRepository()
-    InternshipPlacementSystem->>CsvInternshipRepository: new CsvInternshipRepository()
-    InternshipPlacementSystem->>CsvApplicationRepository: new CsvApplicationRepository()
+    InternshipPlacementSystem->>CsvInternshipRepository: new CsvInternshipRepository(userRepository)
+    InternshipPlacementSystem->>CsvApplicationRepository: new CsvApplicationRepository(userRepository, internshipRepository)
     InternshipPlacementSystem->>UserService: new UserService(userRepository)
     InternshipPlacementSystem->>InternshipService: new InternshipService(internshipRepository, userRepository)
     InternshipPlacementSystem->>ApplicationService: new ApplicationService(applicationRepository, internshipRepository, userRepository)

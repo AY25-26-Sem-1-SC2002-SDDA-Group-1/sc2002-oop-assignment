@@ -9,8 +9,13 @@ public class Statistics {
     private int totalApplications;
     private int totalAcceptances;
     private int totalRejections;
+    private final IApplicationRepository applicationRepository;
+    private final IInternshipRepository internshipRepository;
+    private final IUserRepository userRepository;
 
-    public Statistics() {
+    public Statistics(IApplicationRepository applicationRepository, 
+                     IInternshipRepository internshipRepository,
+                     IUserRepository userRepository) {
         this.applicationCounts = new HashMap<>();
         this.acceptanceCounts = new HashMap<>();
         this.rejectionCounts = new HashMap<>();
@@ -18,6 +23,9 @@ public class Statistics {
         this.totalApplications = 0;
         this.totalAcceptances = 0;
         this.totalRejections = 0;
+        this.applicationRepository = applicationRepository;
+        this.internshipRepository = internshipRepository;
+        this.userRepository = userRepository;
     }
 
     public void incrementApplicationCount(String category) {
@@ -64,7 +72,7 @@ public class Statistics {
         int basicApplied = 0, intermediateApplied = 0, advancedApplied = 0;
         int basicAccepted = 0, intermediateAccepted = 0, advancedAccepted = 0;
 
-        for (Application app : Database.getApplications()) {
+        for (Application app : applicationRepository.getAllApplications()) {
             if (app.getApplicant().getUserID().equals(student.getUserID())) {
                 appliedCount++;
                 String level = app.getOpportunity().getLevel();
@@ -166,7 +174,7 @@ public class Statistics {
         int basicInternships = 0, intermediateInternships = 0, advancedInternships = 0;
         int basicFilled = 0, intermediateFilled = 0, advancedFilled = 0;
 
-        for (InternshipOpportunity opp : Database.getInternships()) {
+        for (InternshipOpportunity opp : internshipRepository.getAllInternships()) {
             if (opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
                 totalInternships++;
                 String level = opp.getLevel();
@@ -191,7 +199,7 @@ public class Statistics {
                         break;
                 }
 
-                for (Application app : Database.getApplications()) {
+                for (Application app : applicationRepository.getAllApplications()) {
                     if (app.getOpportunity().getOpportunityID().equals(opp.getOpportunityID())) {
                         totalApplications++;
                         switch (app.getStatus()) {
@@ -258,7 +266,7 @@ public class Statistics {
         int totalCompanyReps = 0;
         int totalStaff = 0;
         
-        for (User user : Database.getUsers()) {
+        for (User user : userRepository.getAllUsers()) {
             if (user instanceof Student) {
                 totalStudents++;
             } else if (user instanceof CompanyRepresentative) {
@@ -268,8 +276,8 @@ public class Statistics {
             }
         }
         
-        int totalInternships = Database.getInternships().size();
-        int totalApplications = Database.getApplications().size();
+        int totalInternships = internshipRepository.getAllInternships().size();
+        int totalApplications = applicationRepository.getAllApplications().size();
         
         System.out.println("User Statistics:");
         System.out.println("Total Students: " + totalStudents);
@@ -283,7 +291,7 @@ public class Statistics {
         Map<String, Integer> levelCounts = new HashMap<>();
         Map<String, Integer> majorCounts = new HashMap<>();
         
-        for (InternshipOpportunity opp : Database.getInternships()) {
+        for (InternshipOpportunity opp : internshipRepository.getAllInternships()) {
             levelCounts.put(opp.getLevel(), levelCounts.getOrDefault(opp.getLevel(), 0) + 1);
             majorCounts.put(opp.getPreferredMajor(), majorCounts.getOrDefault(opp.getPreferredMajor(), 0) + 1);
         }
