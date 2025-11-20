@@ -6,8 +6,8 @@ public class CsvUserRepository implements IUserRepository {
     private static final List<User> users = new ArrayList<>();
     private static int companyRepCounter = 1;
     private static boolean isLoaded = false; // Track if data already loaded
-    private final IInternshipRepository internshipRepository;
-    private final IApplicationRepository applicationRepository;
+    private IInternshipRepository internshipRepository;
+    private IApplicationRepository applicationRepository;
 
     public CsvUserRepository(IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
         this.internshipRepository = internshipRepository;
@@ -16,6 +16,31 @@ public class CsvUserRepository implements IUserRepository {
         if (!isLoaded) {
             loadUsers();
             isLoaded = true;
+        }
+    }
+
+    // Setters for dependency injection after initialization
+    public void setInternshipRepository(IInternshipRepository internshipRepository) {
+        this.internshipRepository = internshipRepository;
+        // Update repository references in all user objects
+        for (User user : users) {
+            if (user instanceof Student) {
+                ((Student) user).setInternshipRepository(internshipRepository);
+            } else if (user instanceof CompanyRepresentative) {
+                ((CompanyRepresentative) user).setInternshipRepository(internshipRepository);
+            }
+        }
+    }
+
+    public void setApplicationRepository(IApplicationRepository applicationRepository) {
+        this.applicationRepository = applicationRepository;
+        // Update repository references in all user objects
+        for (User user : users) {
+            if (user instanceof Student) {
+                ((Student) user).setApplicationRepository(applicationRepository);
+            } else if (user instanceof CompanyRepresentative) {
+                ((CompanyRepresentative) user).setApplicationRepository(applicationRepository);
+            }
         }
     }
 
@@ -31,15 +56,32 @@ public class CsvUserRepository implements IUserRepository {
     }
 
     private void loadStudents() throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader("sample_student_list.csv"));
-        String line = reader.readLine();
+        BufferedReader reader = new BufferedReader(new FileReader("data/sample_student_list.csv"));
+        String line = reader.readLine(); // Skip header
         while ((line = reader.readLine()) != null && !line.trim().isEmpty()) {
             String[] parts = line.split(",");
-            if (parts.length >= 5) {
+            if (parts.length >= 7) { // Updated to include hash and salt
                 Student student = new Student(
                     parts[0].trim(),
                     parts[1].trim(),
-                    "password",
+                    parts[5].trim(), // password hash
+                    parts[6].trim(), // salt
+                    Integer.parseInt(parts[3].trim()),
+                    parts[2].trim(),
+                    Double.parseDouble(parts[4].trim()),
+                    internshipRepository,
+                    applicationRepository
+                );
+                users.add(student);
+            } else if (parts.length >= 5) {
+                // Backward compatibility: if no hash/salt columns, use default
+                String defaultSalt = PasswordUtil.generateSalt();
+                String defaultHash = PasswordUtil.hashPassword("password", defaultSalt);
+                Student student = new Student(
+                    parts[0].trim(),
+                    parts[1].trim(),
+                    defaultHash,
+                    defaultSalt,
                     Integer.parseInt(parts[3].trim()),
                     parts[2].trim(),
                     Double.parseDouble(parts[4].trim()),
@@ -53,15 +95,31 @@ public class CsvUserRepository implements IUserRepository {
     }
 
     private void loadStaff() throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader("sample_staff_list.csv"));
+        BufferedReader reader = new BufferedReader(new FileReader("data/sample_staff_list.csv"));
         String line = reader.readLine();
         while ((line = reader.readLine()) != null && !line.trim().isEmpty()) {
             String[] parts = line.split(",");
-            if (parts.length >= 4) {
+            if (parts.length >= 6) { // Updated to include hash and salt
                 CareerCenterStaff staff = new CareerCenterStaff(
                     parts[0].trim(),
                     parts[1].trim(),
-                    "password",
+                    parts[4].trim(), // password hash
+                    parts[5].trim(), // salt
+                    parts[3].trim(),
+                    this,
+                    internshipRepository,
+                    applicationRepository
+                );
+                users.add(staff);
+            } else if (parts.length >= 4) {
+                // Backward compatibility: if no hash/salt columns, use default
+                String defaultSalt = PasswordUtil.generateSalt();
+                String defaultHash = PasswordUtil.hashPassword("password", defaultSalt);
+                CareerCenterStaff staff = new CareerCenterStaff(
+                    parts[0].trim(),
+                    parts[1].trim(),
+                    defaultHash,
+                    defaultSalt,
                     parts[3].trim(),
                     this,
                     internshipRepository,
@@ -74,15 +132,41 @@ public class CsvUserRepository implements IUserRepository {
     }
 
     private void loadCompanyRepresentatives() throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader("sample_company_representative_list.csv"));
+        BufferedReader reader = new BufferedReader(new FileReader("data/sample_company_representative_list.csv"));
         String line = reader.readLine();
         while ((line = reader.readLine()) != null && !line.trim().isEmpty()) {
             String[] parts = line.split(",");
-            if (parts.length >= 6) {
+            if (parts.length >= 8) { // Updated to include hash and salt
                 CompanyRepresentative rep = new CompanyRepresentative(
                     parts[0].trim(),
                     parts[1].trim(),
-                    "password",
+                    parts[6].trim(), // password hash
+                    parts[7].trim(), // salt
+                    parts[2].trim(),
+                    parts[3].trim(),
+                    parts[4].trim(),
+                    parts[5].trim(),
+                    internshipRepository,
+                    applicationRepository
+                );
+                if (parts.length >= 9) {
+                    String status = parts[8].trim();
+                    if (status.equalsIgnoreCase("Approved")) {
+                        rep.setApproved(true);
+                    } else if (status.equalsIgnoreCase("Rejected")) {
+                        rep.setRejected(true);
+                    }
+                }
+                users.add(rep);
+            } else if (parts.length >= 6) {
+                // Backward compatibility: if no hash/salt columns, use default
+                String defaultSalt = PasswordUtil.generateSalt();
+                String defaultHash = PasswordUtil.hashPassword("password", defaultSalt);
+                CompanyRepresentative rep = new CompanyRepresentative(
+                    parts[0].trim(),
+                    parts[1].trim(),
+                    defaultHash,
+                    defaultSalt,
                     parts[2].trim(),
                     parts[3].trim(),
                     parts[4].trim(),
@@ -136,37 +220,42 @@ public class CsvUserRepository implements IUserRepository {
     }
 
     private void saveStudents() throws IOException {
-        PrintWriter writer = new PrintWriter(new FileWriter("sample_student_list.csv"));
-        writer.println("UserID,Name,Major,Year,GPA");
+        PrintWriter writer = new PrintWriter(new FileWriter("data/sample_student_list.csv"));
+        writer.println("UserID,Name,Major,Year,GPA,PasswordHash,Salt");
         for (User user : users) {
             if (user instanceof Student) {
                 Student s = (Student) user;
-                writer.println(s.getUserID() + "," + s.getName() + "," + s.getMajor() + "," + s.getYearOfStudy() + "," + s.getGpa());
+                writer.println(s.getUserID() + "," + s.getName() + "," + s.getMajor() + "," +
+                              s.getYearOfStudy() + "," + s.getGpa() + "," +
+                              s.getPasswordHash() + "," + s.getSalt());
             }
         }
         writer.close();
     }
 
     private void saveStaff() throws IOException {
-        PrintWriter writer = new PrintWriter(new FileWriter("sample_staff_list.csv"));
-        writer.println("UserID,Name,Password,Department");
+        PrintWriter writer = new PrintWriter(new FileWriter("data/sample_staff_list.csv"));
+        writer.println("UserID,Name,Department,PasswordHash,Salt");
         for (User user : users) {
             if (user instanceof CareerCenterStaff) {
                 CareerCenterStaff s = (CareerCenterStaff) user;
-                writer.println(s.getUserID() + "," + s.getName() + ",password," + s.getStaffDepartment());
+                writer.println(s.getUserID() + "," + s.getName() + "," + s.getStaffDepartment() + "," +
+                              s.getPasswordHash() + "," + s.getSalt());
             }
         }
         writer.close();
     }
 
     private void saveCompanyRepresentatives() throws IOException {
-        PrintWriter writer = new PrintWriter(new FileWriter("sample_company_representative_list.csv"));
-        writer.println("CompanyRepID,Name,CompanyName,Department,Position,Email,Status");
+        PrintWriter writer = new PrintWriter(new FileWriter("data/sample_company_representative_list.csv"));
+        writer.println("CompanyRepID,Name,CompanyName,Department,Position,Email,PasswordHash,Salt,Status");
         for (User user : users) {
             if (user instanceof CompanyRepresentative) {
                 CompanyRepresentative r = (CompanyRepresentative) user;
                 String status = r.isApproved() ? "Approved" : (r.isRejected() ? "Rejected" : "Pending");
-                writer.println(r.getUserID() + "," + r.getName() + "," + r.getCompanyName() + "," + r.getDepartment() + "," + r.getPosition() + "," + r.getEmail() + "," + status);
+                writer.println(r.getUserID() + "," + r.getName() + "," + r.getCompanyName() + "," +
+                              r.getDepartment() + "," + r.getPosition() + "," + r.getEmail() + "," +
+                              r.getPasswordHash() + "," + r.getSalt() + "," + status);
             }
         }
         writer.close();

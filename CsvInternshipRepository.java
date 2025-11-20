@@ -13,22 +13,20 @@ public class CsvInternshipRepository implements IInternshipRepository {
 
     public CsvInternshipRepository(IUserRepository userRepository) {
         this.userRepository = userRepository;
-        if (userRepository != null) {
-            loadInternships();
-        }
+        loadInternships();
     }
 
     // Method to set user repository after construction and load data
     public void setUserRepository(IUserRepository userRepository) {
         this.userRepository = userRepository;
-        if (userRepository != null && internships.isEmpty()) {
+        if (internships.isEmpty()) {
             loadInternships();
         }
     }
 
     private void loadInternships() {
         try {
-            File file = new File("internships.csv");
+            File file = new File("data/internships.csv");
             if (!file.exists()) {
                 return; // No file to load
             }
@@ -103,7 +101,7 @@ public class CsvInternshipRepository implements IInternshipRepository {
 
     @Override
     public void saveInternships() {
-        try (PrintWriter writer = new PrintWriter(new FileWriter("internships.csv"))) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter("data/internships.csv"))) {
             writer.println("InternshipID,Title,Description,Level,PreferredMajor,OpeningDate,ClosingDate,Status,MaxSlots,Visibility,MinGPA,CreatedBy");
             for (InternshipOpportunity opp : internships) {
                 writer.println(

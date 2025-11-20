@@ -16,7 +16,7 @@ public class UIHelper {
         System.out.println("│                         MAIN MENU                           │");
         System.out.println("└─────────────────────────────────────────────────────────────┘");
         System.out.println();
-        System.out.println("  [1] Login to Your Account");
+        System.out.println("  [1] Log In to Your Account");
         System.out.println("  [2] Register New Account");
         System.out.println("  [3] Exit System");
         System.out.println();

@@ -1,18 +1,37 @@
 public class User {
     protected String userID;
     protected String name;
-    protected String password;
+    protected String passwordHash;
+    protected String salt;
     protected boolean isLoggedIn;
 
     public User(String userID, String name, String password) {
         this.userID = userID;
         this.name = name;
-        this.password = password;
+        this.isLoggedIn = false;
+        // For backward compatibility, check if password is already hashed
+        if (password.length() == 44 && password.contains("/") || password.contains("+")) {
+            // Likely a base64 hash, treat as hash+salt combined (temporary migration)
+            this.passwordHash = password;
+            this.salt = PasswordUtil.generateSalt(); // Generate new salt for migration
+        } else {
+            // Plain text password, hash it
+            this.salt = PasswordUtil.generateSalt();
+            this.passwordHash = PasswordUtil.hashPassword(password, this.salt);
+        }
+    }
+
+    // Constructor for loading from CSV with existing hash and salt
+    public User(String userID, String name, String passwordHash, String salt) {
+        this.userID = userID;
+        this.name = name;
+        this.passwordHash = passwordHash;
+        this.salt = salt;
         this.isLoggedIn = false;
     }
 
     public boolean login(String password) {
-        if (this.password.equals(password)) {
+        if (PasswordUtil.verifyPassword(password, this.passwordHash, this.salt)) {
             this.isLoggedIn = true;
             return true;
         }
@@ -24,11 +43,21 @@ public class User {
     }
 
     public void changePassword(String newPassword) {
-        this.password = newPassword;
+        this.salt = PasswordUtil.generateSalt();
+        this.passwordHash = PasswordUtil.hashPassword(newPassword, this.salt);
     }
-    
+
     public boolean verifyPassword(String password) {
-        return this.password.equals(password);
+        return PasswordUtil.verifyPassword(password, this.passwordHash, this.salt);
+    }
+
+    // For CSV persistence
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public String getSalt() {
+        return salt;
     }
 
     public String getUserID() {

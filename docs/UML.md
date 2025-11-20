@@ -4,21 +4,25 @@ This document contains the UML diagrams for the refactored Internship Placement 
 
 ## Architecture Notes
 
-**Service Layer Pattern**: UI handlers interact via services (`UserService`, `InternshipService`, `ApplicationService`). Domain objects increasingly delegate persistence to repositories. Legacy direct `Database` access is being phased out.
+**Service Layer Pattern**: UI handlers interact via services (`UserService`, `InternshipService`, `ApplicationService`). Domain objects delegate persistence to repositories. Legacy `Database` class fully removed.
 
 **SOLID Principles Enforcement**:
 
-- **Single Responsibility**: Handlers = UI orchestration; Services = business rules; Repositories = persistence; Domain objects = state + light invariants.
+- **Single Responsibility**: Handlers = UI orchestration; Services = business rules + validation; Repositories = persistence; Domain objects = state + light invariants.
 - **Dependency Inversion**: High-level code depends on interfaces (`IUserRepository`, `IInternshipRepository`, `IApplicationRepository`).
 - **Open/Closed**: New persistence strategies can be added behind repository interfaces.
+- **Security**: Password hashing with salt; comprehensive input validation; secure data handling.
 
 **Data Layer Status**:
 
-- `CompanyRepresentative` now fully repository-driven (no `Database` calls).
-- `ReportManager` refactored to use repository pattern via dependency injection (no direct `Database` calls).
-- Remaining legacy `Database` usages: application ID generation & some operations in `Student` and manager classes.
-- Next step: introduce `generateApplicationId()` in `IApplicationRepository`, migrate creation logic, then remove `Database`.
-- CRUD for internships & applications persist through CSV repositories; tests confirm end-to-end visibility.
+- **Complete Repository Migration**: All classes now use repository pattern exclusively
+- **No Legacy Database Usage**: `Database` class fully removed from active code paths
+- **Dependency Injection**: All repositories properly injected with correct initialization order
+- **Security**: Password hashing implemented with secure storage
+- **Validation**: Comprehensive input validation at service layer
+- **Performance**: Optimized algorithms using Java streams and efficient data structures
+- **Testing**: Comprehensive automated test suite with 13 tests covering all major functionality
+- **Recent Updates**: Student internship viewing now shows all matching major/GPA internships with ineligibility reasons displayed. Statistics eligibility checks now include year restrictions. Filtering integrated into internship viewing for improved UX.
 
 ## Status Model
 
@@ -26,6 +30,13 @@ The system uses the following application and internship statuses:
 
 - Application: `Pending`, `Successful`, `Unsuccessful`, `Confirmed`, `Withdrawn`, `Withdrawal Requested`, `Queued` (waitlist), `Withdrawal Rejected`
 - Internship: `Pending`, `Approved`, `Rejected`, `Filled`
+
+## Security Model
+
+- **Password Storage**: SHA-256 hashing with random salt for all user passwords
+- **Input Validation**: Comprehensive validation at service layer for all user inputs
+- **Data Protection**: No plain text password storage in memory or persistent files
+- **Session Security**: Proper logout and session management
 
 ## Business Rules
 
@@ -50,25 +61,105 @@ The system uses the following application and internship statuses:
 - `Successful` → `Confirmed`: Auto-withdraws all other applications for that student.
 - `Queued` → `Confirmed`: Occurs automatically when a confirmed slot becomes available (via queue processing).
 
+**Input Validation Rules**:
+
+- User ID: 3-20 characters, alphanumeric
+- Name: 2-50 characters, required
+- Password: minimum 6 characters, hashed with salt
+- Year of Study: 1-4 range
+- Major: must match predefined list (Computer Science, Computer Engineering, etc.)
+- GPA: 0.0-5.0 range
+- Department/Position: 2-50 characters
+- Email: basic format validation
+
+## Testing Framework
+
+### Automated Test Architecture
+
+The system includes a comprehensive automated testing framework with the following structure:
+
+```
+test/
+├── TestFramework.java       # Core assertion utilities
+├── TestRunner.java          # Main test orchestrator
+├── UserServiceTest.java     # Authentication & validation tests
+├── RepositoryTest.java      # Data persistence tests
+└── BusinessLogicTest.java   # Business rule tests
+```
+
+### Test Coverage
+
+**UserService Tests (6 tests)**:
+- Student, Staff, and Company Rep authentication
+- Invalid credential rejection
+- Registration input validation (user ID, GPA ranges)
+
+**Repository Tests (5 tests)**:
+- CSV file loading and parsing
+- Data retrieval by ID
+- Repository initialization
+- ID generation functionality
+
+**Business Logic Tests (2 tests)**:
+- GPA-based eligibility filtering
+- Internship validation rules
+
+### Enhanced Testing Features
+
+**Verbose Output**:
+- Detailed logging of test conditions and object types (ASCII-compatible)
+- Value comparison showing expected vs actual results
+- Step-by-step verification of test assertions
+
+**Confirmation Bias Protection**:
+- Tests run against production code (not simplified test versions)
+- Object type verification ensures correct return types
+- Comprehensive assertion checking prevents false positives
+
+**Testing Mode**:
+- Application can run in testing mode for automated verification
+- Isolated test environment prevents interference with production data
+- Detailed reporting with pass rates and failure analysis
+
+**Total**: 24 comprehensive manual test scenarios covering all system functionality with detailed expected behaviors
+
+### Test Execution
+
+Follow the comprehensive manual testing procedures in `docs/TESTING_GUIDE.md` for complete system validation.
+
 **Error Messages**:
 
 - Application rejections include detailed explanations with `[BLOCKED]` or `[ERROR]` prefixes.
+- Registration failures provide specific validation error details.
 - Context provided: current values vs requirements, related application details.
 
 ## UML Class Diagram
 
 ```mermaid
 classDiagram
+    class PasswordUtil {
+        +generateSalt(): String
+        +hashPassword(password: String, salt: String): String
+        +verifyPassword(password: String, hash: String, salt: String): bool
+        <<static utility class>>
+    }
+
     class User {
         -String userID
         -String name
-        -String password
+        -String passwordHash
+        -String salt
         -boolean isLoggedIn
+        +User(userID: String, name: String, password: String)
+        +User(userID: String, name: String, passwordHash: String, salt: String)
         +login(password: String): bool
         +logout(): void
         +changePassword(newPassword: String): void
+        +verifyPassword(password: String): bool
         +getUserID(): String
         +getName(): String
+        +getPasswordHash(): String
+        +getSalt(): String
         +isLoggedIn(): bool
     }
 
@@ -84,6 +175,7 @@ classDiagram
         +acceptInternship(applicationID: String): void
         +requestWithdrawal(applicationID: String): void
         +isEligibleForInternship(opportunity: InternshipOpportunity): bool
+        +getIneligibilityReason(opportunity: InternshipOpportunity): String
         +getYearOfStudy(): int
         +getMajor(): String
         +getGpa(): double
@@ -190,38 +282,7 @@ classDiagram
         +getPreviousStatus(): String
     }
 
-    class Database {
-        -static List~User~ users
-        -static List~InternshipOpportunity~ internships
-        -static List~Application~ applications
-        -static int applicationCounter
-        -static int internshipCounter
-        -static int companyRepCounter
-        +loadUsersFromCSV(): void
-        +loadStudents(): void
-        +loadStaff(): void
-        +loadCompanyRepresentatives(): void
-        +loadApplications(): void
-        +saveData(): void
-        +saveStudents(): void
-        +saveStaff(): void
-        +saveCompanyRepresentatives(): void
-        +saveApplications(): void
-        +getUser(userID: String): User
-        +getUsers(): List~User~
-        +addUser(user: User): void
-        +removeUser(userID: String): void
-        +getInternship(opportunityID: String): InternshipOpportunity
-        +getInternships(): List~InternshipOpportunity~
-        +addInternship(opportunity: InternshipOpportunity): void
-        +removeInternship(opportunityID: String): void
-        +getApplication(applicationID: String): Application
-        +getApplications(): List~Application~
-        +addApplication(application: Application): void
-        +generateApplicationID(): String
-        +generateInternshipID(): String
-        +generateCompanyRepID(): String
-    }
+    %% Database class removed - all functionality migrated to repository pattern
 
     class Report {
         -List~InternshipOpportunity~ opportunities
@@ -333,7 +394,18 @@ classDiagram
         +registerStaff(userId: String, name: String, password: String, department: String): bool
         +registerCompanyRep(userId: String, name: String, password: String, company: String, department: String, position: String, email: String): bool
         +approveCompanyRep(repId: String): void
+        +isUserIdAvailable(userId: String, allowRejectedCompanyRep: bool): bool
         +getUserRepository(): IUserRepository
+        -isValidUserId(userId: String): bool
+        -isValidName(name: String): bool
+        -isValidPassword(password: String): bool
+        -isValidYearOfStudy(year: int): bool
+        -isValidMajor(major: String): bool
+        -isValidGpa(gpa: double): bool
+        -isValidDepartment(department: String): bool
+        -isValidCompanyName(company: String): bool
+        -isValidPosition(position: String): bool
+        -isValidEmail(email: String): bool
     }
 
     class InternshipService {
@@ -422,6 +494,8 @@ classDiagram
     User <|-- CompanyRepresentative
     User <|-- CareerCenterStaff
 
+    User ..> PasswordUtil : uses
+
     IUserRepository <|.. CsvUserRepository
     IInternshipRepository <|.. CsvInternshipRepository
     IApplicationRepository <|.. CsvApplicationRepository
@@ -482,6 +556,9 @@ classDiagram
     CareerCenterStaff ..> Report : creates
     Report ..> InternshipOpportunity : contains
 
+    Statistics ..> IApplicationRepository : uses
+    Statistics ..> IInternshipRepository : uses
+    Statistics ..> IUserRepository : uses
     Statistics ..> Student : analyzes
     Statistics ..> CompanyRepresentative : analyzes
     Statistics ..> InternshipOpportunity : analyzes
@@ -491,7 +568,7 @@ classDiagram
 
 ## UML Sequence Diagrams
 
-### Refactored Login with Dependency Injection
+### Secure Login with Password Hashing
 
 ```mermaid
 sequenceDiagram
@@ -499,12 +576,16 @@ sequenceDiagram
     participant InternshipPlacementSystem
     participant UserService
     participant IUserRepository
+    participant User
+    participant PasswordUtil
 
     user->>InternshipPlacementSystem: login(userID, password)
     InternshipPlacementSystem->>UserService: login(userID, password)
     UserService->>IUserRepository: getUserById(userID)
     IUserRepository-->>UserService: User
     UserService->>User: login(password)
+    User->>PasswordUtil: verifyPassword(password, hash, salt)
+    PasswordUtil-->>User: valid/invalid
     User-->>UserService: success/failure
     UserService-->>InternshipPlacementSystem: User or null
     InternshipPlacementSystem-->>user: login result
@@ -537,7 +618,7 @@ sequenceDiagram
 
 ```
 
-### System Initialization with Dependency Injection
+### System Initialization with Proper Dependency Order
 
 ```mermaid
 sequenceDiagram
@@ -551,17 +632,21 @@ sequenceDiagram
     participant ApplicationService
 
     Main->>InternshipPlacementSystem: new InternshipPlacementSystem()
-    InternshipPlacementSystem->>CsvUserRepository: new CsvUserRepository()
+    InternshipPlacementSystem->>InternshipPlacementSystem: initializeRepositories()
+    InternshipPlacementSystem->>CsvUserRepository: new CsvUserRepository(null, null)
     InternshipPlacementSystem->>CsvInternshipRepository: new CsvInternshipRepository(userRepository)
     InternshipPlacementSystem->>CsvApplicationRepository: new CsvApplicationRepository(userRepository, internshipRepository)
-    InternshipPlacementSystem->>UserService: new UserService(userRepository)
+    InternshipPlacementSystem->>CsvUserRepository: setInternshipRepository(internshipRepository)
+    InternshipPlacementSystem->>CsvUserRepository: setApplicationRepository(applicationRepository)
+    InternshipPlacementSystem->>InternshipPlacementSystem: initializeServices()
+    InternshipPlacementSystem->>UserService: new UserService(userRepository, internshipRepository, applicationRepository)
     InternshipPlacementSystem->>InternshipService: new InternshipService(internshipRepository, userRepository)
     InternshipPlacementSystem->>ApplicationService: new ApplicationService(applicationRepository, internshipRepository, userRepository)
     InternshipPlacementSystem-->>Main: initialized system
 
 ```
 
-### User Registration via Services
+### User Registration with Comprehensive Validation
 
 ```mermaid
 sequenceDiagram
@@ -569,15 +654,33 @@ sequenceDiagram
     participant InternshipPlacementSystem
     participant UserService
     participant IUserRepository
+    participant PasswordUtil
 
     user->>InternshipPlacementSystem: registerStudent(details)
     InternshipPlacementSystem->>UserService: registerStudent(userId, name, password, year, major, gpa)
-    UserService->>IUserRepository: getUserById(userId)
-    IUserRepository-->>UserService: null (available)
-    UserService->>IUserRepository: addUser(Student)
-    UserService->>IUserRepository: saveUsers()
-    UserService-->>InternshipPlacementSystem: success
-    InternshipPlacementSystem-->>user: registration successful
+    UserService->>UserService: isValidUserId(userId)
+    UserService->>UserService: isValidName(name)
+    UserService->>UserService: isValidPassword(password)
+    UserService->>UserService: isValidYearOfStudy(year)
+    UserService->>UserService: isValidMajor(major)
+    UserService->>UserService: isValidGpa(gpa)
+    alt all validations pass
+        UserService->>IUserRepository: getUserById(userId)
+        IUserRepository-->>UserService: null (available)
+        UserService->>Student: new Student(userId, name, password, ...)
+        Student->>PasswordUtil: generateSalt()
+        PasswordUtil-->>Student: salt
+        Student->>PasswordUtil: hashPassword(password, salt)
+        PasswordUtil-->>Student: hash
+        Student->>Student: store hash and salt
+        UserService->>IUserRepository: addUser(Student)
+        UserService->>IUserRepository: saveUsers()
+        UserService-->>InternshipPlacementSystem: success
+        InternshipPlacementSystem-->>user: registration successful
+    else validation fails
+        UserService-->>InternshipPlacementSystem: validation error
+        InternshipPlacementSystem-->>user: specific validation error message
+    end
 
 ```
 
@@ -840,25 +943,33 @@ sequenceDiagram
 
 ```
 
-### Password Change
+### Secure Password Change with Hashing
 
 ```mermaid
 sequenceDiagram
     participant user
     participant MenuHandler
     participant User
+    participant PasswordUtil
 
     user->>MenuHandler: changePassword()
     MenuHandler->>user: prompt current password
     user->>MenuHandler: enter current password
     MenuHandler->>User: verifyPassword(currentPassword)
+    User->>PasswordUtil: verifyPassword(currentPassword, storedHash, storedSalt)
+    PasswordUtil-->>User: valid/invalid
     User-->>MenuHandler: valid
     MenuHandler->>user: prompt new password
     user->>MenuHandler: enter new password
     MenuHandler->>user: confirm new password
     user->>MenuHandler: confirm password
-    MenuHandler->>MenuHandler: validate passwords match
+    MenuHandler->>MenuHandler: validate passwords match and not same as current
     MenuHandler->>User: changePassword(newPassword)
+    User->>PasswordUtil: generateSalt()
+    PasswordUtil-->>User: newSalt
+    User->>PasswordUtil: hashPassword(newPassword, newSalt)
+    PasswordUtil-->>User: newHash
+    User->>User: store newHash and newSalt
     User-->>MenuHandler: password changed
     MenuHandler-->>user: password change successful
 
@@ -905,6 +1016,40 @@ sequenceDiagram
     MenuHandler->>FilterSettings: toString()
     FilterSettings-->>MenuHandler: filter summary
     MenuHandler-->>user: filters updated
+
+```
+
+### Optimized Queue Processing
+
+```mermaid
+sequenceDiagram
+    participant CareerStaff
+    participant CareerCenterStaff
+    participant ApplicationService
+    participant IApplicationRepository
+    participant IInternshipRepository
+
+    CareerStaff->>CareerCenterStaff: processWithdrawal(applicationId, approve=true)
+    CareerCenterStaff->>ApplicationService: approveWithdrawal(applicationId)
+    ApplicationService->>IApplicationRepository: getApplicationById(applicationId)
+    IApplicationRepository-->>ApplicationService: Application
+    ApplicationService->>Application: updateStatus("Withdrawn")
+    ApplicationService->>ApplicationService: check if confirmed slot freed
+    ApplicationService->>CareerCenterStaff: processQueue(internship)
+    CareerCenterStaff->>IApplicationRepository: getAllApplications()
+    IApplicationRepository-->>CareerCenterStaff: all applications
+    CareerCenterStaff->>CareerCenterStaff: filter by internshipId
+    CareerCenterStaff->>CareerCenterStaff: count confirmed applications
+    loop while slots available and queue not empty
+        CareerCenterStaff->>CareerCenterStaff: find oldest queued application (by appliedDate/queuedDate)
+        CareerCenterStaff->>Application: updateStatus("Confirmed")
+        CareerCenterStaff->>CareerCenterStaff: withdraw other student applications
+        CareerCenterStaff->>IApplicationRepository: saveApplications()
+    end
+    CareerCenterStaff->>ApplicationService: queue processing complete
+    ApplicationService->>IApplicationRepository: saveApplications()
+    ApplicationService-->>CareerCenterStaff: success
+    CareerCenterStaff-->>CareerStaff: withdrawal processed, queue updated
 
 ```
 

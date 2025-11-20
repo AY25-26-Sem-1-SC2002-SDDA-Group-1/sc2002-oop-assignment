@@ -405,6 +405,7 @@ public class CareerStaffMenuHandler implements IMenuHandler {
         }
 
         staff.changePassword(newPassword);
+        userService.saveUsers();
         System.out.println("Password changed successfully!");
     }
 

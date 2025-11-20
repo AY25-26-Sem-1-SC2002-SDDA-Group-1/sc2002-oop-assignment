@@ -2,6 +2,291 @@
 
 ## 2025-11-20
 
+### Security Enhancement: Password Hashing Implementation
+
+**Problem**: User passwords were stored in plain text in memory and CSV files, creating a major security vulnerability.
+
+**Solution**:
+- Created `PasswordUtil` class with secure password hashing using SHA-256 + salt
+- Modified `User` class to store hashed passwords instead of plain text
+- Updated all user classes (`Student`, `CareerCenterStaff`, `CompanyRepresentative`) with constructors supporting hash + salt
+- Modified CSV repositories to handle secure password storage with backward compatibility
+- All new passwords are hashed; existing plain text passwords are migrated on first use
+
+**Files Modified**: `PasswordUtil.java`, `User.java`, `Student.java`, `CareerCenterStaff.java`, `CompanyRepresentative.java`, `CsvUserRepository.java`
+
+**Impact**: Passwords are now securely hashed and salted, protecting user credentials from unauthorized access.
+
+---
+
+### Enhancement: Comprehensive Input Validation
+
+**Problem**: User registration lacked proper input validation, allowing invalid data to be stored.
+
+**Solution**:
+- Added validation methods in `UserService` for all input fields:
+  - User ID: 3-20 characters, required
+  - Name: 2-50 characters, required
+  - Password: minimum 6 characters
+  - Year of Study: 1-4 range
+  - Major: must match allowed majors list
+  - GPA: 0.0-5.0 range
+  - Department/Position: 2-50 characters
+  - Email: basic format validation
+- Registration methods now validate all inputs before creating users
+- Provides better user experience with clear validation rules
+
+**Files Modified**: `UserService.java`
+
+**Impact**: System now prevents invalid data entry and provides consistent validation across all user types.
+
+---
+
+### Architecture Refactor: Dependency Injection Cleanup
+
+**Problem**: The main application initialization used a fragile "phased initialization" approach with null dependencies.
+
+**Solution**:
+- Refactored `InternshipPlacementSystem` constructor to initialize repositories in correct dependency order
+- Removed null placeholder pattern and setter injection
+- Ensured repositories are fully initialized before use
+- Made repository fields non-final where needed for proper injection
+- Simplified initialization logic and removed unnecessary null checks
+
+**Files Modified**: `InternshipPlacementSystem.java`, `CsvUserRepository.java`, `CsvInternshipRepository.java`, `CsvApplicationRepository.java`
+
+**Impact**: More maintainable and reliable dependency injection, eliminating potential null pointer exceptions.
+
+---
+
+### Architecture Refactor: Complete Database Migration
+
+**Problem**: Legacy `Database` class was still being used alongside the repository pattern, creating dual data sources.
+
+**Solution**:
+- Migrated all remaining `Database` usage to repository interfaces
+- Removed `Database.saveData()` calls from `CareerCenterStaff`
+- Eliminated fallback logic that used Database when repositories were null
+- Removed unnecessary null checks now that repositories are guaranteed initialized
+- Ensured all data operations go through proper repository layer
+
+**Files Modified**: `CareerCenterStaff.java`, `UserService.java`, `Student.java`, `CompanyRepresentative.java`
+
+**Impact**: Clean architecture following SOLID principles with single source of truth for data.
+
+---
+
+### Performance Optimization: Queue Processing Algorithm
+
+**Problem**: Queue processing iterated through all applications multiple times, causing performance issues with large datasets.
+
+**Solution**:
+- Pre-filtered applications by internship ID to reduce iterations
+- Used Java streams for efficient oldest-application finding
+- Replaced multiple loops with single-pass stream operations
+- Maintained correct FIFO ordering using queued date vs applied date
+
+**Files Modified**: `CareerCenterStaff.java`
+
+**Impact**: Significantly improved performance for queue processing operations, especially with many applications.
+
+---
+
+### Code Quality: Compilation Warnings Resolution
+
+**Problem**: Compilation warnings about "this" escape in constructors.
+
+**Solution**:
+- Fixed initialization order to prevent potential "this" escape issues
+- Ensured proper dependency injection prevents early access to uninitialized objects
+- Removed redundant null checks that were no longer needed
+
+**Files Modified**: `CsvUserRepository.java`, `CsvInternshipRepository.java`, `CsvApplicationRepository.java`
+
+**Impact**: Clean compilation without warnings, better code quality.
+
+---
+
+### Code Cleanup: Removed Unused Legacy Classes
+
+**Problem**: Legacy classes `ApplicationManager`, `InternshipManager`, and `Database` were no longer used but still present in the codebase.
+
+**Solution**:
+- Analyzed all class references and imports
+- Identified unused legacy manager classes and database class
+- Removed `ApplicationManager.java`, `InternshipManager.java`, and `Database.java`
+- Verified application still compiles and functions correctly
+
+**Files Removed**: `ApplicationManager.java`, `InternshipManager.java`, `Database.java`
+
+**Impact**: Cleaner codebase with reduced complexity and maintenance burden.
+
+---
+
+### Code Organization: CSV File Structure
+
+**Problem**: CSV data files were scattered in the root directory, making the project structure less organized.
+
+**Solution**:
+- Created dedicated `/data` folder for all CSV files
+- Moved all 5 CSV files (`applications.csv`, `internships.csv`, `sample_student_list.csv`, `sample_staff_list.csv`, `sample_company_representative_list.csv`) into the data folder
+- Updated all repository classes to reference files with `data/` prefix
+- Maintained backward compatibility and existing functionality
+
+**Files Modified**: `CsvApplicationRepository.java`, `CsvInternshipRepository.java`, `CsvUserRepository.java`
+
+**Impact**: Better project organization, cleaner root directory, easier data management.
+
+---
+
+### Testing: Automated Test Framework
+
+**Problem**: No automated testing in place, making it difficult to ensure code quality and prevent regressions during development.
+
+**Solution**:
+- Created comprehensive automated testing framework with 13 tests
+- Implemented `TestFramework.java` with assertion methods (`assertTrue`, `assertEquals`, `assertNotNull`, etc.)
+- Added test suites for UserService, Repository layer, and Business Logic
+- Created `TestRunner.java` to orchestrate all test execution
+- Added `run_tests.sh` script for easy test execution
+- Tests cover authentication, validation, data persistence, and business rules
+
+**Files Added**:
+- `test/TestFramework.java` - Core testing utilities
+- `test/TestRunner.java` - Main test orchestrator
+- `test/UserServiceTest.java` - Authentication and validation tests
+- `test/RepositoryTest.java` - Data layer integration tests
+- `test/BusinessLogicTest.java` - Business rule tests
+- `test/TESTING_README.md` - Test documentation
+- `run_tests.sh` - Test execution script
+
+**Impact**: Improved code quality assurance, regression prevention, and development confidence with automated testing.
+
+---
+
+### Testing: Enhanced Verbose Testing Framework
+
+**Problem**: Basic test framework lacked detailed output, potentially allowing confirmation bias where tests appear to pass without actually testing the right functionality.
+
+**Solution**:
+- Enhanced `TestFramework.java` with verbose logging and detailed assertion messages
+- Added testing mode to `InternshipPlacementSystem` to ensure tests run against production code
+- Implemented object type verification and value comparison in test output
+- Added comprehensive test result reporting with pass rates and failure analysis
+- Created isolated test environment that prevents confirmation bias
+
+**Key Improvements**:
+- **Verbose Logging**: Shows exactly what values are being tested and compared
+- **Object Type Verification**: Confirms correct object types are returned by methods
+- **Testing Mode Flag**: Ensures tests run against real production code, not simplified versions
+- **Detailed Assertions**: `assertEquals()` shows expected vs actual values with types
+- **Comprehensive Reporting**: Pass rates, detailed failure listings, and test summaries
+
+**Impact**: Eliminates confirmation bias, provides transparent test verification, and ensures tests are actually validating the correct functionality.
+
+---
+
+### Testing: ASCII-Compatible Output
+
+**Problem**: Test output contained Unicode emoji characters that displayed as question marks (?) in some terminal environments, making test results unreadable.
+
+**Solution**:
+- Replaced all Unicode emoji characters with ASCII-compatible text labels
+- Updated `TestFramework.java` to use `[PASS]`, `[FAIL]`, `[LOG]`, `[ERROR]`, etc.
+- Modified `TestRunner.java` and `run_tests.sh` to use ASCII symbols
+- Ensured test output is readable in all terminal environments
+- Maintained all verbose logging and detailed reporting features
+
+**Files Modified**:
+- `TestFramework.java` - Replaced Unicode emojis with ASCII labels
+- `TestRunner.java` - Updated output formatting
+- `run_tests.sh` - Changed script messages to ASCII
+- `InternshipPlacementSystem.java` - Updated testing mode message
+- `CompanyRepMenuHandler.java` - Fixed Unicode characters in error messages
+
+**Impact**: Test output is now universally readable across all terminal environments and systems.
+
+---
+
+### Testing: Enhanced Application Logging for Transparency
+
+**Problem**: Even with verbose test output, there was still potential for confirmation bias since users couldn't see what the actual application code was doing during tests.
+
+**Solution**:
+- Added detailed logging directly in application classes when testing mode is enabled
+- Shows real CSV data loading with actual student/internship details
+- Displays step-by-step business logic calculations (GPA eligibility, major matching, etc.)
+- Reveals authentication processes with user lookup and password verification
+- Provides complete transparency of what happens inside the application during tests
+
+**Enhanced Logging Locations**:
+- `CsvUserRepository.loadUsers()` - Shows CSV file reading and object creation
+- `Student.viewEligibleInternships()` - Shows eligibility calculation steps
+- `UserService.login()` - Shows authentication process details
+
+**Sample Output During Tests**:
+```
+[SYSTEM] Loading users from CSV files
+[DATA] Created student: U2310001A (Tan Wei Ling, Year 2, GPA 4.8)
+[BUSINESS] Checking eligibility: Student: Tan Wei Ling (Year 2, GPA 4.8, Major: Computer Science)
+[BUSINESS] Evaluating internship: HWE - Visible: true, Major match: true, Level eligible: true, GPA eligible: true
+[BUSINESS] Internship eligible: HWE - ADDED to eligible list
+```
+
+**Impact**: Complete transparency eliminates any possibility of confirmation bias by showing exactly what the application code does during testing.
+
+---
+
+### Testing: Removed Automated Testing Framework
+
+**Problem**: The automated testing framework added complexity and maintenance overhead while providing limited additional value over comprehensive manual testing procedures.
+
+**Solution**:
+- Removed entire automated testing framework (`TestFramework.java`, `TestRunner.java`, test suite classes)
+- Removed testing mode infrastructure from main application classes
+- Replaced with comprehensive manual testing guide in `docs/TESTING_GUIDE.md`
+- Maintained all core functionality and business logic validation
+
+**Files Removed**:
+- `test/TestFramework.java` - Testing utilities and assertions
+- `test/TestRunner.java` - Test orchestration and execution
+- `test/UserServiceTest.java` - Authentication and validation tests
+- `test/RepositoryTest.java` - Data persistence tests
+- `test/BusinessLogicTest.java` - Business rule tests
+- `run_tests.sh` - Test execution script
+
+**Code Cleanup**:
+- Removed testing mode flags and logging from `InternshipPlacementSystem.java`
+- Cleaned up testing-related code from `UserService.java`, `CsvUserRepository.java`, `Student.java`
+- Simplified application classes by removing test-specific code paths
+
+**Impact**: Cleaner codebase with comprehensive manual testing procedures that provide better understanding of system behavior and expected outcomes.
+
+---
+
+### Bug Fix: Password Changes Not Persistent
+
+**Problem**: When users changed their passwords, the changes were only updated in memory but not saved to CSV files. Password changes were lost when the application restarted.
+
+**Root Cause**: Password change methods in menu handlers called `user.changePassword()` but did not call `userService.saveUsers()` to persist the changes to disk.
+
+**Solution**:
+- Added `saveUsers()` method to `UserService` that calls `userRepository.saveUsers()`
+- Updated all password change handlers to call `userService.saveUsers()` after successful password changes:
+  - `StudentMenuHandler.changePassword()`
+  - `CompanyRepMenuHandler.changePassword()`
+  - `CareerStaffMenuHandler.changePassword()`
+
+**Files Modified**:
+- `UserService.java` - Added `saveUsers()` method
+- `StudentMenuHandler.java` - Added `userService.saveUsers()` call
+- `CompanyRepMenuHandler.java` - Added `userService.saveUsers()` call
+- `CareerStaffMenuHandler.java` - Added `userService.saveUsers()` call
+
+**Impact**: Password changes are now properly persisted to CSV files and survive application restarts.
+
+## 2025-11-20
+
 ### Bug Fix: ReportManager Not Using Repository Pattern (SOLID Violation)
 
 **Problem**: The `ReportManager` class was directly using `Database.getInternships()` and `Database.getApplications()` static methods to fetch data, violating the Dependency Inversion Principle. This caused:

@@ -10,12 +10,52 @@ An Internship Placement System, designed with Object-Oriented Principles
 - **Application Process**: Students can apply for internships, track applications, and accept offers
 - **Approval Workflows**: Career center staff approve company reps and internships
 - **Reporting**: Generate filtered reports on internship opportunities
-- **Data Persistence**: CSV-based storage for user data and applications
+- **Data Persistence**: CSV-based storage for user data and applications (organized in `/data` folder)
 - **Batch Processing**: Space-separated IDs for mass operations (apply, process applications, toggle visibility)
 - **Waitlist System**: Automatic queue management for filled internships with FIFO processing
 - **Smart Status Management**: Automatic status updates when slots become available
 - **GPA Filtering**: Minimum GPA requirements for internships with eligibility checking
 - **Statistics Dashboard**: Comprehensive stats for students and company representatives
+- **Automated Testing**: Comprehensive test suite with 13 automated tests covering authentication, data persistence, and business logic
+
+## Security & Architecture Improvements
+
+### Enhanced Security
+- **Password Hashing**: All passwords are securely hashed using SHA-256 with salt
+- **Input Validation**: Comprehensive validation for all user inputs (GPA ranges, major lists, email formats)
+- **Data Protection**: No plain text password storage in memory or files
+
+### Architecture Refinements
+- **SOLID Compliance**: Full adherence to SOLID principles with proper dependency injection
+- **Repository Pattern**: Clean data access layer with legacy code completely removed
+- **Performance Optimization**: Streamlined algorithms using Java streams for better performance
+- **Code Quality**: Clean compilation without warnings, proper error handling
+- **Code Cleanup**: Removed all unused legacy classes (`ApplicationManager`, `InternshipManager`, `Database`)
+
+## Testing
+
+### Manual Testing Guide
+The project includes comprehensive manual testing procedures covering all system functionality:
+
+- **15 Detailed Test Scenarios**: Step-by-step procedures for testing all features
+- **Expected Behavior Documentation**: Clear descriptions of correct system responses
+- **Edge Case Coverage**: Error handling and boundary condition testing
+- **Data Persistence Verification**: Tests that ensure changes survive application restarts
+- **Workflow Validation**: End-to-end testing of business processes
+
+### Testing Guide Location
+- **Complete Manual Testing Guide**: `docs/TESTING_GUIDE.md`
+- **Step-by-step Instructions**: Detailed procedures with expected outcomes
+- **Test Data Reference**: Sample credentials and data for testing
+- **Troubleshooting**: Common issues and resolution steps
+
+### Test Coverage
+- **User Authentication**: All user types and role-based access
+- **Input Validation**: Registration, internship creation, application processing
+- **Business Logic**: GPA eligibility, internship restrictions, workflow rules
+- **Data Persistence**: CSV operations and restart verification
+- **Error Handling**: Invalid inputs, boundary conditions, edge cases
+- **UI/UX**: Menu navigation, formatting, user experience
 
 ## Recent Enhancements (v2.0.0)
 
@@ -31,7 +71,7 @@ An Internship Placement System, designed with Object-Oriented Principles
 - **Pre-Display Lists**: Students see eligible internships before applying, successful/confirmed applications before accepting/withdrawing
 - **Batch Operations**: Space-separated IDs for applying to multiple internships and processing applications
 - **Clean Professional UI**: Removed all emojis, replaced with text markers ([SUCCESS], [FAILED])
-- **Password Security**: Prevents users from setting new password same as current
+- **Password Security**: Secure SHA-256 password hashing with salt; prevents reuse of current password
 
 ### Advanced Features
 
@@ -172,9 +212,8 @@ All users have default password: `password`
 
 ## Documentation
 
-- **CHANGELOG.md**: Complete version history and feature additions
-- **IMPROVEMENTS.md**: Detailed enhancement descriptions beyond base requirements
-- **TEST_VERIFICATION.md**: Validation of all 20 specification test cases
-- **DESIGN_PRINCIPLES.md**: Detailed explanation of SOLID principles and design patterns used
-- **UML.md**: All UML class and sequence diagrams
+- **docs/CHANGELOG.md**: Complete version history and feature additions
+- **docs/DESIGN_PRINCIPLES.md**: Detailed explanation of SOLID principles and design patterns used
+- **docs/UML.md**: All UML class and sequence diagrams
+- **docs/TESTING_GUIDE.md**: Comprehensive testing procedures and validation checklists
 - **README.md**: This file - system overview and usage guide

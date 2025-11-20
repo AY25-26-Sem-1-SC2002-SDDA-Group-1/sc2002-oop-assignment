@@ -1,0 +1,6 @@
+CompanyRepID,Name,CompanyName,Department,Position,Email,PasswordHash,Salt,Status
+JH,Jensen Huang,Nvidia,Engineering,CEO,jensen@nvidia.com,EaI/af7MPXcd+vU5XhqgSmwszVQ872z7yCLJYbMUdbo=,mljxZ4pWhGFDUIfvnKrvsg==,Approved
+Nachi,Nachiappan Hari,NTU,Recruitment,Manager,nachi@ntu.edu.sg,wceEn+cyYb2567ZGFbelJ0ENJn5alRO+ZzG+PhosYwA=,rLKSzYRXuQFIiA6oTDf8rA==,Approved
+Sori,Nachiappan Sori,ISRO,Recruitment,Manager,sori@isro.gov.in,xfNE9GZF4+gVPwnQ6/H7KQLmYbRU1hNs8eE+29FCsXs=,NBrwrkTtVM0bVEBDswpNYw==,Approved
+LKM,Lakshmanan,GOOGLE,CEO,recruiter,h@h.com,3WXqtaWz9UVbju7PnBxJG5RXY6TfXAXRqtEYnsvfre4=,+lFpE6Cy8SpK210XOJ4lYQ==,Approved
+testcompany001,Test Company Rep,Test Corp,IT,Manager,test@company.com,n7vyHmnPSL20H4p+BYi2x4c3MO1dqtYOu3zjdjFJ8ko=,FUO2hHAFt0qCRUs1/fSB4w==,Approved

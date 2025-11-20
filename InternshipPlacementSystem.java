@@ -3,24 +3,39 @@ import java.util.Scanner;
 public class InternshipPlacementSystem {
     private final Scanner scanner = new Scanner(System.in);
     private User currentUser = null;
-    private final IUserRepository userRepository;
-    private final IInternshipRepository internshipRepository;
-    private final IApplicationRepository applicationRepository;
-    private final UserService userService;
-    private final InternshipService internshipService;
-    private final ApplicationService applicationService;
+    private IUserRepository userRepository;
+    private IInternshipRepository internshipRepository;
+    private IApplicationRepository applicationRepository;
+    private UserService userService;
+    private InternshipService internshipService;
+    private ApplicationService applicationService;
+
+
     
     public InternshipPlacementSystem() {
         // Initialize repositories with proper dependency injection
-        // Phase 1: Create placeholder repositories
-        this.internshipRepository = new CsvInternshipRepository(null);
-        this.applicationRepository = new CsvApplicationRepository(null, internshipRepository);
-        // Phase 2: Create user repository with dependencies
-        this.userRepository = new CsvUserRepository(internshipRepository, applicationRepository);
-        // Phase 3: Now set userRepository on other repositories and load their data
-        ((CsvInternshipRepository) this.internshipRepository).setUserRepository(userRepository);
-        ((CsvApplicationRepository) this.applicationRepository).setUserRepository(userRepository);
-        // Phase 4: Initialize services
+        initializeRepositories();
+        initializeServices();
+    }
+
+    private void initializeRepositories() {
+        // Initialize repositories in dependency order to avoid circular dependencies
+
+        // 1. Create user repository first (it can load users without dependencies)
+        this.userRepository = new CsvUserRepository(null, null);
+
+        // 2. Create internship repository with user repository
+        this.internshipRepository = new CsvInternshipRepository(userRepository);
+
+        // 3. Create application repository with both dependencies
+        this.applicationRepository = new CsvApplicationRepository(userRepository, internshipRepository);
+
+        // 4. Update user repository with the other repositories (for consistency)
+        ((CsvUserRepository) this.userRepository).setInternshipRepository(internshipRepository);
+        ((CsvUserRepository) this.userRepository).setApplicationRepository(applicationRepository);
+    }
+
+    private void initializeServices() {
         this.userService = new UserService(userRepository, internshipRepository, applicationRepository);
         this.internshipService = new InternshipService(internshipRepository, userRepository);
         this.applicationService = new ApplicationService(applicationRepository, internshipRepository, userRepository);

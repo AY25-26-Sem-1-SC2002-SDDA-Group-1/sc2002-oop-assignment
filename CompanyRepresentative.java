@@ -11,13 +11,37 @@ public class CompanyRepresentative extends User {
     private boolean isRejected; // true when explicitly rejected by staff
     
     // Repositories for data access
-    private final IInternshipRepository internshipRepository;
-    private final IApplicationRepository applicationRepository;
+    private IInternshipRepository internshipRepository;
+    private IApplicationRepository applicationRepository;
 
-    public CompanyRepresentative(String userID, String name, String password, 
+    public CompanyRepresentative(String userID, String name, String password,
                                 String companyName, String department, String position, String email,
                                 IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
         super(userID, name, password);
+        this.companyName = companyName;
+        this.department = department;
+        this.position = position;
+        this.email = email;
+        this.isApproved = false;
+        this.isRejected = false;
+        this.internshipRepository = internshipRepository;
+        this.applicationRepository = applicationRepository;
+    }
+
+    // Setters for repository dependency injection
+    public void setInternshipRepository(IInternshipRepository internshipRepository) {
+        this.internshipRepository = internshipRepository;
+    }
+
+    public void setApplicationRepository(IApplicationRepository applicationRepository) {
+        this.applicationRepository = applicationRepository;
+    }
+
+    // Constructor with hash and salt for secure password storage
+    public CompanyRepresentative(String userID, String name, String passwordHash, String salt,
+                                String companyName, String department, String position, String email,
+                                IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
+        super(userID, name, passwordHash, salt);
         this.companyName = companyName;
         this.department = department;
         this.position = position;
@@ -32,7 +56,7 @@ public class CompanyRepresentative extends User {
                                    String preferredMajor, Date openingDate, Date closingDate,
                                    int maxSlots, double minGPA) {
         // Only approved (and not rejected) representatives can create internships
-        if (!isApproved || isRejected || internshipRepository == null) return false;
+        if (!isApproved || isRejected) return false;
 
         int internshipCount = 0;
         for (InternshipOpportunity opp : internshipRepository.getAllInternships()) {
@@ -63,9 +87,6 @@ public class CompanyRepresentative extends User {
     }
 
     public List<Application> viewApplications() {
-        if (applicationRepository == null) {
-            return new ArrayList<>();
-        }
         List<Application> myApplications = new ArrayList<>();
         for (Application app : applicationRepository.getAllApplications()) {
             if (app.getOpportunity().getCreatedBy().getUserID().equals(this.userID)) {
@@ -76,9 +97,6 @@ public class CompanyRepresentative extends User {
     }
 
     public List<Application> viewApplications(String opportunityID) {
-        if (applicationRepository == null) {
-            return new ArrayList<>();
-        }
         List<Application> opportunityApplications = new ArrayList<>();
         for (Application app : applicationRepository.getAllApplications()) {
             if (app.getOpportunity().getOpportunityID().equals(opportunityID) &&
@@ -90,9 +108,6 @@ public class CompanyRepresentative extends User {
     }
 
     public List<Application> getPendingApplications() {
-        if (applicationRepository == null) {
-            return new ArrayList<>();
-        }
         List<Application> pendingApplications = new ArrayList<>();
         for (Application app : applicationRepository.getAllApplications()) {
             if (app.getOpportunity().getCreatedBy().getUserID().equals(this.userID) &&
@@ -104,7 +119,6 @@ public class CompanyRepresentative extends User {
     }
 
     public boolean processApplication(String applicationID, boolean approve) {
-        if (applicationRepository == null) return false;
         Application target = null;
         for (Application app : applicationRepository.getAllApplications()) {
             if (app.getApplicationID().equals(applicationID)) {
@@ -124,7 +138,6 @@ public class CompanyRepresentative extends User {
     }
 
     public void toggleVisibility(String opportunityID, boolean visible) {
-        if (internshipRepository == null) return;
         InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
         if (opportunity != null && opportunity.getCreatedBy().getUserID().equals(this.userID)) {
             opportunity.setVisibility(visible);

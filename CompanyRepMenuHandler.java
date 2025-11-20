@@ -600,11 +600,11 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             }
 
             if (targetOpp == null) {
-                System.out.println("✗ " + internshipID + ": Invalid ID or not approved.");
+                System.out.println("[ERROR] " + internshipID + ": Invalid ID or not approved.");
                 failCount++;
             } else {
                 rep.toggleVisibility(internshipID, setVisible);
-                System.out.println("✓ " + internshipID + ": Set to " + (setVisible ? "visible" : "hidden"));
+                System.out.println("[OK] " + internshipID + ": Set to " + (setVisible ? "visible" : "hidden"));
                 successCount++;
             }
         }
@@ -683,6 +683,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         }
 
         rep.changePassword(newPassword);
+        userService.saveUsers();
         System.out.println("Password changed successfully!");
     }
 

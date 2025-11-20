@@ -9,8 +9,8 @@ public class Student extends User {
     private final double gpa;
     
     // Repositories for data access
-    private final IInternshipRepository internshipRepository;
-    private final IApplicationRepository applicationRepository;
+    private IInternshipRepository internshipRepository;
+    private IApplicationRepository applicationRepository;
 
     public Student(String userID, String name, String password, int yearOfStudy, String major, double gpa,
                    IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
@@ -22,15 +22,31 @@ public class Student extends User {
         this.applicationRepository = applicationRepository;
     }
 
+    // Setters for repository dependency injection
+    public void setInternshipRepository(IInternshipRepository internshipRepository) {
+        this.internshipRepository = internshipRepository;
+    }
+
+    public void setApplicationRepository(IApplicationRepository applicationRepository) {
+        this.applicationRepository = applicationRepository;
+    }
+
+    // Constructor with hash and salt for secure password storage
+    public Student(String userID, String name, String passwordHash, String salt, int yearOfStudy, String major, double gpa,
+                   IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
+        super(userID, name, passwordHash, salt);
+        this.yearOfStudy = yearOfStudy;
+        this.major = major;
+        this.gpa = gpa;
+        this.internshipRepository = internshipRepository;
+        this.applicationRepository = applicationRepository;
+    }
+
     public List<InternshipOpportunity> viewEligibleInternships() {
         List<InternshipOpportunity> eligible = new ArrayList<>();
-        if (internshipRepository == null) {
-            return eligible; // Return empty list if repository not available
-        }
         for (InternshipOpportunity opportunity : internshipRepository.getAllInternships()) {
             if (opportunity.isVisible() &&
                 opportunity.getPreferredMajor().equalsIgnoreCase(this.major) &&
-                isEligibleForLevel(opportunity.getLevel()) &&
                 this.gpa >= opportunity.getMinGPA()) {
                 eligible.add(opportunity);
             }
@@ -60,10 +76,7 @@ public class Student extends User {
     }
 
     public boolean applyForInternship(String opportunityID) {
-        if (internshipRepository == null || applicationRepository == null) {
-            System.out.println("[ERROR] Repositories not initialized.");
-            return false;
-        }
+        // Repositories are guaranteed to be initialized
         InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
         if (opportunity == null) {
             System.out.println("[ERROR] Internship not found.");
@@ -181,9 +194,6 @@ public class Student extends User {
 
     public List<Application> viewApplications() {
         List<Application> myApplications = new ArrayList<>();
-        if (applicationRepository == null) {
-            return myApplications; // Return empty list if repository not available
-        }
         for (Application app : applicationRepository.getAllApplications()) {
             if (app.getApplicant().getUserID().equals(this.userID)) {
                 myApplications.add(app);
@@ -194,9 +204,6 @@ public class Student extends User {
 
     public List<InternshipOpportunity> viewAllInternships() {
         List<InternshipOpportunity> allInternships = new ArrayList<>();
-        if (internshipRepository == null || applicationRepository == null) {
-            return allInternships; // Return empty list if repositories not available
-        }
         for (InternshipOpportunity opportunity : internshipRepository.getAllInternships()) {
             // Show all approved internships OR internships the student has applied to
             if (opportunity.getStatus().equals("Approved")) {
@@ -369,6 +376,22 @@ public class Student extends User {
                opportunity.getPreferredMajor().equalsIgnoreCase(this.major) &&
                isEligibleForLevel(opportunity.getLevel()) &&
                this.gpa >= opportunity.getMinGPA();
+    }
+
+    public String getIneligibilityReason(InternshipOpportunity opportunity) {
+        if (!opportunity.isVisible()) {
+            return "Internship is not visible";
+        }
+        if (!opportunity.getPreferredMajor().equalsIgnoreCase(this.major)) {
+            return "Major mismatch: required " + opportunity.getPreferredMajor() + ", your major " + this.major;
+        }
+        if (!isEligibleForLevel(opportunity.getLevel())) {
+            return "Level restriction: year 1-2 can only apply for Basic level";
+        }
+        if (this.gpa < opportunity.getMinGPA()) {
+            return "GPA requirement not met: required " + opportunity.getMinGPA() + ", your GPA " + this.gpa;
+        }
+        return "Eligible";
     }
 
     private boolean datesOverlap(Date start1, Date end1, Date start2, Date end2) {

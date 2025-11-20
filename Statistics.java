@@ -145,9 +145,9 @@ public class Statistics {
         // GPA Analysis
         System.out.println("\nGPA Analysis:");
         System.out.println("Your GPA: " + student.getGpa());
-        System.out.println("Eligible for Basic Level: " + (student.getGpa() >= 2.5 ? "Yes" : "No"));
-        System.out.println("Eligible for Intermediate Level: " + (student.getGpa() >= 3.0 ? "Yes" : "No"));
-        System.out.println("Eligible for Advanced Level: " + (student.getGpa() >= 3.5 ? "Yes" : "No"));
+        System.out.println("Eligible for Basic Level: " + ((student.getYearOfStudy() <= 2 || student.getGpa() >= 2.5) ? "Yes" : "No"));
+        System.out.println("Eligible for Intermediate Level: " + ((student.getYearOfStudy() > 2 && student.getGpa() >= 3.0) ? "Yes" : "No"));
+        System.out.println("Eligible for Advanced Level: " + ((student.getYearOfStudy() > 2 && student.getGpa() >= 3.5) ? "Yes" : "No"));
     }
 
     public void displayCompanyRepresentativeStatistics(CompanyRepresentative rep) {

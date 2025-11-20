@@ -55,6 +55,28 @@ High-level modules depend on abstractions, not concretions:
 - **Implementation**: Constructor injection in services and handlers; main class instantiates and injects dependencies.
 - **Benefits**: Reduces coupling, improves testability (easy mocking), and enables flexible configuration.
 
+## Security Design
+
+### Password Security
+- **Hashing**: SHA-256 with random salt for secure password storage
+- **No Plain Text**: Passwords never stored in plain text in memory or persistent storage
+- **Migration Support**: Backward compatibility for existing plain text passwords
+
+### Input Validation
+- **Comprehensive Checks**: All user inputs validated at service layer
+- **Business Rules**: Domain-specific validation (GPA ranges, major lists, etc.)
+- **Error Prevention**: Invalid data rejected before persistence
+
+## Testing Design
+
+### Manual Testing Approach
+- **Comprehensive Procedures**: Detailed step-by-step testing scenarios covering all system functionality
+- **Expected Behavior Documentation**: Clear validation criteria for correct system responses
+- **Edge Case Coverage**: Thorough testing of error conditions, boundary values, and invalid inputs
+- **Workflow Validation**: End-to-end verification of complete business processes
+- **Data Persistence Testing**: Verification that changes survive application restarts
+- **User Experience Validation**: Testing of UI navigation, error messages, and professional formatting
+
 ## Conclusion
 
 The refactored system demonstrates a clean, modular architecture that adheres to SOLID principles and leverages proven design patterns. This results in:

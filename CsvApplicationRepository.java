@@ -15,15 +15,13 @@ public class CsvApplicationRepository implements IApplicationRepository {
     public CsvApplicationRepository(IUserRepository userRepository, IInternshipRepository internshipRepository) {
         this.userRepository = userRepository;
         this.internshipRepository = internshipRepository;
-        if (userRepository != null && internshipRepository != null) {
-            loadApplications();
-        }
+        loadApplications();
     }
 
     // Method to set user repository after construction and load data
     public void setUserRepository(IUserRepository userRepository) {
         this.userRepository = userRepository;
-        if (userRepository != null && internshipRepository != null && applications.isEmpty()) {
+        if (internshipRepository != null && applications.isEmpty()) {
             loadApplications();
         }
     }
@@ -31,14 +29,14 @@ public class CsvApplicationRepository implements IApplicationRepository {
     // Method to set internship repository after construction
     public void setInternshipRepository(IInternshipRepository internshipRepository) {
         this.internshipRepository = internshipRepository;
-        if (userRepository != null && internshipRepository != null && applications.isEmpty()) {
+        if (userRepository != null && applications.isEmpty()) {
             loadApplications();
         }
     }
 
     private void loadApplications() {
         try {
-            File file = new File("applications.csv");
+            File file = new File("data/applications.csv");
             if (!file.exists()) {
                 return; // No file to load
             }
@@ -105,7 +103,7 @@ public class CsvApplicationRepository implements IApplicationRepository {
 
     @Override
     public void saveApplications() {
-        try (PrintWriter writer = new PrintWriter(new FileWriter("applications.csv"))) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter("data/applications.csv"))) {
             writer.println("ApplicationID,StudentID,OpportunityID,Status,AppliedDate,ManuallyWithdrawn,PreviousStatus,QueuedDate");
             for (Application app : applications) {
                 // Format date consistently for parsing

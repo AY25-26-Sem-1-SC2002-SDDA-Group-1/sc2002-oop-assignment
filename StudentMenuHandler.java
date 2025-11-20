@@ -83,7 +83,7 @@ public class StudentMenuHandler implements IMenuHandler {
 
         // Use InternshipService to get all internships
         List<InternshipOpportunity> internships = internshipService.getAllInternships().stream()
-            .filter(i -> i.isVisible() && i.getStatus().equals("Approved") && i.getPreferredMajor().equalsIgnoreCase(student.getMajor()) && student.isEligibleForInternship(i) && student.getGpa() >= i.getMinGPA())
+            .filter(i -> i.isVisible() && i.getStatus().equals("Approved") && i.getPreferredMajor().equalsIgnoreCase(student.getMajor()) && student.getGpa() >= i.getMinGPA())
             .collect(Collectors.toList());
         internships = filterManager.getFilterSettings().applyFilters(internships);
 
@@ -92,15 +92,20 @@ public class StudentMenuHandler implements IMenuHandler {
         } else {
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             for (var internship : internships) {
+                int filledSlots = applicationService.getApplicationsForInternship(internship.getOpportunityID()).stream()
+                    .mapToInt(app -> "Confirmed".equals(app.getStatus()) ? 1 : 0).sum();
                 System.out.println("ID: " + internship.getOpportunityID());
                 System.out.println("Title: " + internship.getTitle());
                 System.out.println("Company: " + internship.getCreatedBy().getCompanyName());
                 System.out.println("Level: " + internship.getLevel());
                 System.out.println("Preferred Major: " + internship.getPreferredMajor());
                 System.out.println("Min GPA: " + internship.getMinGPA());
-                System.out.println("Max Slots: " + internship.getMaxSlots());
+                System.out.println("Slots: " + filledSlots + "/" + internship.getMaxSlots());
                 System.out.println("Opening Date: " + dateFormat.format(internship.getOpeningDate()));
                 System.out.println("Closing Date: " + dateFormat.format(internship.getClosingDate()));
+                if (!student.isEligibleForInternship(internship)) {
+                    System.out.println("Ineligible: " + student.getIneligibilityReason(internship));
+                }
                 System.out.println("-------------------");
             }
         }
@@ -315,6 +320,7 @@ public class StudentMenuHandler implements IMenuHandler {
         }
 
         student.changePassword(newPassword);
+        userService.saveUsers();
         System.out.println("Password changed successfully!");
     }
 
