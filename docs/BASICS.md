@@ -92,7 +92,7 @@ o Once approved, student application status becomes "Successful"
 o Student can then accept the placement confirmation
 o Internship opportunity status becomes "Filled" only when all
 available slots are confirmed by students
-• Able to toggle the visibility of the internship opportunity to “on” or “off”.
+• Able to toggle the visibility of the internship opportunity to "on" or "off".
 This will be reflected in the internship list that will be visible to Students
 4. Career Center Staff
 • Registration is automatic by reading in from the staff list file.

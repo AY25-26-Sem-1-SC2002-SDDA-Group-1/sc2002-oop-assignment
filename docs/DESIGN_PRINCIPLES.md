@@ -50,6 +50,11 @@ High-level modules depend on abstractions, not concretions:
 - **Implementation**: `IMenuHandler` interface with concrete implementations (`StudentMenuHandler`, `CompanyRepMenuHandler`, `CareerStaffMenuHandler`).
 - **Benefits**: Allows dynamic selection of behavior based on user type, promotes extensibility for new user roles.
 
+### Singleton Pattern
+- **Purpose**: Ensures a class has only one instance and provides a global point of access to it.
+- **Implementation**: `ReportManager` uses singleton pattern for centralized report generation and statistics.
+- **Benefits**: Provides controlled access to shared resources, ensures consistency across the application.
+
 ### Dependency Injection (DI)
 - **Purpose**: Provides dependencies to classes from external sources rather than creating them internally.
 - **Implementation**: Constructor injection in services and handlers; main class instantiates and injects dependencies.

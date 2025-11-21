@@ -155,6 +155,24 @@ classDiagram
         <<static utility class>>
     }
 
+    class UIHelper {
+        -UIHelper()
+        +printWelcomeBanner(): void
+        +printMainMenu(): void
+        +printRegistrationMenu(): void
+        +printGoodbyeMessage(): void
+        +printLoginHeader(): void
+        +printSuccessMessage(message: String): void
+        +printErrorMessage(message: String): void
+        +printWarningMessage(message: String): void
+        +printSectionHeader(title: String): void
+        +printDivider(): void
+        +printStudentMenu(): void
+        +printCompanyRepMenu(): void
+        +printCareerStaffMenu(): void
+        <<static utility class>>
+    }
+
     class User {
         <<abstract>>
         -String userID
@@ -327,6 +345,20 @@ classDiagram
         +displayReport(): void
         +getOpportunities(): List~InternshipOpportunity~
         +getFilters(): Map~String,String~
+    }
+
+    class ReportManager {
+        -static ReportManager instance
+        -IInternshipRepository internshipRepository
+        -IApplicationRepository applicationRepository
+        -ReportManager()
+        +getInstance(): ReportManager
+        +initialize(internshipRepository: IInternshipRepository, applicationRepository: IApplicationRepository): void
+        +generateReport(filters: Map~String,String~): Report
+        +displayDetailedReport(report: Report): void
+        +getApplicationStatistics(): Map~String,Integer~
+        +getInternshipStatistics(): Map~String,Integer~
+        <<singleton>>
     }
 
     class FilterSettings {
@@ -620,11 +652,16 @@ classDiagram
 
     StudentMenuHandler ..> InternshipService : uses
     StudentMenuHandler ..> ApplicationService : uses
+    StudentMenuHandler ..> UIHelper : uses
     CompanyRepMenuHandler ..> InternshipService : uses
     CompanyRepMenuHandler ..> ApplicationService : uses
+    CompanyRepMenuHandler ..> UIHelper : uses
     CareerStaffMenuHandler ..> UserService : uses
     CareerStaffMenuHandler ..> InternshipService : uses
     CareerStaffMenuHandler ..> ApplicationService : uses
+    CareerStaffMenuHandler ..> UIHelper : uses
+
+    InternshipPlacementSystem ..> UIHelper : uses
 
     Student ..> IInternshipRepository : uses
     Student ..> IApplicationRepository : uses
@@ -651,6 +688,10 @@ classDiagram
 
     CareerCenterStaff ..> Report : creates
     Report ..> InternshipOpportunity : contains
+
+    ReportManager ..> IInternshipRepository : uses
+    ReportManager ..> IApplicationRepository : uses
+    CareerStaffMenuHandler ..> ReportManager : uses
 
     Statistics ..> IApplicationRepository : uses
     Statistics ..> IInternshipRepository : uses
