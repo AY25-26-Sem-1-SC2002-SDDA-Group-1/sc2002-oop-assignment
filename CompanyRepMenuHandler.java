@@ -615,12 +615,13 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             }
             
             // Show available actions
-            System.out.println("\nActions:");
-            if (pendingCount > 0) {
-                System.out.println("1. Accept/Reject Applications (enter App IDs)");
-            }
             System.out.println("0. Back");
 
+            System.out.println("\nActions:");
+            if (pendingCount > 0) {
+                System.out.println("1. Accept/Reject Applications");
+            }
+            
             System.out.print("\nChoose action: ");
             String choice = scanner.nextLine().trim();
 
