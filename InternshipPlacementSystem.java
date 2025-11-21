@@ -219,30 +219,11 @@ public class InternshipPlacementSystem {
             String password = scanner.nextLine().trim();
             System.out.print("Enter Year of Study (1-4): ");
             int yearOfStudy = Integer.parseInt(scanner.nextLine().trim());
-            System.out.println("Select Major:");
-            System.out.println("1. Computer Science");
-            System.out.println("2. Computer Engineering");
-            System.out.println("3. Data Science & AI");
-            System.out.println("4. Information Engineering & Media");
-            System.out.println("5. Biomedical Engineering");
+            MajorCatalog.displayMajors();
             System.out.print("Enter number or Major: ");
             String majorInput = scanner.nextLine().trim();
-            String major = null;
-            try {
-                int num = Integer.parseInt(majorInput);
-                switch (num) {
-                    case 1: major = "Computer Science"; break;
-                    case 2: major = "Computer Engineering"; break;
-                    case 3: major = "Data Science & AI"; break;
-                    case 4: major = "Information Engineering & Media"; break;
-                    case 5: major = "Biomedical Engineering"; break;
-                    default: major = null;
-                }
-            } catch (NumberFormatException e) {
-                if (majorInput.equals("Computer Science") || majorInput.equals("Computer Engineering") || majorInput.equals("Data Science & AI") || majorInput.equals("Information Engineering & Media") || majorInput.equals("Biomedical Engineering")) {
-                    major = majorInput;
-                }
-            }
+            String major = MajorCatalog.resolveMajor(majorInput);
+            
             if (major == null) {
                 System.out.println("Invalid major. Registration cancelled.");
                 return;

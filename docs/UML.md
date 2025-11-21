@@ -2,6 +2,71 @@
 
 This document contains the UML diagrams for the refactored Internship Placement System.
 
+---
+
+## Recent Updates (as of Nov 21, 2025)
+
+- **CompanyRepMenuHandler**: Now always passes `userType = "companyrep"` to `FilterManager` for correct menu filtering (no company sort option for company reps).
+- **Student Statistics**: `Statistics.displayStudentStatistics()` now shows eligible internships and active application count, with improved eligibility logic.
+- **MajorCatalog**: Centralized major list used for student registration, internship creation, and filtering.
+- **Error Handling**: Consistent try-catch blocks in menu handlers.
+- **SOLID Principles**: All changes maintain SRP, OCP, LSP, ISP, DIP.
+
+---
+
+## UML Class Diagram (Key Changes)
+
+```mermaid
+classDiagram
+    class MajorCatalog {
+        -List~String~ MAJORS
+        -MajorCatalog()
+        +getMajors(): List~String~
+        +displayMajors(): void
+        +resolveMajor(userInput: String): String
+        <<static utility class>>
+    }
+
+    class FilterManager {
+        -Scanner scanner
+        -FilterSettings filterSettings
+        -String userType
+        +FilterManager(scanner: Scanner)
+        +FilterManager(scanner: Scanner, userType: String)
+        +manageFilters(): void
+        +hasActiveFilters(): bool
+        +getFilterSettings(): FilterSettings
+        <<instance-based, customizable per user type>>
+    }
+
+    class Statistics {
+        -IApplicationRepository applicationRepository
+        -IInternshipRepository internshipRepository
+        -IUserRepository userRepository
+        +Statistics(appRepo: IApplicationRepository, internshipRepo: IInternshipRepository, userRepo: IUserRepository)
+        +displayStudentStatistics(student: Student): void
+        +displayCompanyRepresentativeStatistics(rep: CompanyRepresentative): void
+        +displaySystemStatistics(): void
+        <<uses repositories instead of Database static methods>>
+    }
+
+    StudentMenuHandler ..> Statistics : uses
+    CompanyRepMenuHandler ..> FilterManager : uses
+    CompanyRepMenuHandler ..> MajorCatalog : uses
+    InternshipPlacementSystem ..> MajorCatalog : uses
+```
+
+---
+
+## Integration Notes
+
+- All menu handlers now use try-catch for error handling.
+- MajorCatalog is the single source of truth for majors.
+- FilterManager userType parameter customizes menu for company reps.
+- Student statistics show eligible internships and active application count.
+
+---
+
 ## Architecture Notes
 
 **Service Layer Pattern**: UI handlers interact via services (`UserService`, `InternshipService`, `ApplicationService`). Domain objects delegate persistence to repositories. Legacy `Database` class fully removed.
@@ -23,14 +88,17 @@ This document contains the UML diagrams for the refactored Internship Placement 
 - **Validation**: Comprehensive input validation at service layer
 - **Performance**: Optimized algorithms using Java streams and efficient data structures
 - **Testing**: Comprehensive automated test suite with 13 tests covering all major functionality
+- **MajorCatalog**: Centralized major list for consistency across student registration, internship creation, and filtering
+- **FilterManager Customization**: Company representatives see filtered menu options (no "Company" sort) using userType parameter
+- **Error Handling**: Consistent try-catch blocks in all menu handlers following SOLID principles
 - **Recent Updates**: Student internship viewing now shows all matching major/GPA internships with ineligibility reasons displayed. Statistics eligibility checks now include year restrictions. Filtering integrated into internship viewing for improved UX.
 
 ## Status Model
 
- The system uses the following application and internship statuses:
+The system uses the following application and internship statuses:
 
- - Application: `Pending`, `Successful`, `Unsuccessful`, `Confirmed`, `Withdrawn`, `Withdrawal Requested`, `Withdrawal Rejected`
- - Internship: `Pending`, `Approved`, `Rejected`, `Filled`
+- Application: `Pending`, `Successful`, `Unsuccessful`, `Confirmed`, `Withdrawn`, `Withdrawal Requested`, `Withdrawal Rejected`
+- Internship: `Pending`, `Approved`, `Rejected`, `Filled`
 
 ## Security Model
 
@@ -43,14 +111,14 @@ This document contains the UML diagrams for the refactored Internship Placement 
 
 **Application Constraints**:
 
- - Students can have a maximum of 3 active applications (excludes `Withdrawn` and `Unsuccessful`).
- - Students with a `Confirmed` internship **cannot** apply to new internships.
- - Students cannot reapply to internships they manually withdrew from.
+- Students can have a maximum of 3 active applications (excludes `Withdrawn` and `Unsuccessful`).
+- Students with a `Confirmed` internship **cannot** apply to new internships.
+- Students cannot reapply to internships they manually withdrew from.
 
- **Status Transitions**:
+**Status Transitions**:
 
- - `Withdrawal Requested` → `Withdrawal Rejected`: Restores `previousStatus` (typically `Successful` or `Confirmed`).
- - `Successful` → `Confirmed`: Auto-withdraws all other applications for that student.
+- `Withdrawal Requested` → `Withdrawal Rejected`: Restores `previousStatus` (typically `Successful` or `Confirmed`).
+- `Successful` → `Confirmed`: Auto-withdraws all other applications for that student.
 
 **Input Validation Rules**:
 
@@ -156,6 +224,15 @@ classDiagram
         +printStudentMenu(): void
         +printCompanyRepMenu(): void
         +printCareerStaffMenu(): void
+        <<static utility class>>
+    }
+
+    class MajorCatalog {
+        -List~String~ MAJORS
+        -MajorCatalog()
+        +getMajors(): List~String~
+        +displayMajors(): void
+        +resolveMajor(userInput: String): String
         <<static utility class>>
     }
 
@@ -358,11 +435,13 @@ classDiagram
     class FilterManager {
         -Scanner scanner
         -FilterSettings filterSettings
+        -String userType
         +FilterManager(scanner: Scanner)
+        +FilterManager(scanner: Scanner, userType: String)
         +manageFilters(): void
         +hasActiveFilters(): bool
         +getFilterSettings(): FilterSettings
-        <<instance-based, one per menu handler>>
+        <<instance-based, customizable per user type>>
     }
 
     class Statistics {
@@ -592,6 +671,8 @@ classDiagram
     CareerStaffMenuHandler ..> UIHelper : uses
 
     InternshipPlacementSystem ..> UIHelper : uses
+    InternshipPlacementSystem ..> MajorCatalog : uses
+    CompanyRepMenuHandler ..> MajorCatalog : uses
 
     Student ..> IInternshipRepository : uses
     Student ..> IApplicationRepository : uses

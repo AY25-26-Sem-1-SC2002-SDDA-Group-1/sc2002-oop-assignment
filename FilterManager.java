@@ -4,6 +4,7 @@
 public class FilterManager {
     private final FilterSettings filterSettings;
     private final java.util.Scanner scanner;
+    private final String userType;
 
     /**
      * Constructs a FilterManager.
@@ -11,8 +12,19 @@ public class FilterManager {
      * @param scanner the scanner for input
      */
     public FilterManager(java.util.Scanner scanner) {
+        this(scanner, "default");
+    }
+
+    /**
+     * Constructs a FilterManager with user type.
+     *
+     * @param scanner the scanner for input
+     * @param userType the type of user ("companyrep", "staff", "student", "default")
+     */
+    public FilterManager(java.util.Scanner scanner, String userType) {
         this.filterSettings = new FilterSettings();
         this.scanner = scanner;
+        this.userType = userType;
     }
 
     /**
@@ -45,7 +57,14 @@ public class FilterManager {
         System.out.println("1. Set Status Filter (Pending/Approved/Rejected)");
         System.out.println("2. Set Level Filter (Basic/Intermediate/Advanced/All)");
         System.out.println("3. Set Major Filter (CS/EEE/BM/DS/IEM/All)");
-        System.out.println("4. Change Sort By (Title/Company/Level/Closing)");
+        
+        // Company reps don't need company filter since they only see their own
+        if ("companyrep".equals(userType)) {
+            System.out.println("4. Change Sort By (Title/Level/Closing)");
+        } else {
+            System.out.println("4. Change Sort By (Title/Company/Level/Closing)");
+        }
+        
         System.out.println("5. Clear All Filters");
         System.out.println("6. Back to Main Menu");
         System.out.print("\nEnter your choice: ");
@@ -69,11 +88,20 @@ public class FilterManager {
                 UIHelper.printSuccessMessage("Major filter updated!");
                 break;
             case "4":
-                System.out.print("Sort by (Title/Company/Level/Closing): ");
+                if ("companyrep".equals(userType)) {
+                    System.out.print("Sort by (Title/Level/Closing): ");
+                } else {
+                    System.out.print("Sort by (Title/Company/Level/Closing): ");
+                }
                 String sortBy = scanner.nextLine().trim();
                 if (!sortBy.isEmpty()) {
-                    filterSettings.setSortBy(sortBy);
-                    UIHelper.printSuccessMessage("Sort preference updated!");
+                    // Prevent company reps from sorting by company
+                    if ("companyrep".equals(userType) && sortBy.equalsIgnoreCase("Company")) {
+                        UIHelper.printErrorMessage("Cannot sort by company - you only see your own internships.");
+                    } else {
+                        filterSettings.setSortBy(sortBy);
+                        UIHelper.printSuccessMessage("Sort preference updated!");
+                    }
                 }
                 break;
             case "5":

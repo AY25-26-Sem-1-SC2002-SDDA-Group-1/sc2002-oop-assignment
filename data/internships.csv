@@ -1,3 +1,4 @@
 InternshipID,Title,Description,Level,PreferredMajor,OpeningDate,ClosingDate,Status,MaxSlots,Visibility,MinGPA,CreatedBy
 INT001,SWE,SW,Basic,Computer Science,20/11/2025,01/01/2026,Approved,2,false,3.5,JH
-INT002,HWE,SW,Basic,Computer Science,20/11/2025,01/01/2026,Approved,2,true,3.5,JH
+INT002,HWE,SW,Basic,Computer Science,20/11/2025,01/01/2026,Approved,2,false,3.5,JH
+INT003,MLE,Machine learning,Intermediate,Computer Science,22/11/2025,31/12/2025,Pending,2,false,4.0,JH
