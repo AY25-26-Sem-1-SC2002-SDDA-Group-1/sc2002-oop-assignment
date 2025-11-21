@@ -27,12 +27,10 @@ This document contains the UML diagrams for the refactored Internship Placement 
 
 ## Status Model
 
-The system uses the following application and internship statuses:
+ The system uses the following application and internship statuses:
 
-- Application: `Pending`, `Successful`, `Unsuccessful`, `Confirmed`, `Withdrawn`, `Withdrawal Requested`, `Waitlisted`, `Rejected by Student`, `Withdrawal Rejected`
-- Internship: `Pending`, `Approved`, `Rejected`, `Filled`
-
-**Note**: `Queued` status is deprecated and replaced by `Waitlisted` in v3.0.0
+ - Application: `Pending`, `Successful`, `Unsuccessful`, `Confirmed`, `Withdrawn`, `Withdrawal Requested`, `Withdrawal Rejected`
+ - Internship: `Pending`, `Approved`, `Rejected`, `Filled`
 
 ## Security Model
 
@@ -45,26 +43,14 @@ The system uses the following application and internship statuses:
 
 **Application Constraints**:
 
-- Students can have a maximum of 3 active applications (excludes `Withdrawn` and `Unsuccessful`).
-- Students with a `Confirmed` internship **cannot** apply to new internships.
-- Students cannot reapply to internships they manually withdrew from.
-- When an internship is full (confirmed ≥ `maxSlots`), new applications are assigned `Queued` status.
+ - Students can have a maximum of 3 active applications (excludes `Withdrawn` and `Unsuccessful`).
+ - Students with a `Confirmed` internship **cannot** apply to new internships.
+ - Students cannot reapply to internships they manually withdrew from.
 
-**Waitlist Processing (v3.0.0)**:
+ **Status Transitions**:
 
-- Company representatives can batch approve applications with max slot enforcement.
-- Applications exceeding available slots are automatically added to waitlist with priority ordering.
-- When a `Confirmed` student withdraws (approved by staff), the system automatically promotes the next waitlisted application.
-- Company representatives can manually reorder the waitlist at any time based on student profiles.
-- Company representatives can manually promote specific applications from the waitlist.
-- Waitlist is managed by `WaitlistManager` service following SOLID principles.
-- Auto-promotion displays `[AUTO-PROMOTION]` message during withdrawal approval.
-
-**Status Transitions**:
-
-- `Withdrawal Requested` → `Withdrawal Rejected`: Restores `previousStatus` (typically `Successful` or `Confirmed`).
-- `Successful` → `Confirmed`: Auto-withdraws all other applications for that student.
-- `Queued` → `Confirmed`: Occurs automatically when a confirmed slot becomes available (via queue processing).
+ - `Withdrawal Requested` → `Withdrawal Rejected`: Restores `previousStatus` (typically `Successful` or `Confirmed`).
+ - `Successful` → `Confirmed`: Auto-withdraws all other applications for that student.
 
 **Input Validation Rules**:
 
@@ -200,82 +186,73 @@ classDiagram
         +asCareerCenterStaff(): CareerCenterStaff
     }
 
-    class Student {
-        -int yearOfStudy
-        -String major
-        -double gpa
-        -IInternshipRepository internshipRepository
-        -IApplicationRepository applicationRepository
-        +viewEligibleInternships(): List~InternshipOpportunity~
-        +applyForInternship(opportunityID: String): bool
-        +viewApplications(): List~Application~
-        +acceptInternship(applicationID: String): void
-        +rejectInternship(applicationID: String): void
-        +requestWithdrawal(applicationID: String): void
-        +isEligibleForInternship(opportunity: InternshipOpportunity): bool
-        +getIneligibilityReason(opportunity: InternshipOpportunity): String
-        +getYearOfStudy(): int
-        +getMajor(): String
-        +getGpa(): double
-        +createMenuHandler(internshipService, applicationService, userService, scanner): IMenuHandler
-        +isStudent(): bool
-        +asStudent(): Student
-        -datesOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean
-    }
+     class Student {
+         -int yearOfStudy
+         -String major
+         -double gpa
+         -IInternshipRepository internshipRepository
+         -IApplicationRepository applicationRepository
+         +viewEligibleInternships(): List~InternshipOpportunity~
+         +applyForInternship(opportunityID: String): bool
+         +viewApplications(): List~Application~
+         +acceptInternship(applicationID: String): void
+         +requestWithdrawal(applicationID: String): void
+         +isEligibleForInternship(opportunity: InternshipOpportunity): bool
+         +getIneligibilityReason(opportunity: InternshipOpportunity): String
+         +getYearOfStudy(): int
+         +getMajor(): String
+         +getGpa(): double
+         +createMenuHandler(internshipService, applicationService, userService, scanner): IMenuHandler
+         +isStudent(): bool
+         +asStudent(): Student
+         -datesOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean
+     }
 
-    class CompanyRepresentative {
-        -String companyName
-        -String department
-        -String position
-        -boolean isApproved
-        -String email
-        -IInternshipRepository internshipRepository
-        -IApplicationRepository applicationRepository
-        -IWaitlistManager waitlistManager
-        -boolean isRejected
-        +createInternship(title: String, description: String, level: String, preferredMajor: String, openingDate: Date, closingDate: Date, maxSlots: int, minGPA: double): bool
-        +viewApplications(): List~Application~
-        +viewApplications(opportunityID: String): List~Application~
-        +processApplication(applicationID: String, approve: boolean): bool
-        +batchApproveApplications(applicationIds: List~String~): int
-        +getPendingApplications(): List~Application~
-        +toggleVisibility(opportunityID: String, visible: bool): void
-        +viewWaitlist(opportunityID: String): List~WaitlistEntry~
-        +reorderWaitlist(opportunityID: String, applicationID: String, newPosition: int): bool
-        +promoteFromWaitlist(opportunityID: String, applicationID: String): bool
-        +setWaitlistManager(manager: IWaitlistManager): void
-        +getCompanyName(): String
-        +getDepartment(): String
-        +getPosition(): String
-        +isApproved(): bool
-        +isRejected(): bool
-        +setRejected(rejected: bool): void
-        +setApproved(approved: bool): void
-        +getEmail(): String
-        +createMenuHandler(internshipService, applicationService, userService, scanner): IMenuHandler
-        +isCompanyRepresentative(): bool
-        +asCompanyRepresentative(): CompanyRepresentative
-    }
+     class CompanyRepresentative {
+         -String companyName
+         -String department
+         -String position
+         -boolean isApproved
+         -String email
+         -IInternshipRepository internshipRepository
+         -IApplicationRepository applicationRepository
+         -boolean isRejected
+         +createInternship(title: String, description: String, level: String, preferredMajor: String, openingDate: Date, closingDate: Date, maxSlots: int, minGPA: double): bool
+         +viewApplications(): List~Application~
+         +viewApplications(opportunityID: String): List~Application~
+         +processApplication(applicationID: String, approve: boolean): bool
+         +getPendingApplications(): List~Application~
+         +toggleVisibility(opportunityID: String, visible: bool): void
+         +getCompanyName(): String
+         +getDepartment(): String
+         +getPosition(): String
+         +isApproved(): bool
+         +isRejected(): bool
+         +setRejected(rejected: bool): void
+         +setApproved(approved: bool): void
+         +getEmail(): String
+         +createMenuHandler(internshipService, applicationService, userService, scanner): IMenuHandler
+         +isCompanyRepresentative(): bool
+         +asCompanyRepresentative(): CompanyRepresentative
+     }
 
-    class CareerCenterStaff {
-        -String staffDepartment
-        -IUserRepository userRepository
-        -IInternshipRepository internshipRepository
-        -IApplicationRepository applicationRepository
-        -IWaitlistManager waitlistManager
-        +processCompanyRep(repID: String, approve: boolean): void
-        +processInternship(opportunityID: String, approve: boolean): void
-        +processWithdrawal(applicationID: String, approve: boolean): void
-        +setWaitlistManager(manager: IWaitlistManager): void
-        +getPendingCompanyReps(): List~CompanyRepresentative~
-        +getPendingInternships(): List~InternshipOpportunity~
-        +getWithdrawalRequests(): List~Application~
-        +generateReports(filters: Map~String,String~): Report
-        +getStaffDepartment(): String
-        +createMenuHandler(internshipService, applicationService, userService, scanner): IMenuHandler
-        +isCareerCenterStaff(): bool
-        +asCareerCenterStaff(): CareerCenterStaff
-    }
+     class CareerCenterStaff {
+         -String staffDepartment
+         -IUserRepository userRepository
+         -IInternshipRepository internshipRepository
+         -IApplicationRepository applicationRepository
+         +processCompanyRep(repID: String, approve: boolean): bool
+         +processInternship(opportunityID: String, approve: boolean): bool
+         +processWithdrawal(applicationID: String, approve: boolean): bool
+         +getPendingCompanyReps(): List~CompanyRepresentative~
+         +getPendingInternships(): List~InternshipOpportunity~
+         +getWithdrawalRequests(): List~Application~
+         +generateReports(filters: Map~String,String~): Report
+         +getStaffDepartment(): String
+         +createMenuHandler(internshipService, applicationService, userService, scanner): IMenuHandler
+         +isCareerCenterStaff(): bool
+         +asCareerCenterStaff(): CareerCenterStaff
+     }
 
     class InternshipOpportunity {
         -String opportunityID
@@ -489,67 +466,25 @@ classDiagram
         +getInternshipRepository(): IInternshipRepository
     }
 
-    class IWaitlistManager {
-        <<interface>>
-        +addToWaitlist(opportunityId: String, application: Application): bool
-        +removeFromWaitlist(opportunityId: String, applicationId: String): bool
-        +getWaitlist(opportunityId: String): List~WaitlistEntry~
-        +reorderWaitlist(opportunityId: String, applicationId: String, newPosition: int): bool
-        +promoteNextFromWaitlist(opportunityId: String): Application
-        +getWaitlistPosition(opportunityId: String, applicationId: String): int
-        +getWaitlistSize(opportunityId: String): int
-        +clearWaitlist(opportunityId: String): void
-    }
 
-    class WaitlistEntry {
-        -Application application
-        -int priority
-        -Date addedToWaitlistDate
-        +WaitlistEntry(application: Application, priority: int)
-        +WaitlistEntry(application: Application, priority: int, addedDate: Date)
-        +getApplication(): Application
-        +getPriority(): int
-        +setPriority(priority: int): void
-        +getAddedToWaitlistDate(): Date
-        +getStudent(): Student
-        +getApplicationId(): String
-        +getStudentProfileSummary(): String
-    }
 
-    class WaitlistManager {
-        -Map~String,List~WaitlistEntry~~ waitlists
-        -IApplicationRepository applicationRepository
-        -IInternshipRepository internshipRepository
-        +WaitlistManager(appRepo: IApplicationRepository, internshipRepo: IInternshipRepository)
-        +addToWaitlist(opportunityId: String, application: Application): bool
-        +removeFromWaitlist(opportunityId: String, applicationId: String): bool
-        +getWaitlist(opportunityId: String): List~WaitlistEntry~
-        +reorderWaitlist(opportunityId: String, applicationId: String, newPosition: int): bool
-        +promoteNextFromWaitlist(opportunityId: String): Application
-        +getWaitlistPosition(opportunityId: String, applicationId: String): int
-        +getWaitlistSize(opportunityId: String): int
-        +clearWaitlist(opportunityId: String): void
-        -loadWaitlistsFromApplications(): void
-        -reindexPriorities(waitlist: List~WaitlistEntry~): void
-    }
-
-    class ApplicationService {
-        -IApplicationRepository applicationRepository
-        -IInternshipRepository internshipRepository
-        -IUserRepository userRepository
-        -IWaitlistManager waitlistManager
-        +setWaitlistManager(manager: IWaitlistManager): void
-        +applyForInternship(studentId: String, opportunityId: String): bool
-        +approveApplication(applicationId: String): void
-        +rejectApplication(applicationId: String): void
-        +acceptInternship(applicationId: String): void
-        +requestWithdrawal(applicationId: String): void
-        +approveWithdrawal(applicationId: String): void
-        +getApplicationsForStudent(studentId: String): List~Application~
-        +getApplicationsForCompanyRep(repId: String): List~Application~
-        +getApplicationsForInternship(opportunityId: String): List~Application~
-        +getApplicationRepository(): IApplicationRepository
-    }
+     class ApplicationService {
+         -IApplicationRepository applicationRepository
+         -IInternshipRepository internshipRepository
+         -IUserRepository userRepository
+         +applyForInternship(studentId: String, opportunityId: String): bool
+         +approveApplication(applicationId: String): void
+         +rejectApplication(applicationId: String): void
+         +acceptInternship(applicationId: String): void
+         +requestWithdrawal(applicationId: String): void
+         +approveWithdrawal(applicationId: String): void
+         +getAllApplicationsForStudent(studentId: String): List~Application~
+         +getAllApplicationsForInternship(opportunityId: String): List~Application~
+         +getApplicationsForStudent(studentId: String): List~Application~
+         +getApplicationsForCompanyRep(repId: String): List~Application~
+         +getApplicationsForInternship(opportunityId: String): List~Application~
+         +getApplicationRepository(): IApplicationRepository
+     }
 
     class IMenuHandler {
         +showMenu(): void
@@ -585,27 +520,26 @@ classDiagram
         +showMenu(): void
     }
 
-    class InternshipPlacementSystem {
-        -Scanner scanner
-        -User currentUser
-        -IUserRepository userRepository
-        -IInternshipRepository internshipRepository
-        -IApplicationRepository applicationRepository
-        -IWaitlistManager waitlistManager
-        -UserService userService
-        -InternshipService internshipService
-        -ApplicationService applicationService
-        +main(args: String[]): void
-        -run(): void
-        -initializeServices(): void
-        -showMainMenu(): void
-        -showRegistrationMenu(): void
-        -login(): void
-        -registerStudent(): void
-        -registerStaff(): void
-        -registerCompanyRep(): void
-        -showUserMenu(): void
-    }
+     class InternshipPlacementSystem {
+         -Scanner scanner
+         -User currentUser
+         -IUserRepository userRepository
+         -IInternshipRepository internshipRepository
+         -IApplicationRepository applicationRepository
+         -UserService userService
+         -InternshipService internshipService
+         -ApplicationService applicationService
+         +main(args: String[]): void
+         -run(): void
+         -initializeServices(): void
+         -showMainMenu(): void
+         -showRegistrationMenu(): void
+         -login(): void
+         -registerStudent(): void
+         -registerStaff(): void
+         -registerCompanyRep(): void
+         -showUserMenu(): void
+     }
 
     User <|-- Student
     User <|-- CompanyRepresentative
@@ -613,17 +547,13 @@ classDiagram
 
     User ..> PasswordUtil : uses
 
-    IUserRepository <|.. CsvUserRepository
-    IInternshipRepository <|.. CsvInternshipRepository
-    IApplicationRepository <|.. CsvApplicationRepository
-    IWaitlistManager <|.. WaitlistManager
+     IUserRepository <|.. CsvUserRepository
+     IInternshipRepository <|.. CsvInternshipRepository
+     IApplicationRepository <|.. CsvApplicationRepository
 
-    IMenuHandler <|.. StudentMenuHandler
-    IMenuHandler <|.. CompanyRepMenuHandler
-    IMenuHandler <|.. CareerStaffMenuHandler
-
-    WaitlistEntry "*" --> "1" Application : contains >
-    WaitlistManager "1" --> "*" WaitlistEntry : manages >
+     IMenuHandler <|.. StudentMenuHandler
+     IMenuHandler <|.. CompanyRepMenuHandler
+     IMenuHandler <|.. CareerStaffMenuHandler
 
     CompanyRepresentative "1" --> "0..5" InternshipOpportunity : creates >
     Student "1" --> "0..3" Application : applies >
@@ -671,20 +601,13 @@ classDiagram
     CareerCenterStaff ..> IInternshipRepository : uses
     CareerCenterStaff ..> IApplicationRepository : uses
 
-    InternshipPlacementSystem ..> IUserRepository : injects
-    InternshipPlacementSystem ..> IInternshipRepository : injects
-    InternshipPlacementSystem ..> IApplicationRepository : injects
-    InternshipPlacementSystem ..> IWaitlistManager : injects
-    InternshipPlacementSystem ..> UserService : injects
-    InternshipPlacementSystem ..> InternshipService : injects
-    InternshipPlacementSystem ..> ApplicationService : injects
-    InternshipPlacementSystem ..> IMenuHandler : uses
-
-    WaitlistManager ..> IApplicationRepository : uses
-    WaitlistManager ..> IInternshipRepository : uses
-    ApplicationService ..> IWaitlistManager : uses
-    CompanyRepresentative ..> IWaitlistManager : uses
-    CareerCenterStaff ..> IWaitlistManager : uses
+     InternshipPlacementSystem ..> IUserRepository : injects
+     InternshipPlacementSystem ..> IInternshipRepository : injects
+     InternshipPlacementSystem ..> IApplicationRepository : injects
+     InternshipPlacementSystem ..> UserService : injects
+     InternshipPlacementSystem ..> InternshipService : injects
+     InternshipPlacementSystem ..> ApplicationService : injects
+     InternshipPlacementSystem ..> IMenuHandler : uses
 
     CareerCenterStaff ..> Report : creates
     Report ..> InternshipOpportunity : contains
