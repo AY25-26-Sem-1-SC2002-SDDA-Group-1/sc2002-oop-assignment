@@ -2,6 +2,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Represents a student user who can apply for internships.
+ */
 public class Student extends User {
     private final int yearOfStudy;
     private final String major;
@@ -11,6 +14,18 @@ public class Student extends User {
     private IInternshipRepository internshipRepository;
     private IApplicationRepository applicationRepository;
 
+    /**
+     * Constructs a Student.
+     *
+     * @param userID the user ID
+     * @param name the name
+     * @param password the password
+     * @param yearOfStudy the year of study
+     * @param major the major
+     * @param gpa the GPA
+     * @param internshipRepository the internship repository
+     * @param applicationRepository the application repository
+     */
     public Student(String userID, String name, String password, int yearOfStudy, String major, double gpa,
                    IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
         super(userID, name, password);
@@ -21,16 +36,37 @@ public class Student extends User {
         this.applicationRepository = applicationRepository;
     }
 
-    // Setters for repository dependency injection
+    /**
+     * Sets the internship repository.
+     *
+     * @param internshipRepository the internship repository
+     */
     public void setInternshipRepository(IInternshipRepository internshipRepository) {
         this.internshipRepository = internshipRepository;
     }
 
+    /**
+     * Sets the application repository.
+     *
+     * @param applicationRepository the application repository
+     */
     public void setApplicationRepository(IApplicationRepository applicationRepository) {
         this.applicationRepository = applicationRepository;
     }
 
-    // Constructor with hash and salt for secure password storage
+    /**
+     * Constructs a Student with hashed password.
+     *
+     * @param userID the user ID
+     * @param name the name
+     * @param passwordHash the hashed password
+     * @param salt the salt
+     * @param yearOfStudy the year of study
+     * @param major the major
+     * @param gpa the GPA
+     * @param internshipRepository the internship repository
+     * @param applicationRepository the application repository
+     */
     public Student(String userID, String name, String passwordHash, String salt, int yearOfStudy, String major, double gpa,
                    IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
         super(userID, name, passwordHash, salt);
@@ -41,6 +77,11 @@ public class Student extends User {
         this.applicationRepository = applicationRepository;
     }
 
+    /**
+     * Gets the list of internships the student is eligible for.
+     *
+     * @return list of eligible internships
+     */
     public List<InternshipOpportunity> viewEligibleInternships() {
         List<InternshipOpportunity> eligible = new ArrayList<>();
         for (InternshipOpportunity opportunity : internshipRepository.getAllInternships()) {
@@ -52,7 +93,13 @@ public class Student extends User {
         }
         return eligible;
     }
-    
+
+    /**
+     * Checks if the student is eligible for a given level.
+     *
+     * @param level the level
+     * @return true if eligible
+     */
     private boolean isEligibleForLevel(String level) {
         // Year 1 and 2 students can only apply for Basic level
         if (yearOfStudy <= 2) {
@@ -61,7 +108,12 @@ public class Student extends User {
         // Year 3 and above can apply for any level
         return true;
     }
-    
+
+    /**
+     * Gets the count of active applications.
+     *
+     * @return the count
+     */
     private int getActiveApplicationCount() {
         int count = 0;
         for (Application app : applicationRepository.getAllApplications()) {
@@ -74,6 +126,12 @@ public class Student extends User {
         return count;
     }
 
+    /**
+     * Applies for an internship.
+     *
+     * @param opportunityID the opportunity ID
+     * @return true if application was successful
+     */
     public boolean applyForInternship(String opportunityID) {
         // Repositories are guaranteed to be initialized
         InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
@@ -162,7 +220,7 @@ public class Student extends User {
             }
         }
 
-        String initialStatus = (confirmedCount >= opportunity.getMaxSlots()) ? "Queued" : "Pending";
+        String initialStatus = "Pending";
 
         Application application = new Application(
             applicationRepository.generateApplicationId(),
@@ -173,24 +231,15 @@ public class Student extends User {
 
         applicationRepository.addApplication(application);
 
-        if ("Queued".equals(initialStatus)) {
-            // Compute waitlist position (queued applications count for this internship)
-            int queuedCount = 0;
-            for (Application app : applicationRepository.getAllApplications()) {
-                if (app.getOpportunity().getOpportunityID().equals(opportunity.getOpportunityID()) &&
-                    app.getStatus().equals("Queued")) {
-                    queuedCount++;
-                }
-            }
-            System.out.println("This internship is currently full (" + confirmedCount + "/" + opportunity.getMaxSlots() + " slots filled).");
-            System.out.println("You have been added to the waitlist. Current waitlist size: " + queuedCount + ".");
-            System.out.println("We will automatically confirm you if a slot becomes available.");
-        } else {
-            System.out.println("Application submitted successfully.");
-        }
+        System.out.println("Application submitted successfully.");
         return true;
     }
 
+    /**
+     * Gets all applications submitted by this student.
+     *
+     * @return list of applications
+     */
     public List<Application> viewApplications() {
         List<Application> myApplications = new ArrayList<>();
         for (Application app : applicationRepository.getAllApplications()) {
@@ -201,6 +250,11 @@ public class Student extends User {
         return myApplications;
     }
 
+    /**
+     * Gets all internships visible to the student.
+     *
+     * @return list of internships
+     */
     public List<InternshipOpportunity> viewAllInternships() {
         List<InternshipOpportunity> allInternships = new ArrayList<>();
         for (InternshipOpportunity opportunity : internshipRepository.getAllInternships()) {
@@ -223,6 +277,11 @@ public class Student extends User {
         return allInternships;
     }
 
+    /**
+     * Accepts an internship offer.
+     *
+     * @param applicationID the application ID
+     */
     public void acceptInternship(String applicationID) {
         Application application = applicationRepository.getApplicationById(applicationID);
         if (application == null) {
@@ -269,8 +328,7 @@ public class Student extends User {
         if (confirmedCount >= opportunity.getMaxSlots()) {
             System.out.println("[BLOCKED] Cannot accept this internship.");
             System.out.println("Reason: The internship '" + opportunity.getTitle() + "' is already full (" + confirmedCount + "/" + opportunity.getMaxSlots() + " slots filled).");
-            System.out.println("Your application remains in 'Successful' status. You are on the waitlist.");
-            System.out.println("You will be automatically notified and promoted if a slot becomes available.");
+            System.out.println("Your application remains in 'Successful' status.");
             return;
         }
         
@@ -313,6 +371,11 @@ public class Student extends User {
         }
     }
 
+    /**
+     * Requests withdrawal from an application.
+     *
+     * @param applicationID the application ID
+     */
     public void requestWithdrawal(String applicationID) {
         Application application = applicationRepository.getApplicationById(applicationID);
         if (application == null) {
@@ -327,7 +390,7 @@ public class Student extends User {
         
         String currentStatus = application.getStatus();
         // Allow withdrawal for Pending, Successful, or Confirmed applications
-        if (!currentStatus.equals("Pending") && 
+        if (!currentStatus.equals("Pending") &&
             !currentStatus.equals("Successful") && 
             !currentStatus.equals("Confirmed")) {
             System.out.println("Cannot request withdrawal for application with status: " + currentStatus);
@@ -343,18 +406,39 @@ public class Student extends User {
         }
     }
 
+    /**
+     * Gets the year of study.
+     *
+     * @return the year of study
+     */
     public int getYearOfStudy() {
         return yearOfStudy;
     }
 
+    /**
+     * Gets the major.
+     *
+     * @return the major
+     */
     public String getMajor() {
         return major;
     }
 
+    /**
+     * Gets the GPA.
+     *
+     * @return the GPA
+     */
     public double getGpa() {
         return gpa;
     }
 
+    /**
+     * Checks if the student is eligible for the given internship.
+     *
+     * @param opportunity the internship opportunity
+     * @return true if eligible
+     */
     public boolean isEligibleForInternship(InternshipOpportunity opportunity) {
         return opportunity.isVisible() &&
                opportunity.getPreferredMajor().equalsIgnoreCase(this.major) &&
@@ -362,6 +446,12 @@ public class Student extends User {
                this.gpa >= opportunity.getMinGPA();
     }
 
+    /**
+     * Gets the reason why the student is ineligible for the internship.
+     *
+     * @param opportunity the internship opportunity
+     * @return the ineligibility reason or null if eligible
+     */
     public String getIneligibilityReason(InternshipOpportunity opportunity) {
         if (!opportunity.isVisible()) {
             return "Internship is not visible";

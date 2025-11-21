@@ -1,6 +1,11 @@
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+/**
+ * Class for calculating and displaying various statistics related to internships and applications.
+ */
 public class Statistics {
     private Map<String, Integer> applicationCounts;
     private Map<String, Integer> acceptanceCounts;
@@ -13,7 +18,14 @@ public class Statistics {
     private final IInternshipRepository internshipRepository;
     private final IUserRepository userRepository;
 
-    public Statistics(IApplicationRepository applicationRepository, 
+    /**
+     * Constructs a Statistics instance.
+     *
+     * @param applicationRepository the application repository
+     * @param internshipRepository the internship repository
+     * @param userRepository the user repository
+     */
+    public Statistics(IApplicationRepository applicationRepository,
                      IInternshipRepository internshipRepository,
                      IUserRepository userRepository) {
         this.applicationCounts = new HashMap<>();
@@ -28,21 +40,42 @@ public class Statistics {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Increments the application count for a category.
+     *
+     * @param category the category
+     */
     public void incrementApplicationCount(String category) {
         applicationCounts.put(category, applicationCounts.getOrDefault(category, 0) + 1);
         totalApplications++;
     }
 
+    /**
+     * Increments the acceptance count for a category.
+     *
+     * @param category the category
+     */
     public void incrementAcceptanceCount(String category) {
         acceptanceCounts.put(category, acceptanceCounts.getOrDefault(category, 0) + 1);
         totalAcceptances++;
     }
 
+    /**
+     * Increments the rejection count for a category.
+     *
+     * @param category the category
+     */
     public void incrementRejectionCount(String category) {
         rejectionCounts.put(category, rejectionCounts.getOrDefault(category, 0) + 1);
         totalRejections++;
     }
 
+    /**
+     * Updates the average GPA for a level.
+     *
+     * @param level the level
+     * @param gpa the GPA
+     */
     public void updateAverageGPA(String level, double gpa) {
         if (!averageGPAByLevel.containsKey(level)) {
             averageGPAByLevel.put(level, gpa);
@@ -52,104 +85,11 @@ public class Statistics {
         }
     }
 
-    public void displayStudentStatistics(Student student) {
-        System.out.println("\n=== YOUR STATISTICS ===");
-        System.out.println("Student ID: " + student.getUserID());
-        System.out.println("Name: " + student.getName());
-        System.out.println("Major: " + student.getMajor());
-        System.out.println("Year of Study: " + student.getYearOfStudy());
-        System.out.println("GPA: " + student.getGpa());
-
-        int appliedCount = 0;
-        int acceptedCount = 0;
-        int rejectedCount = 0;
-        int confirmedCount = 0;
-        int pendingCount = 0;
-        int withdrawnCount = 0;
-        int queuedCount = 0;
-
-        // Track applications by level
-        int basicApplied = 0, intermediateApplied = 0, advancedApplied = 0;
-        int basicAccepted = 0, intermediateAccepted = 0, advancedAccepted = 0;
-
-        for (Application app : applicationRepository.getAllApplications()) {
-            if (app.getApplicant().getUserID().equals(student.getUserID())) {
-                appliedCount++;
-                String level = app.getOpportunity().getLevel();
-
-                switch (level) {
-                    case "Basic":
-                        basicApplied++;
-                        break;
-                    case "Intermediate":
-                        intermediateApplied++;
-                        break;
-                    case "Advanced":
-                        advancedApplied++;
-                        break;
-                }
-
-                switch (app.getStatus()) {
-                    case "Successful":
-                        acceptedCount++;
-                        switch (level) {
-                            case "Basic": basicAccepted++; break;
-                            case "Intermediate": intermediateAccepted++; break;
-                            case "Advanced": advancedAccepted++; break;
-                        }
-                        break;
-                    case "Confirmed":
-                        acceptedCount++;
-                        confirmedCount++;
-                        switch (level) {
-                            case "Basic": basicAccepted++; break;
-                            case "Intermediate": intermediateAccepted++; break;
-                            case "Advanced": advancedAccepted++; break;
-                        }
-                        break;
-                    case "Unsuccessful":
-                        rejectedCount++;
-                        break;
-                    case "Pending":
-                        pendingCount++;
-                        break;
-                    case "Withdrawn":
-                        withdrawnCount++;
-                        break;
-                    case "Queued":
-                        queuedCount++;
-                        break;
-                }
-            }
-        }
-
-        System.out.println("\nApplication Summary:");
-        System.out.println("Total Applications: " + appliedCount);
-        System.out.println("  - Pending: " + pendingCount);
-        System.out.println("  - Successful: " + (acceptedCount - confirmedCount));
-        System.out.println("  - Confirmed: " + confirmedCount);
-        System.out.println("  - Rejected: " + rejectedCount);
-        System.out.println("  - Withdrawn: " + withdrawnCount);
-        System.out.println("  - Queued: " + queuedCount);
-
-        System.out.println("\nApplications by Level:");
-        System.out.println("Basic Level: " + basicApplied + " applied, " + basicAccepted + " accepted");
-        System.out.println("Intermediate Level: " + intermediateApplied + " applied, " + intermediateAccepted + " accepted");
-        System.out.println("Advanced Level: " + advancedApplied + " applied, " + advancedAccepted + " accepted");
-
-        if (appliedCount > 0) {
-            double acceptanceRate = (double) acceptedCount / appliedCount * 100;
-            System.out.println("\nOverall Acceptance Rate: " + String.format("%.1f%%", acceptanceRate));
-        }
-
-        // GPA Analysis
-        System.out.println("\nGPA Analysis:");
-        System.out.println("Your GPA: " + student.getGpa());
-        System.out.println("Eligible for Basic Level: " + ((student.getYearOfStudy() <= 2 || student.getGpa() >= 2.5) ? "Yes" : "No"));
-        System.out.println("Eligible for Intermediate Level: " + ((student.getYearOfStudy() > 2 && student.getGpa() >= 3.0) ? "Yes" : "No"));
-        System.out.println("Eligible for Advanced Level: " + ((student.getYearOfStudy() > 2 && student.getGpa() >= 3.5) ? "Yes" : "No"));
-    }
-
+    /**
+     * Displays statistics for a company representative.
+     *
+     * @param rep the company representative
+     */
     public void displayCompanyRepresentativeStatistics(CompanyRepresentative rep) {
         System.out.println("\n=== COMPANY STATISTICS ===");
         System.out.println("Representative ID: " + rep.getUserID());
@@ -206,14 +146,14 @@ public class Statistics {
                             case "Pending":
                                 pendingApplications++;
                                 break;
-                            case "Successful":
+                    case "Accepted":
                             case "Confirmed":
                                 totalAccepted++;
                                 if (app.getStatus().equals("Confirmed")) {
                                     confirmedPlacements++;
                                 }
                                 break;
-                            case "Unsuccessful":
+                    case "Rejected":
                                 totalRejected++;
                                 break;
                         }
@@ -259,75 +199,117 @@ public class Statistics {
         }
     }
 
-    public void displaySystemStatistics() {
-        System.out.println("\n=== SYSTEM STATISTICS ===");
-        
-        int totalStudents = 0;
-        int totalCompanyReps = 0;
-        int totalStaff = 0;
-        
-        for (User user : userRepository.getAllUsers()) {
-            if (user.isStudent()) {
-                totalStudents++;
-            } else if (user.isCompanyRepresentative()) {
-                totalCompanyReps++;
-            } else if (user.isCareerCenterStaff()) {
-                totalStaff++;
+    /**
+     * Displays statistics for a student.
+     *
+     * @param student the student
+     */
+    public void displayStudentStatistics(Student student) {
+        System.out.println("\n=== STUDENT STATISTICS ===");
+        System.out.println("Student ID: " + student.getUserID());
+        System.out.println("Name: " + student.getName());
+        System.out.println("Major: " + student.getMajor());
+        System.out.println("Year of Study: " + student.getYearOfStudy());
+        System.out.println("GPA: " + student.getGpa());
+
+        List<Application> studentApplications = new ArrayList<>();
+        for (Application app : applicationRepository.getAllApplications()) {
+            if (app.getApplicant().getUserID().equals(student.getUserID())) {
+                studentApplications.add(app);
             }
         }
-        
-        int totalInternships = internshipRepository.getAllInternships().size();
-        int totalApplications = applicationRepository.getAllApplications().size();
-        
-        System.out.println("User Statistics:");
-        System.out.println("Total Students: " + totalStudents);
-        System.out.println("Total Company Representatives: " + totalCompanyReps);
-        System.out.println("Total Career Center Staff: " + totalStaff);
-        
-        System.out.println("\nInternship Statistics:");
-        System.out.println("Total Internships: " + totalInternships);
-        System.out.println("Total Applications: " + totalApplications);
-        
-        Map<String, Integer> levelCounts = new HashMap<>();
-        Map<String, Integer> majorCounts = new HashMap<>();
-        
-        for (InternshipOpportunity opp : internshipRepository.getAllInternships()) {
-            levelCounts.put(opp.getLevel(), levelCounts.getOrDefault(opp.getLevel(), 0) + 1);
-            majorCounts.put(opp.getPreferredMajor(), majorCounts.getOrDefault(opp.getPreferredMajor(), 0) + 1);
+
+        int totalApplications = studentApplications.size();
+        int pendingApplications = 0;
+        int successfulApplications = 0;
+        int unsuccessfulApplications = 0;
+        int confirmedApplications = 0;
+        int withdrawnApplications = 0;
+
+        for (Application app : studentApplications) {
+            switch (app.getStatus()) {
+                case "Pending": pendingApplications++; break;
+                case "Successful": successfulApplications++; break;
+                case "Unsuccessful": unsuccessfulApplications++; break;
+                case "Confirmed": confirmedApplications++; break;
+                case "Withdrawn": withdrawnApplications++; break;
+            }
         }
-        
-        System.out.println("\nInternships by Level:");
-        for (Map.Entry<String, Integer> entry : levelCounts.entrySet()) {
-            System.out.println(entry.getKey() + ": " + entry.getValue());
+
+        System.out.println("\nApplication Summary:");
+        System.out.println("Total Applications Submitted: " + totalApplications);
+        System.out.println("  - Pending: " + pendingApplications);
+        System.out.println("  - Successful: " + successfulApplications);
+        System.out.println("  - Unsuccessful: " + unsuccessfulApplications);
+        System.out.println("  - Confirmed: " + confirmedApplications);
+        System.out.println("  - Withdrawn: " + withdrawnApplications);
+
+        if (totalApplications > 0) {
+            double successRate = (double) (successfulApplications + confirmedApplications) / totalApplications * 100;
+            System.out.println("Success Rate: " + String.format("%.1f%%", successRate));
         }
-        
-        System.out.println("\nInternships by Major:");
-        for (Map.Entry<String, Integer> entry : majorCounts.entrySet()) {
-            System.out.println(entry.getKey() + ": " + entry.getValue());
-        }
+
+        // Eligible internships
+        List<InternshipOpportunity> eligibleInternships = student.viewEligibleInternships();
+        System.out.println("\nEligible Internships: " + eligibleInternships.size());
+
+        // Active applications (not withdrawn or unsuccessful)
+        int activeApplications = pendingApplications + successfulApplications + confirmedApplications;
+        System.out.println("Active Applications: " + activeApplications + " (max 3 allowed)");
     }
 
     // Getters
+
+    /**
+     * Gets the application counts.
+     *
+     * @return map of application counts
+     */
     public Map<String, Integer> getApplicationCounts() {
         return applicationCounts;
     }
 
+    /**
+     * Gets the acceptance counts.
+     *
+     * @return map of acceptance counts
+     */
     public Map<String, Integer> getAcceptanceCounts() {
         return acceptanceCounts;
     }
 
+    /**
+     * Gets the rejection counts.
+     *
+     * @return map of rejection counts
+     */
     public Map<String, Integer> getRejectionCounts() {
         return rejectionCounts;
     }
 
+    /**
+     * Gets the total applications.
+     *
+     * @return total applications
+     */
     public int getTotalApplications() {
         return totalApplications;
     }
 
+    /**
+     * Gets the total acceptances.
+     *
+     * @return total acceptances
+     */
     public int getTotalAcceptances() {
         return totalAcceptances;
     }
 
+    /**
+     * Gets the total rejections.
+     *
+     * @return total rejections
+     */
     public int getTotalRejections() {
         return totalRejections;
     }

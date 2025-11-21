@@ -3,12 +3,22 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+/**
+ * Utility class for password hashing and verification using SHA-256 with salt.
+ * Provides static methods for secure password handling.
+ */
 public class PasswordUtil {
     private static final String HASH_ALGORITHM = "SHA-256";
     private static final int SALT_LENGTH = 16;
 
+    private PasswordUtil() {
+        // Utility class
+    }
+
     /**
-     * Generates a random salt for password hashing
+     * Generates a random salt for password hashing.
+     *
+     * @return the generated salt as a Base64 string
      */
     public static String generateSalt() {
         SecureRandom random = new SecureRandom();
@@ -18,7 +28,11 @@ public class PasswordUtil {
     }
 
     /**
-     * Hashes a password with the given salt
+     * Hashes a password with the given salt using SHA-256.
+     *
+     * @param password the password to hash
+     * @param salt the salt as a Base64 string
+     * @return the hashed password as a Base64 string
      */
     public static String hashPassword(String password, String salt) {
         try {
@@ -32,7 +46,12 @@ public class PasswordUtil {
     }
 
     /**
-     * Verifies a password against a hash and salt
+     * Verifies a password against a hash and salt.
+     *
+     * @param password the password to verify
+     * @param hash the expected hash
+     * @param salt the salt used for hashing
+     * @return true if the password matches the hash
      */
     public static boolean verifyPassword(String password, String hash, String salt) {
         String hashedInput = hashPassword(password, salt);

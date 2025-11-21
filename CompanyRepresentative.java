@@ -1,9 +1,10 @@
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+/**
+ * Represents a company representative who can create and manage internship opportunities.
+ */
 public class CompanyRepresentative extends User {
     private final String companyName;
     private final String department;
@@ -15,8 +16,20 @@ public class CompanyRepresentative extends User {
     // Repositories for data access
     private IInternshipRepository internshipRepository;
     private IApplicationRepository applicationRepository;
-    private IWaitlistManager waitlistManager;
 
+    /**
+     * Constructs a CompanyRepresentative.
+     *
+     * @param userID the user ID
+     * @param name the name
+     * @param password the password
+     * @param companyName the company name
+     * @param department the department
+     * @param position the position
+     * @param email the email
+     * @param internshipRepository the internship repository
+     * @param applicationRepository the application repository
+     */
     public CompanyRepresentative(String userID, String name, String password,
                                 String companyName, String department, String position, String email,
                                 IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
@@ -31,20 +44,40 @@ public class CompanyRepresentative extends User {
         this.applicationRepository = applicationRepository;
     }
 
-    // Setters for repository dependency injection
+    /**
+     * Sets the internship repository.
+     *
+     * @param internshipRepository the internship repository
+     */
     public void setInternshipRepository(IInternshipRepository internshipRepository) {
         this.internshipRepository = internshipRepository;
     }
 
+    /**
+     * Sets the application repository.
+     *
+     * @param applicationRepository the application repository
+     */
     public void setApplicationRepository(IApplicationRepository applicationRepository) {
         this.applicationRepository = applicationRepository;
     }
     
-    public void setWaitlistManager(IWaitlistManager waitlistManager) {
-        this.waitlistManager = waitlistManager;
-    }
 
-    // Constructor with hash and salt for secure password storage
+
+    /**
+     * Constructs a CompanyRepresentative with hashed password.
+     *
+     * @param userID the user ID
+     * @param name the name
+     * @param passwordHash the hashed password
+     * @param salt the salt
+     * @param companyName the company name
+     * @param department the department
+     * @param position the position
+     * @param email the email
+     * @param internshipRepository the internship repository
+     * @param applicationRepository the application repository
+     */
     public CompanyRepresentative(String userID, String name, String passwordHash, String salt,
                                 String companyName, String department, String position, String email,
                                 IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
@@ -59,6 +92,19 @@ public class CompanyRepresentative extends User {
         this.applicationRepository = applicationRepository;
     }
 
+    /**
+     * Creates a new internship opportunity.
+     *
+     * @param title the title
+     * @param description the description
+     * @param level the level
+     * @param preferredMajor the preferred major
+     * @param openingDate the opening date
+     * @param closingDate the closing date
+     * @param maxSlots the max slots
+     * @param minGPA the min GPA
+     * @return true if created successfully
+     */
     public boolean createInternship(String title, String description, String level,
                                    String preferredMajor, Date openingDate, Date closingDate,
                                    int maxSlots, double minGPA) {
@@ -93,6 +139,11 @@ public class CompanyRepresentative extends User {
         return true;
     }
 
+    /**
+     * Gets all applications for internships created by this representative.
+     *
+     * @return list of applications
+     */
     public List<Application> viewApplications() {
         List<Application> myApplications = new ArrayList<>();
         for (Application app : applicationRepository.getAllApplications()) {
@@ -103,6 +154,12 @@ public class CompanyRepresentative extends User {
         return myApplications;
     }
 
+    /**
+     * Gets all applications for a specific internship opportunity.
+     *
+     * @param opportunityID the opportunity ID
+     * @return list of applications
+     */
     public List<Application> viewApplications(String opportunityID) {
         List<Application> opportunityApplications = new ArrayList<>();
         for (Application app : applicationRepository.getAllApplications()) {
@@ -114,6 +171,11 @@ public class CompanyRepresentative extends User {
         return opportunityApplications;
     }
 
+    /**
+     * Gets the list of pending applications for internships created by this representative.
+     *
+     * @return list of pending applications
+     */
     public List<Application> getPendingApplications() {
         List<Application> pendingApplications = new ArrayList<>();
         for (Application app : applicationRepository.getAllApplications()) {
@@ -125,6 +187,13 @@ public class CompanyRepresentative extends User {
         return pendingApplications;
     }
 
+    /**
+     * Processes an application by approving or rejecting it.
+     *
+     * @param applicationID the application ID
+     * @param approve true to approve, false to reject
+     * @return true if processed successfully
+     */
     public boolean processApplication(String applicationID, boolean approve) {
         Application target = null;
         for (Application app : applicationRepository.getAllApplications()) {
@@ -136,24 +205,9 @@ public class CompanyRepresentative extends User {
         if (target != null &&
             target.getOpportunity().getCreatedBy().getUserID().equals(this.userID) &&
             target.getStatus().equals("Pending")) {
-            
+
             if (approve) {
-                // Check if internship already has confirmed OR approved (successful) students at max slots
-                InternshipOpportunity opportunity = target.getOpportunity();
-                long filledSlots = applicationRepository.getAllApplications().stream()
-                    .filter(app -> app.getOpportunity().getOpportunityID().equals(opportunity.getOpportunityID()))
-                    .filter(app -> app.getStatus().equals("Confirmed") || app.getStatus().equals("Successful"))
-                    .count();
-                
-                if (filledSlots >= opportunity.getMaxSlots()) {
-                    // Add to waitlist instead of approving directly
-                    target.updateStatus("Successful");
-                    if (waitlistManager != null) {
-                        waitlistManager.addToWaitlist(opportunity.getOpportunityID(), target);
-                    }
-                } else {
-                    target.updateStatus("Successful");
-                }
+                target.updateStatus("Successful");
             } else {
                 target.updateStatus("Unsuccessful");
             }
@@ -164,168 +218,26 @@ public class CompanyRepresentative extends User {
         }
         return false;
     }
-    
+
     /**
-     * Batch approve applications with slot limit enforcement.
-     * Only approves up to available slots, rest are added to waitlist.
+     * Checks if the representative is approved.
+     *
+     * @return true if approved
      */
-    public int batchApproveApplications(List<String> applicationIds) {
-        if (applicationIds == null || applicationIds.isEmpty()) {
-            return 0;
-        }
-        
-        // Group applications by internship to enforce slot limits per internship
-        Map<String, List<Application>> appsByInternship = new HashMap<>();
-        
-        for (String appId : applicationIds) {
-            Application app = applicationRepository.getApplicationById(appId);
-            if (app != null && 
-                app.getStatus().equals("Pending") &&
-                app.getOpportunity().getCreatedBy().getUserID().equals(this.userID)) {
-                
-                String oppId = app.getOpportunity().getOpportunityID();
-                appsByInternship.computeIfAbsent(oppId, k -> new ArrayList<>()).add(app);
-            }
-        }
-        
-        int approvedCount = 0;
-        int waitlistedCount = 0;
-        
-        // Process each internship separately
-        for (Map.Entry<String, List<Application>> entry : appsByInternship.entrySet()) {
-            String oppId = entry.getKey();
-            List<Application> apps = entry.getValue();
-            InternshipOpportunity opportunity = internshipRepository.getInternshipById(oppId);
-            
-            if (opportunity == null) continue;
-            
-            // Count current confirmed AND successful (approved) applications
-            long filledSlots = applicationRepository.getAllApplications().stream()
-                .filter(app -> app.getOpportunity().getOpportunityID().equals(oppId))
-                .filter(app -> app.getStatus().equals("Confirmed") || app.getStatus().equals("Successful"))
-                .count();
-            
-            int availableSlots = (int)(opportunity.getMaxSlots() - filledSlots);
-            
-            // Approve up to available slots, waitlist the rest
-            for (int i = 0; i < apps.size(); i++) {
-                Application app = apps.get(i);
-                if (i < availableSlots) {
-                    // Directly approve
-                    app.updateStatus("Successful");
-                    approvedCount++;
-                } else {
-                    // Add to waitlist (this will set status to "Waitlisted")
-                    if (waitlistManager != null) {
-                        waitlistManager.addToWaitlist(oppId, app);
-                        waitlistedCount++;
-                    }
-                }
-            }
-        }
-        
-        applicationRepository.saveApplications();
-        System.out.println("Batch approval complete: " + approvedCount + " approved, " + waitlistedCount + " added to waitlist.");
-        return approvedCount + waitlistedCount;
-    }
-    
-    /**
-     * View waitlist for a specific internship
-     */
-    public List<WaitlistEntry> viewWaitlist(String opportunityID) {
-        if (waitlistManager == null) {
-            return new ArrayList<>();
-        }
-        
-        InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
-        if (opportunity == null || !opportunity.getCreatedBy().getUserID().equals(this.userID)) {
-            return new ArrayList<>();
-        }
-        
-        return waitlistManager.getWaitlist(opportunityID);
-    }
-    
-    /**
-     * Reorder waitlist by moving an application to a new position
-     */
-    public boolean reorderWaitlist(String opportunityID, String applicationID, int newPosition) {
-        if (waitlistManager == null) {
-            return false;
-        }
-        
-        InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
-        if (opportunity == null || !opportunity.getCreatedBy().getUserID().equals(this.userID)) {
-            return false;
-        }
-        
-        return waitlistManager.reorderWaitlist(opportunityID, applicationID, newPosition);
-    }
-    
-    /**
-     * Manually promote an application from waitlist to successful
-     */
-    public boolean promoteFromWaitlist(String opportunityID, String applicationID) {
-        if (waitlistManager == null) {
-            return false;
-        }
-        
-        InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
-        if (opportunity == null || !opportunity.getCreatedBy().getUserID().equals(this.userID)) {
-            return false;
-        }
-        
-        // Check if there are available slots
-        long filledSlots = applicationRepository.getAllApplications().stream()
-            .filter(app -> app.getOpportunity().getOpportunityID().equals(opportunityID))
-            .filter(app -> app.getStatus().equals("Confirmed") || app.getStatus().equals("Successful"))
-            .count();
-        
-        if (filledSlots >= opportunity.getMaxSlots()) {
-            System.out.println("Cannot promote: All slots are filled.");
-            return false;
-        }
-        
-        // Remove from waitlist and update status
-        boolean removed = waitlistManager.removeFromWaitlist(opportunityID, applicationID);
-        if (removed) {
-            Application app = applicationRepository.getApplicationById(applicationID);
-            if (app != null) {
-                app.updateStatus("Successful");
-                applicationRepository.saveApplications();
-                System.out.println("Application promoted from waitlist to Successful status.");
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
-    public void toggleVisibility(String opportunityID, boolean visible) {
-        InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
-        if (opportunity != null && opportunity.getCreatedBy().getUserID().equals(this.userID)) {
-            opportunity.setVisibility(visible);
-            internshipRepository.saveInternships();
-        }
-    }
-
-    public String getCompanyName() {
-        return companyName;
-    }
-
-    public String getDepartment() {
-        return department;
-    }
-
-    public String getPosition() {
-        return position;
-    }
-    
-    public String getEmail() {
-        return email;
-    }
-
     public boolean isApproved() { return isApproved; }
+
+    /**
+     * Checks if the representative is rejected.
+     *
+     * @return true if rejected
+     */
     public boolean isRejected() { return isRejected; }
+
+    /**
+     * Sets the approved status.
+     *
+     * @param approved true to approve
+     */
     public void setApproved(boolean approved) {
         if (approved) {
             this.isApproved = true;
@@ -334,6 +246,12 @@ public class CompanyRepresentative extends User {
             this.isApproved = false;
         }
     }
+
+    /**
+     * Sets the rejected status.
+     *
+     * @param rejected true to reject
+     */
     public void setRejected(boolean rejected) {
         if (rejected) {
             this.isRejected = true;
@@ -355,7 +273,57 @@ public class CompanyRepresentative extends User {
 
     @Override
     public boolean isCompanyRepresentative() { return true; }
-    
+
     @Override
-    public CompanyRepresentative asCompanyRepresentative() { return this; }
+    public CompanyRepresentative asCompanyRepresentative() { return this;     }
+
+    /**
+     * Toggles the visibility of an internship opportunity.
+     *
+     * @param opportunityID the opportunity ID
+     * @param visible true to make visible
+     */
+    public void toggleVisibility(String opportunityID, boolean visible) {
+        InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
+        if (opportunity != null && opportunity.getCreatedBy().getUserID().equals(this.userID)) {
+            opportunity.setVisibility(visible);
+            internshipRepository.saveInternships();
+        }
+    }
+
+    /**
+     * Gets the company name.
+     *
+     * @return the company name
+     */
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    /**
+     * Gets the department.
+     *
+     * @return the department
+     */
+    public String getDepartment() {
+        return department;
+    }
+
+    /**
+     * Gets the position.
+     *
+     * @return the position
+     */
+    public String getPosition() {
+        return position;
+    }
+
+    /**
+     * Gets the email.
+     *
+     * @return the email
+     */
+    public String getEmail() {
+        return email;
+    }
 }

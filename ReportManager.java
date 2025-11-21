@@ -3,26 +3,45 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Singleton manager for generating and displaying internship reports.
+ */
 public class ReportManager {
     private static ReportManager instance;
     private IInternshipRepository internshipRepository;
     private IApplicationRepository applicationRepository;
-    
+
     private ReportManager() {}
-    
+
+    /**
+     * Gets the singleton instance of ReportManager.
+     *
+     * @return the instance
+     */
     public static ReportManager getInstance() {
         if (instance == null) {
             instance = new ReportManager();
         }
         return instance;
     }
-    
-    // Initialize with repositories (must be called before using the manager)
+
+    /**
+     * Initializes the ReportManager with repositories.
+     *
+     * @param internshipRepository the internship repository
+     * @param applicationRepository the application repository
+     */
     public void initialize(IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
         this.internshipRepository = internshipRepository;
         this.applicationRepository = applicationRepository;
     }
-    
+
+    /**
+     * Generates a report based on filters.
+     *
+     * @param filters the filters to apply
+     * @return the generated report
+     */
     public Report generateReport(Map<String, String> filters) {
         if (internshipRepository == null) {
             System.out.println("Error: ReportManager not initialized with repositories.");
@@ -61,7 +80,12 @@ public class ReportManager {
         
         return new Report(filteredOpportunities, filters);
     }
-    
+
+    /**
+     * Displays a detailed report.
+     *
+     * @param report the report to display
+     */
     public void displayDetailedReport(Report report) {
         System.out.println("\n=== DETAILED INTERNSHIP REPORT ===");
         System.out.println("Filters Applied: " + report.getFilters());
@@ -115,7 +139,12 @@ public class ReportManager {
             System.out.println();
         }
     }
-    
+
+    /**
+     * Gets application statistics.
+     *
+     * @return map of application status counts
+     */
     public Map<String, Integer> getApplicationStatistics() {
         if (applicationRepository == null) {
             System.out.println("Error: ReportManager not initialized with repositories.");
@@ -155,7 +184,12 @@ public class ReportManager {
         
         return stats;
     }
-    
+
+    /**
+     * Gets internship statistics.
+     *
+     * @return map of internship status counts
+     */
     public Map<String, Integer> getInternshipStatistics() {
         if (internshipRepository == null) {
             System.out.println("Error: ReportManager not initialized with repositories.");

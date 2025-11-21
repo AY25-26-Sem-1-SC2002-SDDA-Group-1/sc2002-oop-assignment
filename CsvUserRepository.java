@@ -2,6 +2,10 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * CSV-based repository implementation for managing users.
+ * Loads and saves user data from/to CSV files for students, staff, and company representatives.
+ */
 public class CsvUserRepository implements IUserRepository {
     private static final List<User> users = new ArrayList<>();
     private static int companyRepCounter = 1;
@@ -9,6 +13,12 @@ public class CsvUserRepository implements IUserRepository {
     private IInternshipRepository internshipRepository;
     private IApplicationRepository applicationRepository;
 
+    /**
+     * Constructs a CsvUserRepository.
+     *
+     * @param internshipRepository the internship repository
+     * @param applicationRepository the application repository
+     */
     public CsvUserRepository(IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
         this.internshipRepository = internshipRepository;
         this.applicationRepository = applicationRepository;
@@ -19,7 +29,11 @@ public class CsvUserRepository implements IUserRepository {
         }
     }
 
-    // Setters for dependency injection after initialization
+    /**
+     * Sets the internship repository and updates references in users.
+     *
+     * @param internshipRepository the internship repository
+     */
     public void setInternshipRepository(IInternshipRepository internshipRepository) {
         this.internshipRepository = internshipRepository;
         // Update repository references in all user objects
@@ -34,6 +48,11 @@ public class CsvUserRepository implements IUserRepository {
         }
     }
 
+    /**
+     * Sets the application repository and updates references in users.
+     *
+     * @param applicationRepository the application repository
+     */
     public void setApplicationRepository(IApplicationRepository applicationRepository) {
         this.applicationRepository = applicationRepository;
         // Update repository references in all user objects
@@ -48,223 +67,231 @@ public class CsvUserRepository implements IUserRepository {
         }
     }
 
+    /**
+     * Loads all users from CSV files.
+     */
     private void loadUsers() {
         users.clear(); // Clear before loading to avoid duplicates
         try {
             loadStudents();
             loadStaff();
             loadCompanyRepresentatives();
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.err.println("Error loading users: " + e.getMessage());
         }
     }
 
-    private void loadStudents() throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader("data/sample_student_list.csv"));
-        String line = reader.readLine(); // Skip header
-        while ((line = reader.readLine()) != null && !line.trim().isEmpty()) {
-            String[] parts = line.split(",");
-            if (parts.length >= 7) { // Updated to include hash and salt
-                Student student = new Student(
-                    parts[0].trim(),
-                    parts[1].trim(),
-                    parts[5].trim(), // password hash
-                    parts[6].trim(), // salt
-                    Integer.parseInt(parts[3].trim()),
-                    parts[2].trim(),
-                    Double.parseDouble(parts[4].trim()),
-                    internshipRepository,
-                    applicationRepository
-                );
-                users.add(student);
-            } else if (parts.length >= 5) {
-                // Backward compatibility: if no hash/salt columns, use default
-                String defaultSalt = PasswordUtil.generateSalt();
-                String defaultHash = PasswordUtil.hashPassword("password", defaultSalt);
-                Student student = new Student(
-                    parts[0].trim(),
-                    parts[1].trim(),
-                    defaultHash,
-                    defaultSalt,
-                    Integer.parseInt(parts[3].trim()),
-                    parts[2].trim(),
-                    Double.parseDouble(parts[4].trim()),
-                    internshipRepository,
-                    applicationRepository
-                );
-                users.add(student);
-            }
-        }
-        reader.close();
-    }
-
-    private void loadStaff() throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader("data/sample_staff_list.csv"));
-        String line = reader.readLine();
-        while ((line = reader.readLine()) != null && !line.trim().isEmpty()) {
-            String[] parts = line.split(",");
-            if (parts.length >= 6) { // Updated to include hash and salt
-                CareerCenterStaff staff = new CareerCenterStaff(
-                    parts[0].trim(),
-                    parts[1].trim(),
-                    parts[4].trim(), // password hash
-                    parts[5].trim(), // salt
-                    parts[3].trim(),
-                    this,
-                    internshipRepository,
-                    applicationRepository
-                );
-                users.add(staff);
-            } else if (parts.length >= 4) {
-                // Backward compatibility: if no hash/salt columns, use default
-                String defaultSalt = PasswordUtil.generateSalt();
-                String defaultHash = PasswordUtil.hashPassword("password", defaultSalt);
-                CareerCenterStaff staff = new CareerCenterStaff(
-                    parts[0].trim(),
-                    parts[1].trim(),
-                    defaultHash,
-                    defaultSalt,
-                    parts[3].trim(),
-                    this,
-                    internshipRepository,
-                    applicationRepository
-                );
-                users.add(staff);
-            }
-        }
-        reader.close();
-    }
-
-    private void loadCompanyRepresentatives() throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader("data/sample_company_representative_list.csv"));
-        String line = reader.readLine();
-        while ((line = reader.readLine()) != null && !line.trim().isEmpty()) {
-            String[] parts = line.split(",");
-            if (parts.length >= 8) { // Updated to include hash and salt
-                CompanyRepresentative rep = new CompanyRepresentative(
-                    parts[0].trim(),
-                    parts[1].trim(),
-                    parts[6].trim(), // password hash
-                    parts[7].trim(), // salt
-                    parts[2].trim(),
-                    parts[3].trim(),
-                    parts[4].trim(),
-                    parts[5].trim(),
-                    internshipRepository,
-                    applicationRepository
-                );
-                if (parts.length >= 9) {
-                    String status = parts[8].trim();
-                    if (status.equalsIgnoreCase("Approved")) {
-                        rep.setApproved(true);
-                    } else if (status.equalsIgnoreCase("Rejected")) {
-                        rep.setRejected(true);
-                    }
-                }
-                users.add(rep);
-            } else if (parts.length >= 6) {
-                // Backward compatibility: if no hash/salt columns, use default
-                String defaultSalt = PasswordUtil.generateSalt();
-                String defaultHash = PasswordUtil.hashPassword("password", defaultSalt);
-                CompanyRepresentative rep = new CompanyRepresentative(
-                    parts[0].trim(),
-                    parts[1].trim(),
-                    defaultHash,
-                    defaultSalt,
-                    parts[2].trim(),
-                    parts[3].trim(),
-                    parts[4].trim(),
-                    parts[5].trim(),
-                    internshipRepository,
-                    applicationRepository
-                );
-                if (parts.length >= 7) {
-                    String status = parts[6].trim();
-                    if (status.equalsIgnoreCase("Approved")) {
-                        rep.setApproved(true);
-                    } else if (status.equalsIgnoreCase("Rejected")) {
-                        rep.setRejected(true);
-                    }
-                }
-                users.add(rep);
-            }
-        }
-        reader.close();
-    }
-
+    /**
+     * Gets all users.
+     *
+     * @return list of all users
+     */
     @Override
     public List<User> getAllUsers() {
         return new ArrayList<>(users);
     }
 
+    /**
+     * Gets a user by ID.
+     *
+     * @param userId the user ID
+     * @return the user or null if not found
+     */
     @Override
     public User getUserById(String userId) {
-        return users.stream().filter(u -> u.getUserID().equals(userId)).findFirst().orElse(null);
+        return users.stream().filter(u -> u.getUserID().equalsIgnoreCase(userId)).findFirst().orElse(null);
     }
 
+    /**
+     * Adds a new user.
+     *
+     * @param user the user to add
+     */
     @Override
     public void addUser(User user) {
         users.add(user);
     }
 
+    /**
+     * Removes a user by ID.
+     *
+     * @param userId the user ID
+     */
     @Override
     public void removeUser(String userId) {
         users.removeIf(u -> u.getUserID().equals(userId));
     }
 
+    /**
+     * Saves all users to CSV files.
+     */
     @Override
     public void saveUsers() {
         try {
             saveStudents();
             saveStaff();
             saveCompanyRepresentatives();
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.err.println("Error saving users: " + e.getMessage());
         }
     }
 
-    private void saveStudents() throws IOException {
-        PrintWriter writer = new PrintWriter(new FileWriter("data/sample_student_list.csv"));
-        writer.println("UserID,Name,Major,Year,GPA,PasswordHash,Salt");
-        for (User user : users) {
-            if (user.isStudent()) {
-                Student s = user.asStudent();
-                writer.println(s.getUserID() + "," + s.getName() + "," + s.getMajor() + "," +
-                              s.getYearOfStudy() + "," + s.getGpa() + "," +
-                              s.getPasswordHash() + "," + s.getSalt());
+    /**
+     * Loads students from CSV file.
+     */
+    private void loadStudents() {
+        try (BufferedReader br = new BufferedReader(new FileReader("data/sample_student_list.csv"))) {
+            String line = br.readLine(); // Skip header
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length >= 7) {
+                    String userID = parts[0].trim();
+                    String name = parts[1].trim();
+                    String major = parts[2].trim();
+                    int year = Integer.parseInt(parts[3].trim());
+                    double gpa = Double.parseDouble(parts[4].trim());
+                    String passwordHash = parts[5].trim();
+                    String salt = parts[6].trim();
+                    Student student = new Student(userID, name, passwordHash, salt, year, major, gpa, internshipRepository, applicationRepository);
+                    users.add(student);
+                }
             }
+        } catch (Exception e) {
+            System.err.println("Error loading students: " + e.getMessage());
         }
-        writer.close();
     }
 
-    private void saveStaff() throws IOException {
-        PrintWriter writer = new PrintWriter(new FileWriter("data/sample_staff_list.csv"));
-        writer.println("UserID,Name,Department,PasswordHash,Salt");
-        for (User user : users) {
-            if (user.isCareerCenterStaff()) {
-                CareerCenterStaff s = user.asCareerCenterStaff();
-                writer.println(s.getUserID() + "," + s.getName() + "," + s.getStaffDepartment() + "," +
-                              s.getPasswordHash() + "," + s.getSalt());
+    /**
+     * Loads staff from CSV file.
+     */
+    private void loadStaff() {
+        try (BufferedReader br = new BufferedReader(new FileReader("data/sample_staff_list.csv"))) {
+            String line = br.readLine(); // Skip header
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length >= 5) {
+                    String userID = parts[0].trim();
+                    String name = parts[1].trim();
+                    String department = parts[2].trim();
+                    String passwordHash = parts[3].trim();
+                    String salt = parts[4].trim();
+                    CareerCenterStaff staff = new CareerCenterStaff(userID, name, passwordHash, salt, department, this, internshipRepository, applicationRepository);
+                    users.add(staff);
+                }
             }
+        } catch (Exception e) {
+            System.err.println("Error loading staff: " + e.getMessage());
         }
-        writer.close();
     }
 
-    private void saveCompanyRepresentatives() throws IOException {
-        PrintWriter writer = new PrintWriter(new FileWriter("data/sample_company_representative_list.csv"));
-        writer.println("CompanyRepID,Name,CompanyName,Department,Position,Email,PasswordHash,Salt,Status");
-        for (User user : users) {
-            if (user.isCompanyRepresentative()) {
-                CompanyRepresentative r = user.asCompanyRepresentative();
-                String status = r.isApproved() ? "Approved" : (r.isRejected() ? "Rejected" : "Pending");
-                writer.println(r.getUserID() + "," + r.getName() + "," + r.getCompanyName() + "," +
-                              r.getDepartment() + "," + r.getPosition() + "," + r.getEmail() + "," +
-                              r.getPasswordHash() + "," + r.getSalt() + "," + status);
+    /**
+     * Loads company representatives from CSV file.
+     */
+    private void loadCompanyRepresentatives() {
+        try (BufferedReader br = new BufferedReader(new FileReader("data/sample_company_representative_list.csv"))) {
+            String line = br.readLine(); // Skip header
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length >= 9) {
+                    String userID = parts[0].trim();
+                    String name = parts[1].trim();
+                    String companyName = parts[2].trim();
+                    String department = parts[3].trim();
+                    String position = parts[4].trim();
+                    String email = parts[5].trim();
+                    String passwordHash = parts[6].trim();
+                    String salt = parts[7].trim();
+                    String status = parts[8].trim();
+                    CompanyRepresentative rep = new CompanyRepresentative(userID, name, passwordHash, salt, companyName, department, position, email, internshipRepository, applicationRepository);
+                    if ("Approved".equalsIgnoreCase(status)) {
+                        rep.setApproved(true);
+                    }
+                    users.add(rep);
+                }
             }
+        } catch (Exception e) {
+            System.err.println("Error loading company representatives: " + e.getMessage());
         }
-        writer.close();
     }
 
+    /**
+     * Saves students to CSV file.
+     */
+    private void saveStudents() {
+        try (PrintWriter pw = new PrintWriter(new FileWriter("data/sample_student_list.csv"))) {
+            pw.println("UserID,Name,Major,Year,GPA,PasswordHash,Salt");
+            for (User user : users) {
+                if (user.isStudent()) {
+                    Student student = user.asStudent();
+                    pw.printf("%s,%s,%s,%d,%.1f,%s,%s%n",
+                        student.getUserID(),
+                        student.getName(),
+                        student.getMajor(),
+                        student.getYearOfStudy(),
+                        student.getGpa(),
+                        student.getPasswordHash(),
+                        student.getSalt());
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error saving students: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Saves staff to CSV file.
+     */
+    private void saveStaff() {
+        try (PrintWriter pw = new PrintWriter(new FileWriter("data/sample_staff_list.csv"))) {
+            pw.println("UserID,Name,Department,PasswordHash,Salt");
+            for (User user : users) {
+                if (user.isCareerCenterStaff()) {
+                    CareerCenterStaff staff = user.asCareerCenterStaff();
+                    pw.printf("%s,%s,%s,%s,%s%n",
+                        staff.getUserID(),
+                        staff.getName(),
+                        staff.getStaffDepartment(),
+                        staff.getPasswordHash(),
+                        staff.getSalt());
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error saving staff: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Saves company representatives to CSV file.
+     */
+    private void saveCompanyRepresentatives() {
+        try (PrintWriter pw = new PrintWriter(new FileWriter("data/sample_company_representative_list.csv"))) {
+            pw.println("CompanyRepID,Name,CompanyName,Department,Position,Email,PasswordHash,Salt,Status");
+            for (User user : users) {
+                if (user.isCompanyRepresentative()) {
+                    CompanyRepresentative rep = user.asCompanyRepresentative();
+                    String status = rep.isApproved() ? "Approved" : (rep.isRejected() ? "Rejected" : "Pending");
+                    pw.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                        rep.getUserID(),
+                        rep.getName(),
+                        rep.getCompanyName(),
+                        rep.getDepartment(),
+                        rep.getPosition(),
+                        rep.getEmail(),
+                        rep.getPasswordHash(),
+                        rep.getSalt(),
+                        status);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error saving company representatives: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Generates a new unique company representative ID.
+     *
+     * @return the generated ID
+     */
     @Override
     public String generateCompanyRepId() {
         return "CR" + String.format("%03d", companyRepCounter++);

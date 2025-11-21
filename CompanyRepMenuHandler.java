@@ -5,6 +5,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
+/**
+ * Menu handler for company representative operations.
+ * Provides interface for managing internships, applications, and statistics.
+ */
 public class CompanyRepMenuHandler implements IMenuHandler {
     private final CompanyRepresentative rep;
     private final InternshipService internshipService;
@@ -13,6 +17,15 @@ public class CompanyRepMenuHandler implements IMenuHandler {
     private final Scanner scanner;
     private final FilterManager filterManager;
 
+    /**
+     * Constructs a CompanyRepMenuHandler.
+     *
+     * @param rep the company representative
+     * @param internshipService the internship service
+     * @param applicationService the application service
+     * @param userService the user service
+     * @param scanner the scanner for input
+     */
     public CompanyRepMenuHandler(CompanyRepresentative rep, InternshipService internshipService, ApplicationService applicationService, UserService userService, Scanner scanner) {
         this.rep = rep;
         this.internshipService = internshipService;
@@ -22,6 +35,9 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         this.filterManager = new FilterManager(scanner);
     }
 
+    /**
+     * Displays the menu and handles user choices.
+     */
     @Override
     public void showMenu() {
         UIHelper.printCompanyRepMenu();
@@ -39,47 +55,51 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         System.out.println("12. Logout");
         System.out.print("\nEnter your choice: ");
 
-        String choice = scanner.nextLine();
+        try {
+            String choice = scanner.nextLine();
 
-        switch (choice) {
-            case "1":
-                createInternship();
-                break;
-            case "2":
-                viewMyInternships();
-                break;
-            case "3":
-                editInternship();
-                break;
-            case "4":
-                deleteInternship();
-                break;
-            case "5":
-                viewApplicationDetails();
-                break;
-            case "6":
-                processApplications();
-                break;
-            case "7":
-                toggleVisibility();
-                break;
-            case "8":
-                viewCompanyRepresentativeStatistics();
-                break;
-            case "9":
-                viewAllInternshipsFiltered();
-                break;
-            case "10":
-                filterManager.manageFilters();
-                break;
-            case "11":
-                changePassword();
-                break;
-            case "12":
-                logout();
-                break;
-            default:
-                UIHelper.printErrorMessage("Invalid choice. Please try again.");
+            switch (choice) {
+                case "1":
+                    createInternship();
+                    break;
+                case "2":
+                    viewMyInternships();
+                    break;
+                case "3":
+                    editInternship();
+                    break;
+                case "4":
+                    deleteInternship();
+                    break;
+                case "5":
+                    viewApplicationDetails();
+                    break;
+                case "6":
+                    processApplications();
+                    break;
+                case "7":
+                    toggleVisibility();
+                    break;
+                case "8":
+                    viewCompanyRepresentativeStatistics();
+                    break;
+                case "9":
+                    viewAllInternshipsFiltered();
+                    break;
+                case "10":
+                    filterManager.manageFilters();
+                    break;
+                case "11":
+                    changePassword();
+                    break;
+                case "12":
+                    logout();
+                    break;
+                default:
+                    UIHelper.printErrorMessage("Invalid choice. Please try again.");
+            }
+        } catch (Exception e) {
+            UIHelper.printErrorMessage("Error reading input. Please try again.");
         }
     }
 
@@ -115,14 +135,28 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             return;
         }
 
+        System.out.println("Select Level:");
+        System.out.println("1. Basic");
+        System.out.println("2. Intermediate");
+        System.out.println("3. Advanced");
         String level = null;
         while (level == null) {
-            System.out.print("Enter Level (Basic/Intermediate/Advanced): ");
+            System.out.print("Enter number or Level: ");
             String input = scanner.nextLine().trim();
-            if (input.equals("Basic") || input.equals("Intermediate") || input.equals("Advanced")) {
-                level = input;
-            } else {
-                System.out.println("Invalid level. Must be Basic, Intermediate, or Advanced. Please try again.");
+            try {
+                int num = Integer.parseInt(input);
+                switch (num) {
+                    case 1: level = "Basic"; break;
+                    case 2: level = "Intermediate"; break;
+                    case 3: level = "Advanced"; break;
+                    default: System.out.println("Invalid number. Please try again."); continue;
+                }
+            } catch (NumberFormatException e) {
+                if (input.equals("Basic") || input.equals("Intermediate") || input.equals("Advanced")) {
+                    level = input;
+                } else {
+                    System.out.println("Invalid level. Must be Basic, Intermediate, or Advanced. Please try again.");
+                }
             }
         }
 
@@ -277,11 +311,25 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         if (!description.isEmpty()) {
             opp.setDescription(description);
         }
-        System.out.print("Enter new Level (Basic/Intermediate/Advanced) [" + opp.getLevel() + "]: ");
+        System.out.print("Enter new Level (1=Basic, 2=Intermediate, 3=Advanced) [" + opp.getLevel() + "]: ");
         String level = scanner.nextLine().trim();
         if (!level.isEmpty()) {
-            if (level.equals("Basic") || level.equals("Intermediate") || level.equals("Advanced")) {
-                opp.setLevel(level);
+            String newLevel = null;
+            try {
+                int num = Integer.parseInt(level);
+                switch (num) {
+                    case 1: newLevel = "Basic"; break;
+                    case 2: newLevel = "Intermediate"; break;
+                    case 3: newLevel = "Advanced"; break;
+                    default: newLevel = null;
+                }
+            } catch (NumberFormatException e) {
+                if (level.equals("Basic") || level.equals("Intermediate") || level.equals("Advanced")) {
+                    newLevel = level;
+                }
+            }
+            if (newLevel != null) {
+                opp.setLevel(newLevel);
             } else {
                 System.out.println("Invalid level. Keeping current value.");
             }
@@ -464,34 +512,53 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             
             // Display internships with slot status
             System.out.println("\nYour Internships:");
+            int index = 1;
             for (InternshipOpportunity opp : myInternships) {
                 // Count both Confirmed and Successful as filled slots
                 long filledSlots = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
                     .filter(app -> app.getStatus().equals("Confirmed") || app.getStatus().equals("Successful"))
                     .count();
                 long pendingCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
-                    .filter(app -> app.getStatus().equals("Pending"))
+                    .filter(app -> app.getStatus().equals("Applied"))
                     .count();
-                int waitlistSize = rep.viewWaitlist(opp.getOpportunityID()).size();
-                
-                System.out.println("[" + opp.getOpportunityID() + "] " + opp.getTitle());
+
+
+                System.out.println(index + ". [" + opp.getOpportunityID() + "] " + opp.getTitle());
                 System.out.println("   Slots: " + filledSlots + "/" + opp.getMaxSlots() + " filled" +
                     (filledSlots >= opp.getMaxSlots() ? " [FULL]" : " [" + (opp.getMaxSlots() - filledSlots) + " available]"));
-                System.out.println("   Pending: " + pendingCount + " | Waitlist: " + waitlistSize);
+                System.out.println("   Pending: " + pendingCount);
+                index++;
             }
-            
-            System.out.print("\nEnter Internship ID (e.g., INT001) or 'back' to return: ");
-            String internshipId = scanner.nextLine().trim();
-            
-            if (internshipId.equalsIgnoreCase("back")) {
+
+            System.out.print("\nEnter number or Internship ID (e.g., 1 or INT001) or 'back' to return: ");
+            String input = scanner.nextLine().trim();
+
+            if (input.equalsIgnoreCase("back")) {
                 return;
             }
-            
-            // Find internship by ID
-            InternshipOpportunity selectedOpp = myInternships.stream()
-                .filter(opp -> opp.getOpportunityID().equalsIgnoreCase(internshipId))
-                .findFirst()
-                .orElse(null);
+
+            // Find internship by number or ID
+            InternshipOpportunity selectedOpp = null;
+            try {
+                int num = Integer.parseInt(input);
+                if (num >= 1 && num <= myInternships.size()) {
+                    selectedOpp = myInternships.get(num - 1);
+                } else {
+                    UIHelper.printErrorMessage("Invalid number.");
+                    continue;
+                }
+            } catch (NumberFormatException e) {
+                // treat as ID
+                selectedOpp = myInternships.stream()
+                    .filter(opp -> opp.getOpportunityID().equalsIgnoreCase(input))
+                    .findFirst()
+                    .orElse(null);
+            }
+
+            if (selectedOpp == null) {
+                UIHelper.printErrorMessage("Invalid internship selection.");
+                continue;
+            }
             
             if (selectedOpp == null) {
                 UIHelper.printErrorMessage("Invalid internship ID. Please enter a valid ID like INT001.");
@@ -516,9 +583,9 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 .filter(app -> app.getStatus().equals("Successful"))
                 .count();
             long pendingCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
-                .filter(app -> app.getStatus().equals("Pending"))
+                .filter(app -> app.getStatus().equals("Applied"))
                 .count();
-            int waitlistSize = rep.viewWaitlist(opp.getOpportunityID()).size();
+
             // Available slots = max - (confirmed + successful)
             long filledSlots = confirmedCount + successfulCount;
             int availableSlots = (int)(opp.getMaxSlots() - filledSlots);
@@ -526,7 +593,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             System.out.println("Slots: " + filledSlots + "/" + opp.getMaxSlots() + 
                 " (" + confirmedCount + " confirmed, " + successfulCount + " awaiting acceptance)" +
                 (filledSlots >= opp.getMaxSlots() ? " [FULL]" : " [" + availableSlots + " available]"));
-            System.out.println("Pending: " + pendingCount + " | Waitlist: " + waitlistSize);
+            System.out.println("Applied: " + pendingCount);
             
             // Show pending applications
             List<Application> pendingApps = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
@@ -537,25 +604,14 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 System.out.println("\n" + "-".repeat(70));
                 System.out.println("PENDING APPLICATIONS");
                 System.out.println("-".repeat(70));
+                int appIndex = 1;
                 for (Application app : pendingApps) {
                     Student student = app.getApplicant();
-                    System.out.println("[" + app.getApplicationID() + "] " + student.getName() + 
+                    System.out.println(appIndex + ". [" + app.getApplicationID() + "] " + student.getName() +
                         " | GPA: " + student.getGpa() + " | " + student.getMajor() + " (Year " + student.getYearOfStudy() + ")");
+                    appIndex++;
                 }
                 System.out.println("-".repeat(70));
-            }
-            
-            // Show waitlist if not empty
-            List<WaitlistEntry> waitlist = rep.viewWaitlist(opp.getOpportunityID());
-            if (!waitlist.isEmpty()) {
-                System.out.println("\nWaitlist (in priority order):");
-                for (int i = 0; i < Math.min(3, waitlist.size()); i++) {
-                    WaitlistEntry entry = waitlist.get(i);
-                    System.out.println((i + 1) + ". " + entry.getStudentProfileSummary());
-                }
-                if (waitlist.size() > 3) {
-                    System.out.println("   ... and " + (waitlist.size() - 3) + " more");
-                }
             }
             
             // Show available actions
@@ -563,31 +619,21 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             if (pendingCount > 0) {
                 System.out.println("1. Approve/Reject Applications (enter App IDs)");
             }
-            if (waitlistSize > 0) {
-                System.out.println("2. Manage Waitlist (reorder/promote)");
-            }
             System.out.println("0. Back");
-            
+
             System.out.print("\nChoose action: ");
             String choice = scanner.nextLine().trim();
-            
+
             if (choice.equals("0")) {
                 return;
             }
-            
+
             switch (choice) {
                 case "1":
                     if (pendingCount > 0) {
-                        processApplicationsBatch(opp, pendingApps, availableSlots);
+                        processApplicationsBatch(opp, pendingApps);
                     } else {
                         UIHelper.printErrorMessage("No pending applications.");
-                    }
-                    break;
-                case "2":
-                    if (waitlistSize > 0) {
-                        manageWaitlistActions(opp, waitlist, availableSlots);
-                    } else {
-                        UIHelper.printErrorMessage("No waitlist to manage.");
                     }
                     break;
                 default:
@@ -596,37 +642,48 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         }
     }
     
-    private void processApplicationsBatch(InternshipOpportunity opp, List<Application> pendingApps, int availableSlots) {
+    private void processApplicationsBatch(InternshipOpportunity opp, List<Application> pendingApps) {
         System.out.println("\n" + "=".repeat(70));
         System.out.println("APPROVE/REJECT APPLICATIONS");
         System.out.println("=".repeat(70));
-        System.out.println("Available Slots: " + availableSlots + " of " + opp.getMaxSlots());
-        System.out.println("\nNote: You can approve multiple applications.");
-        System.out.println("      If slots run out, additional approvals will be waitlisted.");
+        System.out.println("Max Slots: " + opp.getMaxSlots());
+        System.out.println("\nNote: You can approve or reject multiple applications.");
+        System.out.println("      All selected applications will be processed.");
         
-        System.out.print("\nEnter Application IDs (space-separated, e.g., APP001 APP002): ");
+        System.out.print("\nEnter Application IDs or numbers (space-separated, e.g., 1 2 or APP001 APP002): ");
         String input = scanner.nextLine().trim();
-        
+
         if (input.isEmpty()) {
             UIHelper.printWarningMessage("No application IDs entered.");
             return;
         }
-        
+
         String[] appIds = input.split("\\s+");
-        
+
         // Validate all IDs exist and are pending
         List<Application> validApps = new ArrayList<>();
         for (String appId : appIds) {
-            Application app = pendingApps.stream()
-                .filter(a -> a.getApplicationID().equalsIgnoreCase(appId.trim()))
-                .findFirst()
-                .orElse(null);
-            
-            if (app == null) {
-                System.out.println("[SKIP] " + appId + ": Not found or not pending");
-            } else {
-                validApps.add(app);
+            Application app = null;
+            try {
+                int num = Integer.parseInt(appId.trim());
+                if (num >= 1 && num <= pendingApps.size()) {
+                    app = pendingApps.get(num - 1);
+                } else {
+                    System.out.println("[SKIP] " + appId + ": Invalid number");
+                    continue;
+                }
+            } catch (NumberFormatException e) {
+                // treat as ID
+                app = pendingApps.stream()
+                    .filter(a -> a.getApplicationID().equalsIgnoreCase(appId.trim()))
+                    .findFirst()
+                    .orElse(null);
+                if (app == null) {
+                    System.out.println("[SKIP] " + appId + ": Not found or not pending");
+                    continue;
+                }
             }
+            validApps.add(app);
         }
         
         if (validApps.isEmpty()) {
@@ -644,19 +701,15 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         
         System.out.print("\nDecision (approve/reject): ");
         String decision = scanner.nextLine().trim().toLowerCase();
-        
-        if (!decision.equals("approve") && !decision.equals("reject")) {
-            UIHelper.printErrorMessage("Invalid decision. Use 'approve' or 'reject'.");
+
+        if (!decision.equals("approve") && !decision.equals("a") && !decision.equals("reject") && !decision.equals("r")) {
+            UIHelper.printErrorMessage("Invalid decision. Use 'approve'/'a' or 'reject'/'r'.");
             return;
         }
+
+        boolean isApprove = decision.equals("approve") || decision.equals("a");
         
-        boolean isApprove = decision.equals("approve");
-        
-        // Warn if approving more than available slots
-        if (isApprove && validApps.size() > availableSlots) {
-            System.out.println("\n[WARNING] You selected " + validApps.size() + " applications but only " + availableSlots + " slots available.");
-            System.out.println("          First " + availableSlots + " will be approved, remaining " + (validApps.size() - availableSlots) + " will be WAITLISTED.");
-        }
+        // No slot limits - all selected applications will be processed
         
         System.out.print("\nConfirm " + decision + " for " + validApps.size() + " application(s)? (yes/no): ");
         String confirm = scanner.nextLine().trim();
@@ -668,7 +721,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         
         // Process applications
         int successCount = 0;
-        int waitlistedCount = 0;
+
         
         for (int i = 0; i < validApps.size(); i++) {
             Application app = validApps.get(i);
@@ -676,14 +729,8 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             
             if (success) {
                 if (isApprove) {
-                    // Check if it was waitlisted (happens when slots full)
-                    if (app.getStatus().equals("Waitlisted")) {
-                        System.out.println("[WAITLIST] " + app.getApplicationID() + ": " + app.getApplicant().getName());
-                        waitlistedCount++;
-                    } else {
-                        System.out.println("[APPROVED] " + app.getApplicationID() + ": " + app.getApplicant().getName());
-                        successCount++;
-                    }
+                    System.out.println("[ACCEPTED] " + app.getApplicationID() + ": " + app.getApplicant().getName());
+                    successCount++;
                 } else {
                     System.out.println("[REJECTED] " + app.getApplicationID() + ": " + app.getApplicant().getName());
                     successCount++;
@@ -695,8 +742,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         
         System.out.println("\n" + "=".repeat(70));
         if (isApprove) {
-            UIHelper.printSuccessMessage(successCount + " approved" + 
-                (waitlistedCount > 0 ? ", " + waitlistedCount + " waitlisted" : ""));
+            UIHelper.printSuccessMessage(successCount + " accepted");
         } else {
             UIHelper.printSuccessMessage(successCount + " rejected");
         }
@@ -705,260 +751,79 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         System.out.print("\nPress Enter to continue...");
         scanner.nextLine();
     }
-    
-    private void manageWaitlistActions(InternshipOpportunity opp, List<WaitlistEntry> waitlist, int availableSlots) {
-        System.out.println("\n" + "=".repeat(70));
-        System.out.println("Waitlist Management - " + opp.getTitle());
-        System.out.println("=".repeat(70));
-        System.out.println("Available Slots: " + availableSlots);
-        System.out.println("\nWaitlist (in priority order):");
-        for (int i = 0; i < waitlist.size(); i++) {
-            WaitlistEntry entry = waitlist.get(i);
-            System.out.println((i + 1) + ". " + entry.getStudentProfileSummary());
-            System.out.println("   App ID: " + entry.getApplicationId());
-        }
-        
-        System.out.println("\nActions:");
-        System.out.println("1. Reorder Waitlist");
-        if (availableSlots > 0) {
-            System.out.println("2. Promote Student (" + availableSlots + " slots available)");
-        }
-        System.out.println("0. Back");
-        
-        System.out.print("\nChoose action: ");
-        String choice = scanner.nextLine().trim();
-        
-        switch (choice) {
-            case "1":
-                reorderWaitlistAction(opp.getOpportunityID(), waitlist);
-                break;
-            case "2":
-                if (availableSlots > 0) {
-                    promoteFromWaitlistAction(opp.getOpportunityID(), waitlist);
-                } else {
-                    UIHelper.printErrorMessage("No slots available for promotion.");
-                }
-                break;
-            case "0":
-                return;
-            default:
-                UIHelper.printErrorMessage("Invalid choice.");
-        }
-    }
 
     private void toggleVisibility() {
-        UIHelper.printSectionHeader("TOGGLE INTERNSHIP VISIBILITY");
+        System.out.println("\n=== TOGGLE INTERNSHIP VISIBILITY ===");
+        System.out.print("Enter Internship ID: ");
+        String internshipID = scanner.nextLine().trim();
 
-        // Show rep's approved internships
-        List<InternshipOpportunity> myInternships = new java.util.ArrayList<>();
-        for (InternshipOpportunity opp : internshipService.getAllInternships()) {
-            if (opp.getCreatedBy().getUserID().equals(rep.getUserID()) &&
-                opp.getStatus().equals("Approved")) {
-                myInternships.add(opp);
-            }
-        }
-
-        if (myInternships.isEmpty()) {
-            UIHelper.printWarningMessage("No approved internships to toggle visibility.");
+        InternshipOpportunity opp = internshipService.getInternship(internshipID);
+        if (opp == null) {
+            UIHelper.printErrorMessage("Internship not found.");
             return;
         }
 
-        System.out.println("\nYour Approved Internships:");
-        for (InternshipOpportunity opp : myInternships) {
-            System.out.println("\nID: " + opp.getOpportunityID());
-            System.out.println("Title: " + opp.getTitle());
-            System.out.println("Current Visibility: " + (opp.isVisibility() ? "Visible" : "Hidden"));
-            System.out.println("-".repeat(50));
-        }
-
-        System.out.print("\nEnter Internship ID(s) to toggle (space-separated for multiple, or 'cancel'): ");
-        String input = scanner.nextLine().trim();
-
-        if (input.equalsIgnoreCase("cancel")) {
-            UIHelper.printWarningMessage("Operation cancelled.");
+        if (!opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
+            UIHelper.printErrorMessage("You can only modify your own internships.");
             return;
         }
 
-        if (input.isEmpty()) {
-            UIHelper.printErrorMessage("Internship ID cannot be empty.");
-            return;
-        }
+        System.out.println("Current visibility: " + (opp.isVisible() ? "Visible" : "Hidden"));
+        System.out.print("Set to Visible? (y/n): ");
+        boolean setVisible = scanner.nextLine().trim().toLowerCase().startsWith("y");
 
-        String[] internshipIDs = input.split("\\s+");
-
-        System.out.print("Set visibility to (visible/hidden): ");
-        String visibilityInput = scanner.nextLine().trim().toLowerCase();
-
-        if (!visibilityInput.equals("visible") && !visibilityInput.equals("hidden")) {
-            UIHelper.printErrorMessage("Invalid input. Please enter 'visible' or 'hidden'.");
-            return;
-        }
-
-        boolean setVisible = visibilityInput.equals("visible");
-        int successCount = 0;
-        int failCount = 0;
-
-        for (String internshipID : internshipIDs) {
-            internshipID = internshipID.trim();
-
-            // Verify internship exists in the list
-            InternshipOpportunity targetOpp = null;
-            for (InternshipOpportunity opp : myInternships) {
-                if (opp.getOpportunityID().equals(internshipID)) {
-                    targetOpp = opp;
-                    break;
-                }
-            }
-
-            if (targetOpp == null) {
-                System.out.println("[ERROR] " + internshipID + ": Invalid ID or not approved.");
-                failCount++;
-            } else {
-                rep.toggleVisibility(internshipID, setVisible);
-                System.out.println("[OK] " + internshipID + ": Set to " + (setVisible ? "visible" : "hidden"));
-                successCount++;
-            }
-        }
-
-        System.out.println("\n" + "=".repeat(50));
-        System.out.println("Toggle complete: " + successCount + " succeeded, " + failCount + " failed.");
-        System.out.println("=".repeat(50));
+        rep.toggleVisibility(internshipID, setVisible);
+        UIHelper.printSuccessMessage("Visibility updated successfully!");
     }
 
     private void viewCompanyRepresentativeStatistics() {
+        System.out.println("\n=== COMPANY REPRESENTATIVE STATISTICS ===");
         Statistics stats = new Statistics(applicationService.getApplicationRepository(),
-                                         internshipService.getInternshipRepository(),
-                                         userService.getUserRepository());
+                                        internshipService.getInternshipRepository(),
+                                        userService.getUserRepository());
         stats.displayCompanyRepresentativeStatistics(rep);
+        System.out.print("\nPress Enter to continue...");
+        scanner.nextLine();
     }
 
     private void viewAllInternshipsFiltered() {
-        UIHelper.printSectionHeader("ALL INTERNSHIPS (FILTERED)");
-
-        if (filterManager.hasActiveFilters()) {
-            System.out.println(filterManager.getFilterSettings().toString());
-            System.out.println();
+        System.out.println("\n=== VIEW ALL INTERNSHIPS ===");
+        List<InternshipOpportunity> internships = internshipService.getAllInternships();
+        for (InternshipOpportunity opp : internships) {
+            System.out.println(opp.getOpportunityID() + " - " + opp.getTitle() + " (" + opp.getStatus() + ")");
         }
-
-        List<InternshipOpportunity> allInternships = internshipService.getAllInternships();
-        allInternships = filterManager.getFilterSettings().applyFilters(allInternships);
-
-        if (allInternships.isEmpty()) {
-            System.out.println("No internships match your filters.");
-        } else {
-            for (InternshipOpportunity internship : allInternships) {
-                System.out.println("ID: " + internship.getOpportunityID());
-                System.out.println("Title: " + internship.getTitle());
-                System.out.println("Company: " + internship.getCreatedBy().getCompanyName());
-                System.out.println("Level: " + internship.getLevel());
-                System.out.println("Preferred Major: " + internship.getPreferredMajor());
-                System.out.println("Min GPA: " + internship.getMinGPA());
-                System.out.println("Status: " + internship.getStatus());
-                System.out.println("Closing Date: " + internship.getClosingDate());
-                System.out.println("Visible: " + (internship.isVisible() ? "Yes" : "No"));
-                System.out.println("-------------------");
-            }
-        }
+        System.out.print("\nPress Enter to continue...");
+        scanner.nextLine();
     }
 
     private void changePassword() {
+        System.out.println("\n=== CHANGE PASSWORD ===");
         System.out.print("Enter current password: ");
-        String currentPassword = scanner.nextLine().trim();
+        String currentPassword = scanner.nextLine();
 
-        // Verify current password
         if (!rep.verifyPassword(currentPassword)) {
-            System.out.println("Current password is incorrect.");
+            UIHelper.printErrorMessage("Current password is incorrect.");
             return;
         }
 
         System.out.print("Enter new password: ");
-        String newPassword = scanner.nextLine().trim();
+        String newPassword = scanner.nextLine();
 
-        if (newPassword.isEmpty()) {
-            System.out.println("Password cannot be empty.");
-            return;
-        }
-
-        // Check if new password is same as current password
-        if (newPassword.equals(currentPassword)) {
-            System.out.println("New password cannot be the same as current password.");
-            return;
-        }
-
-        System.out.print("Confirm new password: ");
-        String confirmPassword = scanner.nextLine().trim();
-
-        if (!newPassword.equals(confirmPassword)) {
-            System.out.println("Passwords do not match.");
+        if (newPassword.trim().isEmpty()) {
+            UIHelper.printErrorMessage("Password cannot be empty.");
             return;
         }
 
         rep.changePassword(newPassword);
-        userService.saveUsers();
-        System.out.println("Password changed successfully!");
+        UIHelper.printSuccessMessage("Password changed successfully!");
     }
 
     private void logout() {
-        System.out.println("Logging out...");
-        rep.logout();
-    }
-    
-    private void reorderWaitlistAction(String opportunityId, List<WaitlistEntry> waitlist) {
-        System.out.print("Enter application position to move (1-" + waitlist.size() + "): ");
-        try {
-            int oldPos = Integer.parseInt(scanner.nextLine()) - 1;
-            if (oldPos < 0 || oldPos >= waitlist.size()) {
-                UIHelper.printErrorMessage("Invalid position.");
-                return;
-            }
-            
-            System.out.print("Enter new position (1-" + waitlist.size() + "): ");
-            int newPos = Integer.parseInt(scanner.nextLine()) - 1;
-            if (newPos < 0 || newPos >= waitlist.size()) {
-                UIHelper.printErrorMessage("Invalid position.");
-                return;
-            }
-            
-            String appId = waitlist.get(oldPos).getApplicationId();
-            boolean success = rep.reorderWaitlist(opportunityId, appId, newPos);
-            
-            if (success) {
-                UIHelper.printSuccessMessage("Waitlist reordered successfully!");
-            } else {
-                UIHelper.printErrorMessage("Failed to reorder waitlist.");
-            }
-            
-        } catch (NumberFormatException e) {
-            UIHelper.printErrorMessage("Invalid input.");
-        }
-    }
-    
-    private void promoteFromWaitlistAction(String opportunityId, List<WaitlistEntry> waitlist) {
-        System.out.print("Enter position to promote (1-" + waitlist.size() + "), or 0 for automatic (first in line): ");
-        try {
-            int pos = Integer.parseInt(scanner.nextLine());
-            
-            if (pos == 0) {
-                boolean success = rep.promoteFromWaitlist(opportunityId, waitlist.get(0).getApplicationId());
-                if (success) {
-                    UIHelper.printSuccessMessage("Application promoted successfully!");
-                } else {
-                    UIHelper.printErrorMessage("Failed to promote application.");
-                }
-            } else if (pos > 0 && pos <= waitlist.size()) {
-                String appId = waitlist.get(pos - 1).getApplicationId();
-                boolean success = rep.promoteFromWaitlist(opportunityId, appId);
-                if (success) {
-                    UIHelper.printSuccessMessage("Application promoted successfully!");
-                } else {
-                    UIHelper.printErrorMessage("Failed to promote application.");
-                }
-            } else {
-                UIHelper.printErrorMessage("Invalid position.");
-            }
-            
-        } catch (NumberFormatException e) {
-            UIHelper.printErrorMessage("Invalid input.");
+        System.out.println("\n=== LOGOUT ===");
+        System.out.print("Are you sure you want to logout? (y/n): ");
+        if (scanner.nextLine().trim().toLowerCase().startsWith("y")) {
+            rep.logout();
+            System.out.println("Logged out successfully!");
         }
     }
 }

@@ -5,18 +5,31 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * CSV-based repository implementation for managing internship opportunities.
+ * Loads and saves internship data to/from a CSV file.
+ */
 public class CsvInternshipRepository implements IInternshipRepository {
     private static final List<InternshipOpportunity> internships = new ArrayList<>();
     private static int internshipCounter = 1;
     private IUserRepository userRepository;
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
 
+    /**
+     * Constructs a CsvInternshipRepository.
+     *
+     * @param userRepository the user repository
+     */
     public CsvInternshipRepository(IUserRepository userRepository) {
         this.userRepository = userRepository;
         loadInternships();
     }
 
-    // Method to set user repository after construction and load data
+    /**
+     * Sets the user repository and loads internships if possible.
+     *
+     * @param userRepository the user repository
+     */
     public void setUserRepository(IUserRepository userRepository) {
         this.userRepository = userRepository;
         if (internships.isEmpty()) {
@@ -24,6 +37,9 @@ public class CsvInternshipRepository implements IInternshipRepository {
         }
     }
 
+    /**
+     * Loads internships from the CSV file.
+     */
     private void loadInternships() {
         try {
             File file = new File("data/internships.csv");
@@ -77,28 +93,52 @@ public class CsvInternshipRepository implements IInternshipRepository {
         }
     }
 
+    /**
+     * Gets all internships.
+     *
+     * @return list of all internships
+     */
     @Override
     public List<InternshipOpportunity> getAllInternships() {
         return new ArrayList<>(internships);
     }
 
+    /**
+     * Gets an internship by ID.
+     *
+     * @param opportunityId the internship ID
+     * @return the internship or null if not found
+     */
     @Override
     public InternshipOpportunity getInternshipById(String opportunityId) {
-        return internships.stream().filter(i -> i.getOpportunityID().equals(opportunityId)).findFirst().orElse(null);
+        return internships.stream().filter(i -> i.getOpportunityID().equalsIgnoreCase(opportunityId)).findFirst().orElse(null);
     }
 
+    /**
+     * Adds a new internship.
+     *
+     * @param internship the internship to add
+     */
     @Override
     public void addInternship(InternshipOpportunity internship) {
         internships.add(internship);
         saveInternships();
     }
 
+    /**
+     * Removes an internship by ID.
+     *
+     * @param opportunityId the internship ID
+     */
     @Override
     public void removeInternship(String opportunityId) {
-        internships.removeIf(i -> i.getOpportunityID().equals(opportunityId));
+        internships.removeIf(i -> i.getOpportunityID().equalsIgnoreCase(opportunityId));
         saveInternships();
     }
 
+    /**
+     * Saves all internships to the CSV file.
+     */
     @Override
     public void saveInternships() {
         try (PrintWriter writer = new PrintWriter(new FileWriter("data/internships.csv"))) {
@@ -125,6 +165,11 @@ public class CsvInternshipRepository implements IInternshipRepository {
         }
     }
 
+    /**
+     * Generates a new unique internship ID.
+     *
+     * @return the generated ID
+     */
     @Override
     public String generateInternshipId() {
         return "INT" + String.format("%03d", internshipCounter++);

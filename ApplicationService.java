@@ -1,17 +1,35 @@
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service class for managing internship applications.
+ * Handles application submission, approval, rejection, and withdrawal processes.
+ */
 public class ApplicationService {
     private final IApplicationRepository applicationRepository;
     private final IInternshipRepository internshipRepository;
     private final IUserRepository userRepository;
 
+    /**
+     * Constructs an ApplicationService with the necessary repositories.
+     *
+     * @param applicationRepository the application repository
+     * @param internshipRepository the internship repository
+     * @param userRepository the user repository
+     */
     public ApplicationService(IApplicationRepository applicationRepository, IInternshipRepository internshipRepository, IUserRepository userRepository) {
         this.applicationRepository = applicationRepository;
         this.internshipRepository = internshipRepository;
         this.userRepository = userRepository;
     }
 
+    /**
+     * Allows a student to apply for an internship opportunity.
+     *
+     * @param studentId the ID of the student
+     * @param opportunityId the ID of the internship opportunity
+     * @return true if application was successful, false otherwise
+     */
     public boolean applyForInternship(String studentId, String opportunityId) {
         User user = userRepository.getUserById(studentId);
         if (!user.isStudent()) return false;
@@ -30,12 +48,12 @@ public class ApplicationService {
             .anyMatch(a -> a.getApplicant().getUserID().equals(studentId) && a.getOpportunity().getOpportunityID().equals(opportunityId));
         if (alreadyApplied) return false;
 
-        // Determine if internship is already full -> place on waitlist
+        // All applications are accepted initially
         long confirmed = applicationRepository.getAllApplications().stream()
             .filter(a -> a.getOpportunity().getOpportunityID().equals(opportunityId) && "Confirmed".equals(a.getStatus()))
             .count();
 
-        String initialStatus = (confirmed >= opp.getMaxSlots()) ? "Queued" : "Pending";
+        String initialStatus = "Pending";
 
         Application app = new Application(
             applicationRepository.generateApplicationId(),
@@ -47,14 +65,24 @@ public class ApplicationService {
         return true;
     }
 
+    /**
+     * Approves an application, changing its status to Accepted.
+     *
+     * @param applicationId the ID of the application
+     */
     public void approveApplication(String applicationId) {
         Application app = applicationRepository.getApplicationById(applicationId);
         if (app != null) {
-            app.updateStatus("Successful");
+            app.updateStatus("Accepted");
             applicationRepository.saveApplications();
         }
     }
 
+    /**
+     * Rejects an application, changing its status to Unsuccessful.
+     *
+     * @param applicationId the ID of the application
+     */
     public void rejectApplication(String applicationId) {
         Application app = applicationRepository.getApplicationById(applicationId);
         if (app != null) {
@@ -63,6 +91,11 @@ public class ApplicationService {
         }
     }
 
+    /**
+     * Accepts an internship offer, confirming the application and withdrawing others.
+     *
+     * @param applicationId the ID of the application
+     */
     public void acceptInternship(String applicationId) {
         Application app = applicationRepository.getApplicationById(applicationId);
         if (app != null && app.getStatus().equals("Successful")) {
@@ -88,6 +121,11 @@ public class ApplicationService {
         }
     }
 
+    /**
+     * Requests withdrawal from an application.
+     *
+     * @param applicationId the ID of the application
+     */
     public void requestWithdrawal(String applicationId) {
         Application app = applicationRepository.getApplicationById(applicationId);
         if (app != null) {
@@ -96,6 +134,11 @@ public class ApplicationService {
         }
     }
 
+    /**
+     * Approves a withdrawal request, changing status to Withdrawn.
+     *
+     * @param applicationId the ID of the application
+     */
     public void approveWithdrawal(String applicationId) {
         Application app = applicationRepository.getApplicationById(applicationId);
         if (app != null) {
@@ -108,37 +151,71 @@ public class ApplicationService {
         }
     }
 
-    // Helper accessors for UI logic
+    /**
+     * Gets all applications for a specific student.
+     *
+     * @param studentId the ID of the student
+     * @return list of applications
+     */
     public java.util.List<Application> getAllApplicationsForStudent(String studentId) {
         return applicationRepository.getAllApplications().stream()
             .filter(a -> a.getApplicant().getUserID().equals(studentId))
             .collect(java.util.stream.Collectors.toList());
     }
 
+    /**
+     * Gets all applications for a specific internship opportunity.
+     *
+     * @param opportunityId the ID of the opportunity
+     * @return list of applications
+     */
     public java.util.List<Application> getAllApplicationsForInternship(String opportunityId) {
         return applicationRepository.getAllApplications().stream()
             .filter(a -> a.getOpportunity().getOpportunityID().equals(opportunityId))
             .collect(java.util.stream.Collectors.toList());
     }
 
+    /**
+     * Gets applications for a specific student.
+     *
+     * @param studentId the ID of the student
+     * @return list of applications
+     */
     public List<Application> getApplicationsForStudent(String studentId) {
         return applicationRepository.getAllApplications().stream()
             .filter(a -> a.getApplicant().getUserID().equals(studentId))
             .collect(Collectors.toList());
     }
 
+    /**
+     * Gets applications for internships created by a company representative.
+     *
+     * @param repId the ID of the company representative
+     * @return list of applications
+     */
     public List<Application> getApplicationsForCompanyRep(String repId) {
         return applicationRepository.getAllApplications().stream()
             .filter(a -> a.getOpportunity().getCreatedBy().getUserID().equals(repId))
             .collect(Collectors.toList());
     }
 
+    /**
+     * Gets applications for a specific internship opportunity.
+     *
+     * @param opportunityId the ID of the opportunity
+     * @return list of applications
+     */
     public List<Application> getApplicationsForInternship(String opportunityId) {
         return applicationRepository.getAllApplications().stream()
             .filter(a -> a.getOpportunity().getOpportunityID().equals(opportunityId))
             .collect(Collectors.toList());
     }
 
+    /**
+     * Gets the application repository.
+     *
+     * @return the application repository
+     */
     public IApplicationRepository getApplicationRepository() {
         return applicationRepository;
     }

@@ -36,6 +36,23 @@
 
 ---
 
+### v3.0.2: Code Cleanup - Removed Unused queuedDate Field
+
+**Changes**:
+
+- Removed `queuedDate` field from `Application.java` as it's no longer used after switching to waitlist system
+- Updated `CsvApplicationRepository.java` to no longer parse/save queuedDate column
+- Updated UML diagram in `docs/UML.md`
+
+**Files Modified**:
+
+- `Application.java`
+- `CsvApplicationRepository.java`
+- `docs/UML.md`
+- `docs/CHANGELOG.md`
+
+---
+
 ### v3.0.0: Advanced Waitlist Management System
 
 **Problem**: The previous queuing system lacked transparency and control. Company representatives couldn't manage waitlists effectively, batch approvals didn't respect max slots, and there was no manual ordering capability.

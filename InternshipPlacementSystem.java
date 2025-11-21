@@ -1,24 +1,32 @@
 import java.util.Scanner;
 
+/**
+ * Main system class for the internship placement application.
+ * Manages user authentication, registration, and menu navigation.
+ */
 public class InternshipPlacementSystem {
     private final Scanner scanner = new Scanner(System.in);
     private User currentUser = null;
     private IUserRepository userRepository;
     private IInternshipRepository internshipRepository;
     private IApplicationRepository applicationRepository;
-    private IWaitlistManager waitlistManager;
+
     private UserService userService;
     private InternshipService internshipService;
     private ApplicationService applicationService;
 
-
-    
+    /**
+     * Constructs the InternshipPlacementSystem and initializes repositories and services.
+     */
     public InternshipPlacementSystem() {
         // Initialize repositories with proper dependency injection
         initializeRepositories();
         initializeServices();
     }
 
+    /**
+     * Initializes the repositories with proper dependency injection.
+     */
     private void initializeRepositories() {
         // Initialize repositories in dependency order to avoid circular dependencies
 
@@ -36,27 +44,28 @@ public class InternshipPlacementSystem {
         ((CsvUserRepository) this.userRepository).setApplicationRepository(applicationRepository);
     }
 
+    /**
+     * Initializes the services with the repositories.
+     */
     private void initializeServices() {
         this.userService = new UserService(userRepository, internshipRepository, applicationRepository);
         this.internshipService = new InternshipService(internshipRepository, userRepository);
         this.applicationService = new ApplicationService(applicationRepository, internshipRepository, userRepository);
-        this.waitlistManager = new WaitlistManager(applicationRepository, internshipRepository);
-        
-        // Inject waitlistManager into company representatives and staff
-        for (User user : userRepository.getAllUsers()) {
-            if (user.isCompanyRepresentative()) {
-                user.asCompanyRepresentative().setWaitlistManager(waitlistManager);
-            } else if (user.isCareerCenterStaff()) {
-                user.asCareerCenterStaff().setWaitlistManager(waitlistManager);
-            }
-        }
     }
 
+    /**
+     * Main entry point of the application.
+     *
+     * @param args command line arguments
+     */
     public static void main(String[] args) {
         UIHelper.printWelcomeBanner();
         new InternshipPlacementSystem().run();
     }
 
+    /**
+     * Runs the main application loop.
+     */
     private void run() {
         while (true) {
             if (currentUser == null) {
@@ -71,10 +80,18 @@ public class InternshipPlacementSystem {
         }
     }
 
+    /**
+     * Gets the menu handler for the current user.
+     *
+     * @return the menu handler
+     */
     private IMenuHandler getMenuHandler() {
         return currentUser.createMenuHandler(internshipService, applicationService, userService, scanner);
     }
 
+    /**
+     * Displays the main menu for login and registration.
+     */
     private void showMainMenu() {
         UIHelper.printMainMenu();
         try {
@@ -92,15 +109,15 @@ public class InternshipPlacementSystem {
                     applicationRepository.saveApplications();
                     System.exit(0);
                     break;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
-            }
-        } catch (Exception e) {
-            System.out.println("Error reading input. Please try again.");
-        }
-    }
-    
-    private void showRegistrationMenu() {
+                 default:
+                     UIHelper.printErrorMessage("Invalid choice. Please try again.");
+             }
+         } catch (Exception e) {
+             UIHelper.printErrorMessage("Error reading input. Please try again.");
+         }
+     }
+
+     private void showRegistrationMenu() {
         UIHelper.printRegistrationMenu();
         try {
             String choice = scanner.nextLine().trim();
@@ -117,12 +134,12 @@ public class InternshipPlacementSystem {
                 case "4":
                     // Back to main menu - do nothing, loop continues
                     break;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
-            }
-        } catch (Exception e) {
-            System.out.println("Error reading input. Please try again.");
-        }
+                 default:
+                     UIHelper.printErrorMessage("Invalid choice. Please try again.");
+             }
+         } catch (Exception e) {
+             UIHelper.printErrorMessage("Error reading input. Please try again.");
+         }
     }
 
     private void login() {
@@ -164,7 +181,13 @@ public class InternshipPlacementSystem {
             UIHelper.printSectionHeader("STUDENT REGISTRATION");
             System.out.print("Enter User ID: ");
             String userID = scanner.nextLine().trim();
-            
+
+            // Validate User ID format for students
+            if (!isValidStudentUserId(userID)) {
+                System.out.println("Invalid User ID format. Student IDs must start with 'U', followed by 7 digits, and end with a letter (e.g., U2345123F).");
+                return;
+            }
+
             // Check for duplicate User ID immediately
             if (!userService.isUserIdAvailable(userID, false)) {
                 System.out.println("User ID already exists. Registration cancelled.");
@@ -177,14 +200,34 @@ public class InternshipPlacementSystem {
             String password = scanner.nextLine().trim();
             System.out.print("Enter Year of Study (1-4): ");
             int yearOfStudy = Integer.parseInt(scanner.nextLine().trim());
-            System.out.println("Enter Major:");
-            System.out.println("  - Computer Science");
-            System.out.println("  - Computer Engineering");
-            System.out.println("  - Data Science & AI");
-            System.out.println("  - Information Engineering & Media");
-            System.out.println("  - Biomedical Engineering");
-            System.out.print("Major: ");
-            String major = scanner.nextLine().trim();
+            System.out.println("Select Major:");
+            System.out.println("1. Computer Science");
+            System.out.println("2. Computer Engineering");
+            System.out.println("3. Data Science & AI");
+            System.out.println("4. Information Engineering & Media");
+            System.out.println("5. Biomedical Engineering");
+            System.out.print("Enter number or Major: ");
+            String majorInput = scanner.nextLine().trim();
+            String major = null;
+            try {
+                int num = Integer.parseInt(majorInput);
+                switch (num) {
+                    case 1: major = "Computer Science"; break;
+                    case 2: major = "Computer Engineering"; break;
+                    case 3: major = "Data Science & AI"; break;
+                    case 4: major = "Information Engineering & Media"; break;
+                    case 5: major = "Biomedical Engineering"; break;
+                    default: major = null;
+                }
+            } catch (NumberFormatException e) {
+                if (majorInput.equals("Computer Science") || majorInput.equals("Computer Engineering") || majorInput.equals("Data Science & AI") || majorInput.equals("Information Engineering & Media") || majorInput.equals("Biomedical Engineering")) {
+                    major = majorInput;
+                }
+            }
+            if (major == null) {
+                System.out.println("Invalid major. Registration cancelled.");
+                return;
+            }
             System.out.print("Enter GPA (0.0-5.0): ");
             double gpa = Double.parseDouble(scanner.nextLine().trim());
 
@@ -260,5 +303,15 @@ public class InternshipPlacementSystem {
         } catch (Exception e) {
             System.out.println("Error during registration. Please try again.");
         }
+    }
+
+    private boolean isValidStudentUserId(String userId) {
+        if (userId == null || userId.length() != 9) return false;
+        if (!userId.startsWith("U")) return false;
+        for (int i = 1; i <= 7; i++) {
+            if (!Character.isDigit(userId.charAt(i))) return false;
+        }
+        char lastChar = userId.charAt(8);
+        return Character.isLetter(lastChar) && Character.isUpperCase(lastChar);
     }
 }

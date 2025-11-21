@@ -304,7 +304,6 @@ classDiagram
         -InternshipOpportunity opportunity
         -String status
         -Date appliedDate
-        -Date queuedDate
         -boolean manuallyWithdrawn
         -String previousStatus
         +Application(applicationID: String, applicant: Student, opportunity: InternshipOpportunity, status: String)
@@ -315,8 +314,6 @@ classDiagram
         +getOpportunity(): InternshipOpportunity
         +getStatus(): String
         +getAppliedDate(): Date
-        +getQueuedDate(): Date
-        +setQueuedDate(date: Date): void
         +isManuallyWithdrawn(): boolean
         +setManuallyWithdrawn(withdrawn: boolean): void
         +getPreviousStatus(): String

@@ -5,6 +5,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * CSV-based repository implementation for managing applications.
+ * Loads and saves application data to/from a CSV file.
+ */
 public class CsvApplicationRepository implements IApplicationRepository {
     private static final List<Application> applications = new ArrayList<>();
     private static int applicationCounter = 1;
@@ -12,13 +16,23 @@ public class CsvApplicationRepository implements IApplicationRepository {
     private IInternshipRepository internshipRepository;
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
 
+    /**
+     * Constructs a CsvApplicationRepository.
+     *
+     * @param userRepository the user repository
+     * @param internshipRepository the internship repository
+     */
     public CsvApplicationRepository(IUserRepository userRepository, IInternshipRepository internshipRepository) {
         this.userRepository = userRepository;
         this.internshipRepository = internshipRepository;
         loadApplications();
     }
 
-    // Method to set user repository after construction and load data
+    /**
+     * Sets the user repository and loads applications if possible.
+     *
+     * @param userRepository the user repository
+     */
     public void setUserRepository(IUserRepository userRepository) {
         this.userRepository = userRepository;
         if (internshipRepository != null && applications.isEmpty()) {
@@ -26,7 +40,11 @@ public class CsvApplicationRepository implements IApplicationRepository {
         }
     }
 
-    // Method to set internship repository after construction
+    /**
+     * Sets the internship repository and loads applications if possible.
+     *
+     * @param internshipRepository the internship repository
+     */
     public void setInternshipRepository(IInternshipRepository internshipRepository) {
         this.internshipRepository = internshipRepository;
         if (userRepository != null && applications.isEmpty()) {
@@ -34,6 +52,9 @@ public class CsvApplicationRepository implements IApplicationRepository {
         }
     }
 
+    /**
+     * Loads applications from the CSV file.
+     */
     private void loadApplications() {
         try {
             File file = new File("data/applications.csv");
@@ -53,19 +74,14 @@ public class CsvApplicationRepository implements IApplicationRepository {
                         Date appliedDate = dateFormat.parse(parts[4].trim());
                         boolean manuallyWithdrawn = parts.length > 5 ? Boolean.parseBoolean(parts[5].trim()) : false;
                         String previousStatus = (parts.length > 6 && !parts[6].trim().isEmpty()) ? parts[6].trim() : null;
-                        Date queuedDate = null;
-                        if (parts.length > 7 && !parts[7].trim().isEmpty()) {
-                            queuedDate = dateFormat.parse(parts[7].trim());
-                        }
-                        
+
                         User student = userRepository.getUserById(studentId);
                         InternshipOpportunity internship = internshipRepository.getInternshipById(opportunityId);
-                        
+
                         if (student.isStudent() && internship != null) {
                             Application app = new Application(appId, student.asStudent(), internship, status, appliedDate);
                             app.setManuallyWithdrawn(manuallyWithdrawn);
                             app.setPreviousStatus(previousStatus);
-                            app.setQueuedDate(queuedDate);
                             applications.add(app);
                             
                             // Update counter
@@ -85,31 +101,49 @@ public class CsvApplicationRepository implements IApplicationRepository {
         }
     }
 
+    /**
+     * Gets all applications.
+     *
+     * @return list of all applications
+     */
     @Override
     public List<Application> getAllApplications() {
         return new ArrayList<>(applications);
     }
 
+    /**
+     * Gets an application by ID.
+     *
+     * @param applicationId the application ID
+     * @return the application or null if not found
+     */
     @Override
     public Application getApplicationById(String applicationId) {
-        return applications.stream().filter(a -> a.getApplicationID().equals(applicationId)).findFirst().orElse(null);
+        return applications.stream().filter(a -> a.getApplicationID().equalsIgnoreCase(applicationId)).findFirst().orElse(null);
     }
 
+    /**
+     * Adds a new application.
+     *
+     * @param application the application to add
+     */
     @Override
     public void addApplication(Application application) {
         applications.add(application);
         saveApplications();
     }
 
+    /**
+     * Saves all applications to the CSV file.
+     */
     @Override
     public void saveApplications() {
         try (PrintWriter writer = new PrintWriter(new FileWriter("data/applications.csv"))) {
-            writer.println("ApplicationID,StudentID,OpportunityID,Status,AppliedDate,ManuallyWithdrawn,PreviousStatus,QueuedDate");
+            writer.println("ApplicationID,StudentID,OpportunityID,Status,AppliedDate,ManuallyWithdrawn,PreviousStatus");
             for (Application app : applications) {
                 // Format date consistently for parsing
                 String formattedDate = app.getAppliedDate().toString();
                 String prevStatus = (app.getPreviousStatus() != null) ? app.getPreviousStatus() : "";
-                String queuedDateStr = (app.getQueuedDate() != null) ? app.getQueuedDate().toString() : "";
                 writer.println(
                     app.getApplicationID() + "," +
                     app.getApplicant().getUserID() + "," +
@@ -117,8 +151,7 @@ public class CsvApplicationRepository implements IApplicationRepository {
                     app.getStatus() + "," +
                     formattedDate + "," +
                     app.isManuallyWithdrawn() + "," +
-                    prevStatus + "," +
-                    queuedDateStr
+                    prevStatus
                 );
             }
             writer.flush();
@@ -128,8 +161,15 @@ public class CsvApplicationRepository implements IApplicationRepository {
         }
     }
 
+    /**
+     * Generates a new unique application ID.
+     *
+     * @return the generated ID
+     */
     @Override
     public String generateApplicationId() {
         return "APP" + String.format("%03d", applicationCounter++);
     }
+
+
 }

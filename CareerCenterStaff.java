@@ -2,13 +2,24 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Represents a career center staff member who manages company representatives,
+ * internship opportunities, and applications.
+ */
 public class CareerCenterStaff extends User {
     private final String staffDepartment;
     private final IUserRepository userRepository;
     private IInternshipRepository internshipRepository;
     private IApplicationRepository applicationRepository;
-    private IWaitlistManager waitlistManager;
 
+    /**
+     * Constructs a CareerCenterStaff without repositories (for basic use).
+     *
+     * @param userID the user ID
+     * @param name the name
+     * @param password the password
+     * @param staffDepartment the department
+     */
     public CareerCenterStaff(String userID, String name, String password, String staffDepartment) {
         super(userID, name, password);
         this.staffDepartment = staffDepartment;
@@ -17,6 +28,17 @@ public class CareerCenterStaff extends User {
         this.applicationRepository = null;
     }
 
+    /**
+     * Constructs a CareerCenterStaff with repositories.
+     *
+     * @param userID the user ID
+     * @param name the name
+     * @param password the password
+     * @param staffDepartment the department
+     * @param userRepository the user repository
+     * @param internshipRepository the internship repository
+     * @param applicationRepository the application repository
+     */
     public CareerCenterStaff(String userID, String name, String password, String staffDepartment,
                            IUserRepository userRepository, IInternshipRepository internshipRepository,
                            IApplicationRepository applicationRepository) {
@@ -27,7 +49,18 @@ public class CareerCenterStaff extends User {
         this.applicationRepository = applicationRepository;
     }
 
-    // Constructor with hash and salt for secure password storage
+    /**
+     * Constructs a CareerCenterStaff with hashed password and repositories.
+     *
+     * @param userID the user ID
+     * @param name the name
+     * @param passwordHash the hashed password
+     * @param salt the salt for password
+     * @param staffDepartment the department
+     * @param userRepository the user repository
+     * @param internshipRepository the internship repository
+     * @param applicationRepository the application repository
+     */
     public CareerCenterStaff(String userID, String name, String passwordHash, String salt, String staffDepartment,
                            IUserRepository userRepository, IInternshipRepository internshipRepository,
                            IApplicationRepository applicationRepository) {
@@ -36,21 +69,32 @@ public class CareerCenterStaff extends User {
         this.userRepository = userRepository;
         this.internshipRepository = internshipRepository;
         this.applicationRepository = applicationRepository;
-        this.waitlistManager = null; // Set via setter if needed
+
     }
-    
-    public void setWaitlistManager(IWaitlistManager waitlistManager) {
-        this.waitlistManager = waitlistManager;
-    }
-    
+
+    /**
+     * Sets the internship repository.
+     *
+     * @param internshipRepository the internship repository
+     */
     public void setInternshipRepository(IInternshipRepository internshipRepository) {
         this.internshipRepository = internshipRepository;
     }
-    
+
+    /**
+     * Sets the application repository.
+     *
+     * @param applicationRepository the application repository
+     */
     public void setApplicationRepository(IApplicationRepository applicationRepository) {
         this.applicationRepository = applicationRepository;
     }
 
+    /**
+     * Gets the list of pending company representatives awaiting approval.
+     *
+     * @return list of pending company representatives
+     */
     public List<CompanyRepresentative> getPendingCompanyReps() {
         List<CompanyRepresentative> pendingReps = new ArrayList<>();
         // Prefer repository if available for SOLID compliance
@@ -66,6 +110,13 @@ public class CareerCenterStaff extends User {
         return pendingReps;
     }
 
+    /**
+     * Processes a company representative's approval or rejection.
+     *
+     * @param repID the representative ID
+     * @param approve true to approve, false to reject
+     * @return true if processed successfully
+     */
     public boolean processCompanyRep(String repID, boolean approve) {
         User user = userRepository.getUserById(repID);
         if (user.isCompanyRepresentative()) {
@@ -85,6 +136,11 @@ public class CareerCenterStaff extends User {
         return false;
     }
 
+    /**
+     * Gets the list of pending internship opportunities.
+     *
+     * @return list of pending internships
+     */
     public List<InternshipOpportunity> getPendingInternships() {
         List<InternshipOpportunity> pendingInternships = new ArrayList<>();
         for (InternshipOpportunity opp : internshipRepository.getAllInternships()) {
@@ -95,6 +151,13 @@ public class CareerCenterStaff extends User {
         return pendingInternships;
     }
 
+    /**
+     * Processes an internship opportunity's approval or rejection.
+     *
+     * @param opportunityID the opportunity ID
+     * @param approve true to approve, false to reject
+     * @return true if processed successfully
+     */
     public boolean processInternship(String opportunityID, boolean approve) {
         InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
         if (opportunity != null && opportunity.getStatus().equals("Pending")) {
@@ -110,6 +173,11 @@ public class CareerCenterStaff extends User {
         return false;
     }
 
+    /**
+     * Gets the list of withdrawal requests.
+     *
+     * @return list of applications with withdrawal requests
+     */
     public List<Application> getWithdrawalRequests() {
         List<Application> withdrawalRequests = new ArrayList<>();
         List<Application> allApplications = applicationRepository.getAllApplications();
@@ -121,6 +189,13 @@ public class CareerCenterStaff extends User {
         return withdrawalRequests;
     }
 
+    /**
+     * Processes a withdrawal request.
+     *
+     * @param applicationID the application ID
+     * @param approve true to approve, false to reject
+     * @return true if processed successfully
+     */
     public boolean processWithdrawal(String applicationID, boolean approve) {
         Application application = applicationRepository.getApplicationById(applicationID);
         if (application == null || !application.getStatus().equals("Withdrawal Requested")) {
@@ -130,7 +205,7 @@ public class CareerCenterStaff extends User {
         if (approve) {
             String previousStatus = application.getPreviousStatus();
             
-            // If previous status was Confirmed or Successful, free a slot and process waitlist
+            // If previous status was Confirmed or Accepted, free a slot
             // Both statuses count toward slot limits, so withdrawal should trigger promotion
             if ("Confirmed".equals(previousStatus) || "Successful".equals(previousStatus)) {
                 application.updateStatus("Withdrawn");
@@ -140,25 +215,14 @@ public class CareerCenterStaff extends User {
                 for (Application app : applicationRepository.getAllApplications()) {
                     if (app.getApplicant().getUserID().equals(student.getUserID()) &&
                         !app.getApplicationID().equals(applicationID) &&
-                        (app.getStatus().equals("Pending") || 
-                         app.getStatus().equals("Successful") ||
-                         app.getStatus().equals("Waitlisted"))) {
+                        (app.getStatus().equals("Pending") ||
+                         app.getStatus().equals("Successful"))) {
                         app.updateStatus("Withdrawn");
                     }
                 }
                 
                 // Get the internship opportunity
                 InternshipOpportunity internship = application.getOpportunity();
-                
-                // Auto-promote from waitlist if available
-                if (waitlistManager != null) {
-                    Application promoted = waitlistManager.promoteNextFromWaitlist(internship.getOpportunityID());
-                    if (promoted != null) {
-                        System.out.println("[AUTO-PROMOTION] Application " + promoted.getApplicationID() + 
-                                         " for student " + promoted.getApplicant().getName() + 
-                                         " has been automatically promoted from waitlist to Successful status.");
-                    }
-                }
                 
                 applicationRepository.saveApplications();
                 return true;
@@ -177,6 +241,12 @@ public class CareerCenterStaff extends User {
         }
     }
 
+    /**
+     * Generates a report based on filters.
+     *
+     * @param filters the filters to apply
+     * @return the generated report
+     */
     public Report generateReports(Map<String, String> filters) {
         List<InternshipOpportunity> filteredOpportunities = new ArrayList<>();
         
@@ -206,10 +276,24 @@ public class CareerCenterStaff extends User {
         return new Report(filteredOpportunities, filters);
     }
 
+    /**
+     * Gets the staff department.
+     *
+     * @return the department
+     */
     public String getStaffDepartment() {
         return staffDepartment;
     }
 
+    /**
+     * Creates a menu handler for this staff member.
+     *
+     * @param internshipService the internship service
+     * @param applicationService the application service
+     * @param userService the user service
+     * @param scanner the scanner for input
+     * @return the menu handler
+     */
     @Override
     public IMenuHandler createMenuHandler(
         InternshipService internshipService,
@@ -220,9 +304,19 @@ public class CareerCenterStaff extends User {
         return new CareerStaffMenuHandler(this, userService, internshipService, applicationService, scanner);
     }
 
+    /**
+     * Checks if this user is a career center staff.
+     *
+     * @return true
+     */
     @Override
     public boolean isCareerCenterStaff() { return true; }
-    
+
+    /**
+     * Casts this user to CareerCenterStaff.
+     *
+     * @return this instance
+     */
     @Override
     public CareerCenterStaff asCareerCenterStaff() { return this; }
 }

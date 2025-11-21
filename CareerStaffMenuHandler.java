@@ -2,6 +2,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
+/**
+ * Menu handler for career center staff operations.
+ * Provides interface for processing company reps, internships, withdrawals, and reports.
+ */
 public class CareerStaffMenuHandler implements IMenuHandler {
     private final CareerCenterStaff staff;
     private final UserService userService;
@@ -10,6 +14,15 @@ public class CareerStaffMenuHandler implements IMenuHandler {
     private final Scanner scanner;
     private final FilterManager filterManager;
 
+    /**
+     * Constructs a CareerStaffMenuHandler.
+     *
+     * @param staff the career center staff
+     * @param userService the user service
+     * @param internshipService the internship service
+     * @param applicationService the application service
+     * @param scanner the scanner for input
+     */
     public CareerStaffMenuHandler(CareerCenterStaff staff, UserService userService, InternshipService internshipService, ApplicationService applicationService, Scanner scanner) {
         this.staff = staff;
         this.userService = userService;
@@ -19,6 +32,9 @@ public class CareerStaffMenuHandler implements IMenuHandler {
         this.filterManager = new FilterManager(scanner);
     }
 
+    /**
+     * Displays the menu and handles user choices.
+     */
     @Override
     public void showMenu() {
         UIHelper.printCareerStaffMenu();
@@ -32,35 +48,39 @@ public class CareerStaffMenuHandler implements IMenuHandler {
         System.out.println("8. Logout");
         System.out.print("\nEnter your choice: ");
 
-        String choice = scanner.nextLine();
+        try {
+            String choice = scanner.nextLine();
 
-        switch (choice) {
-            case "1":
-                processCompanyReps();
-                break;
-            case "2":
-                processInternships();
-                break;
-            case "3":
-                processWithdrawals();
-                break;
-            case "4":
-                viewAllInternshipsFiltered();
-                break;
-            case "5":
-                filterManager.manageFilters();
-                break;
-            case "6":
-                generateReports();
-                break;
-            case "7":
-                changePassword();
-                break;
-            case "8":
-                logout();
-                break;
-            default:
-                UIHelper.printErrorMessage("Invalid choice. Please try again.");
+            switch (choice) {
+                case "1":
+                    processCompanyReps();
+                    break;
+                case "2":
+                    processInternships();
+                    break;
+                case "3":
+                    processWithdrawals();
+                    break;
+                case "4":
+                    viewAllInternshipsFiltered();
+                    break;
+                case "5":
+                    filterManager.manageFilters();
+                    break;
+                case "6":
+                    generateReports();
+                    break;
+                case "7":
+                    changePassword();
+                    break;
+                case "8":
+                    logout();
+                    break;
+                default:
+                    UIHelper.printErrorMessage("Invalid choice. Please try again.");
+            }
+        } catch (Exception e) {
+            UIHelper.printErrorMessage("Error reading input. Please try again.");
         }
     }
 
@@ -149,8 +169,9 @@ public class CareerStaffMenuHandler implements IMenuHandler {
 
         // Display all pending internships
         System.out.println("\nPending Internships:");
+        int index = 1;
         for (InternshipOpportunity opp : pendingInternships) {
-            System.out.println("\n" + "=".repeat(50));
+            System.out.println("\n" + index + ". " + "=".repeat(50));
             System.out.println("ID: " + opp.getOpportunityID());
             System.out.println("Title: " + opp.getTitle());
             System.out.println("Description: " + opp.getDescription());
@@ -163,9 +184,10 @@ public class CareerStaffMenuHandler implements IMenuHandler {
             System.out.println("Opening Date: " + opp.getOpeningDate());
             System.out.println("Closing Date: " + opp.getClosingDate());
             System.out.println("=".repeat(50));
+            index++;
         }
 
-        System.out.print("\nEnter Internship ID(s) to process (space-separated for multiple, or 'cancel' to go back): ");
+        System.out.print("\nEnter Internship numbers or IDs (space-separated, e.g., 1 2 or INT001 INT002) or 'cancel' to go back: ");
         String input = scanner.nextLine().trim();
 
         if (input.equalsIgnoreCase("cancel")) {
@@ -174,58 +196,69 @@ public class CareerStaffMenuHandler implements IMenuHandler {
         }
 
         if (input.isEmpty()) {
-            UIHelper.printErrorMessage("Internship ID cannot be empty.");
+            UIHelper.printErrorMessage("Input cannot be empty.");
             return;
         }
 
-        // Split by spaces for mass processing
-        String[] internshipIDs = input.split("\\s+");
-
-        System.out.print("Decision (approve/reject): ");
-        String decision = scanner.nextLine().trim().toLowerCase();
-
-        if (!decision.equals("approve") && !decision.equals("reject")) {
-            UIHelper.printErrorMessage("Invalid decision. Please enter 'approve' or 'reject'.");
-            return;
-        }
-
-        boolean isApprove = decision.equals("approve");
+        String[] inputs = input.split("\\s+");
         int successCount = 0;
         int failCount = 0;
 
-        for (String internshipID : internshipIDs) {
-            internshipID = internshipID.trim();
+        for (String inp : inputs) {
+            inp = inp.trim();
+            String internshipID = null;
+            try {
+                int num = Integer.parseInt(inp);
+                if (num >= 1 && num <= pendingInternships.size()) {
+                    internshipID = pendingInternships.get(num - 1).getOpportunityID();
+                } else {
+                    System.out.println("[SKIP] " + inp + ": Invalid number");
+                    failCount++;
+                    continue;
+                }
+            } catch (NumberFormatException e) {
+                // treat as ID
+                internshipID = inp;
+            }
 
             // Verify internship exists in pending list
             boolean found = false;
             for (InternshipOpportunity opp : pendingInternships) {
-                if (opp.getOpportunityID().equals(internshipID)) {
+                if (opp.getOpportunityID().equalsIgnoreCase(internshipID)) {
                     found = true;
                     break;
                 }
             }
 
             if (!found) {
-                System.out.println("Skipping " + internshipID + ": Invalid ID or not pending.");
+                System.out.println("[SKIP] " + internshipID + ": Invalid ID or not pending.");
                 failCount++;
                 continue;
             }
 
-            // Use service layer to process internship
+            System.out.print("Decision for " + internshipID + " (approve/reject): ");
+            String decision = scanner.nextLine().trim().toLowerCase();
+
+            if (!decision.equals("approve") && !decision.equals("a") && !decision.equals("reject") && !decision.equals("r")) {
+                UIHelper.printErrorMessage("Invalid decision. Please enter 'approve'/'a' or 'reject'/'r'.");
+                failCount++;
+                continue;
+            }
+
+            boolean isApprove = decision.equals("approve") || decision.equals("a");
+
             if (isApprove) {
                 internshipService.approveInternship(internshipID);
-                System.out.println(internshipID + ": Approved and set to visible");
-                successCount++;
+                System.out.println("[APPROVED] " + internshipID + ": Internship approved and published.");
             } else {
                 internshipService.rejectInternship(internshipID);
-                System.out.println(internshipID + ": Internship proposal rejected.");
-                successCount++;
+                System.out.println("[REJECTED] " + internshipID + ": Internship rejected.");
             }
+
+            successCount++;
         }
 
-        System.out.println("\n" + "=".repeat(50));
-        System.out.println("Processing complete: " + successCount + " succeeded, " + failCount + " failed.");
-        System.out.println("=".repeat(50));
+
     }
 
     private void processWithdrawals() {
@@ -240,8 +273,9 @@ public class CareerStaffMenuHandler implements IMenuHandler {
 
         // Display all withdrawal requests
         System.out.println("\nWithdrawal Requests:");
+        int index = 1;
         for (Application app : withdrawalRequests) {
-            System.out.println("\n" + "=".repeat(50));
+            System.out.println("\n" + index + ". " + "=".repeat(50));
             System.out.println("Application ID: " + app.getApplicationID());
             System.out.println("Student: " + app.getApplicant().getName());
             System.out.println("Student ID: " + app.getApplicant().getUserID());
@@ -249,25 +283,72 @@ public class CareerStaffMenuHandler implements IMenuHandler {
             System.out.println("Company: " + app.getOpportunity().getCreatedBy().getCompanyName());
             System.out.println("Applied Date: " + app.getAppliedDate());
             System.out.println("=".repeat(50));
+            index++;
         }
 
-        System.out.print("\nEnter Application ID to process (or 'cancel' to go back): ");
-        String applicationID = scanner.nextLine().trim();
+        System.out.print("\nEnter number or Application ID (e.g., 1 or APP001) or 'cancel' to go back: ");
+        String input = scanner.nextLine().trim();
 
-        if (applicationID.equalsIgnoreCase("cancel")) {
+        if (input.equalsIgnoreCase("cancel")) {
             UIHelper.printWarningMessage("Operation cancelled.");
             return;
         }
 
-        if (applicationID.isEmpty()) {
-            UIHelper.printErrorMessage("Application ID cannot be empty.");
+        if (input.isEmpty()) {
+            UIHelper.printErrorMessage("Input cannot be empty.");
             return;
         }
+
+    Application selectedApp = null;
+    try {
+        int num = Integer.parseInt(input);
+        if (num >= 1 && num <= withdrawalRequests.size()) {
+            selectedApp = withdrawalRequests.get(num - 1);
+        } else {
+            UIHelper.printErrorMessage("Invalid number.");
+            return;
+        }
+    } catch (NumberFormatException e) {
+        // treat as ID
+        selectedApp = withdrawalRequests.stream()
+            .filter(a -> a.getApplicationID().equalsIgnoreCase(input))
+            .findFirst()
+            .orElse(null);
+    }
+
+    if (selectedApp == null) {
+        UIHelper.printErrorMessage("Invalid application selection.");
+        return;
+    }
+
+    String applicationID = selectedApp.getApplicationID();
+
+        System.out.print("Decision for " + applicationID + " (approve/reject): ");
+        String decision = scanner.nextLine().trim().toLowerCase();
+
+        if (!decision.equals("approve") && !decision.equals("a") && !decision.equals("reject") && !decision.equals("r")) {
+            UIHelper.printErrorMessage("Invalid decision. Please enter 'approve'/'a' or 'reject'/'r'.");
+            return;
+        }
+
+        boolean isApprove = decision.equals("approve") || decision.equals("a");
+
+        if (isApprove) {
+            staff.processWithdrawal(applicationID, true);
+            System.out.println("[APPROVED] " + applicationID + ": Withdrawal approved.");
+        } else {
+            staff.processWithdrawal(applicationID, false);
+            System.out.println("[REJECTED] " + applicationID + ": Withdrawal rejected.");
+        }
+
+
+
+
 
         // Verify application exists in withdrawal requests list
         boolean found = false;
         for (Application app : withdrawalRequests) {
-            if (app.getApplicationID().equals(applicationID)) {
+            if (app.getApplicationID().equalsIgnoreCase(applicationID)) {
                 found = true;
                 break;
             }
@@ -278,24 +359,7 @@ public class CareerStaffMenuHandler implements IMenuHandler {
             return;
         }
 
-        System.out.print("Decision (approve/reject): ");
-        String decision = scanner.nextLine().trim().toLowerCase();
 
-        if (decision.equals("approve")) {
-            if (staff.processWithdrawal(applicationID, true)) {
-                UIHelper.printSuccessMessage("Withdrawal request approved. Application status changed to Withdrawn.");
-            } else {
-                UIHelper.printErrorMessage("Failed to approve withdrawal.");
-            }
-        } else if (decision.equals("reject")) {
-            if (staff.processWithdrawal(applicationID, false)) {
-                UIHelper.printWarningMessage("Withdrawal request rejected. Application status reverted to Confirmed.");
-            } else {
-                UIHelper.printErrorMessage("Failed to reject withdrawal.");
-            }
-        } else {
-            UIHelper.printErrorMessage("Invalid decision. Please enter 'approve' or 'reject'.");
-        }
     }
 
     private void viewAllInternshipsFiltered() {

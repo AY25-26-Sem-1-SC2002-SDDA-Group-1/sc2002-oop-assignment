@@ -1,14 +1,31 @@
+/**
+ * Service class for managing user operations like login and registration.
+ */
 public class UserService {
     private final IUserRepository userRepository;
     private final IInternshipRepository internshipRepository;
     private final IApplicationRepository applicationRepository;
 
+    /**
+     * Constructs a UserService.
+     *
+     * @param userRepository the user repository
+     * @param internshipRepository the internship repository
+     * @param applicationRepository the application repository
+     */
     public UserService(IUserRepository userRepository, IInternshipRepository internshipRepository, IApplicationRepository applicationRepository) {
         this.userRepository = userRepository;
         this.internshipRepository = internshipRepository;
         this.applicationRepository = applicationRepository;
     }
 
+    /**
+     * Logs in a user with the given credentials.
+     *
+     * @param userId the user ID
+     * @param password the password
+     * @return the User if login successful, null otherwise
+     */
     public User login(String userId, String password) {
         User user = userRepository.getUserById(userId);
         if (user != null && user.login(password)) {
@@ -17,6 +34,17 @@ public class UserService {
         return null;
     }
 
+    /**
+     * Registers a new student.
+     *
+     * @param userId the user ID
+     * @param name the name
+     * @param password the password
+     * @param yearOfStudy the year of study
+     * @param major the major
+     * @param gpa the GPA
+     * @return true if registration successful
+     */
     public boolean registerStudent(String userId, String name, String password, int yearOfStudy, String major, double gpa) {
         // Input validation
         if (!isValidUserId(userId)) return false;
@@ -33,6 +61,15 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Registers a new career center staff member.
+     *
+     * @param userId the user ID
+     * @param name the name
+     * @param password the password
+     * @param department the department
+     * @return true if registration successful
+     */
     public boolean registerStaff(String userId, String name, String password, String department) {
         // Input validation
         if (!isValidUserId(userId)) return false;
@@ -47,6 +84,18 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Registers a new company representative.
+     *
+     * @param userId the user ID
+     * @param name the name
+     * @param password the password
+     * @param company the company name
+     * @param department the department
+     * @param position the position
+     * @param email the email
+     * @return true if registration successful
+     */
     public boolean registerCompanyRep(String userId, String name, String password, String company, String department, String position, String email) {
         // Input validation
         if (!isValidUserId(userId)) return false;
@@ -74,6 +123,11 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Approves a company representative.
+     *
+     * @param repId the representative ID
+     */
     public void approveCompanyRep(String repId) {
         User user = userRepository.getUserById(repId);
         if (user.isCompanyRepresentative()) {
@@ -82,10 +136,22 @@ public class UserService {
         }
     }
 
+    /**
+     * Gets the user repository.
+     *
+     * @return the user repository
+     */
     public IUserRepository getUserRepository() {
         return userRepository;
     }
 
+    /**
+     * Checks if a user ID is available for registration.
+     *
+     * @param userId the user ID
+     * @param allowRejectedCompanyRep whether to allow reuse of rejected company rep IDs
+     * @return true if available
+     */
     public boolean isUserIdAvailable(String userId, boolean allowRejectedCompanyRep) {
         User existing = userRepository.getUserById(userId);
         if (existing == null) return true;

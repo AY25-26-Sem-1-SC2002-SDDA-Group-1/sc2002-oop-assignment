@@ -1,20 +1,41 @@
+/**
+ * Manages filtering and sorting settings for internship listings.
+ */
 public class FilterManager {
     private final FilterSettings filterSettings;
     private final java.util.Scanner scanner;
 
+    /**
+     * Constructs a FilterManager.
+     *
+     * @param scanner the scanner for input
+     */
     public FilterManager(java.util.Scanner scanner) {
         this.filterSettings = new FilterSettings();
         this.scanner = scanner;
     }
 
+    /**
+     * Gets the filter settings.
+     *
+     * @return the filter settings
+     */
     public FilterSettings getFilterSettings() {
         return filterSettings;
     }
 
+    /**
+     * Checks if there are active filters.
+     *
+     * @return true if filters are active
+     */
     public boolean hasActiveFilters() {
         return filterSettings.hasActiveFilters();
     }
 
+    /**
+     * Displays the filter management menu and handles user input.
+     */
     public void manageFilters() {
         UIHelper.printSectionHeader("MANAGE FILTERS");
         System.out.println("Current Settings:");
@@ -22,8 +43,8 @@ public class FilterManager {
         System.out.println();
 
         System.out.println("1. Set Status Filter (Pending/Approved/Rejected)");
-        System.out.println("2. Set Level Filter (Undergraduate/Graduate/Both)");
-        System.out.println("3. Set Major Filter (CS/EEE/BM/All)");
+        System.out.println("2. Set Level Filter (Basic/Intermediate/Advanced/All)");
+        System.out.println("3. Set Major Filter (CS/EEE/BM/DS/IEM/All)");
         System.out.println("4. Change Sort By (Title/Company/Level/Closing)");
         System.out.println("5. Clear All Filters");
         System.out.println("6. Back to Main Menu");
@@ -38,12 +59,12 @@ public class FilterManager {
                 UIHelper.printSuccessMessage("Status filter updated!");
                 break;
             case "2":
-                System.out.print("Enter level (Undergraduate/Graduate/Both) or leave blank: ");
+                System.out.print("Enter level (Basic/Intermediate/Advanced/All) or leave blank: ");
                 filterSettings.setLevelFilter(scanner.nextLine().trim());
                 UIHelper.printSuccessMessage("Level filter updated!");
                 break;
             case "3":
-                System.out.print("Enter major (CS/EEE/BM/All) or leave blank: ");
+                System.out.print("Enter major (CS/EEE/BM/DS/IEM/All) or leave blank: ");
                 filterSettings.setMajorFilter(scanner.nextLine().trim());
                 UIHelper.printSuccessMessage("Major filter updated!");
                 break;

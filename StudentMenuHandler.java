@@ -3,6 +3,10 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
+/**
+ * Menu handler for student operations.
+ * Provides interface for viewing internships, applying, and managing applications.
+ */
 public class StudentMenuHandler implements IMenuHandler {
     private final Student student;
     private final InternshipService internshipService;
@@ -11,10 +15,27 @@ public class StudentMenuHandler implements IMenuHandler {
     private final Scanner scanner;
     private final FilterManager filterManager;
 
+    /**
+     * Constructs a StudentMenuHandler.
+     *
+     * @param student the student
+     * @param internshipService the internship service
+     * @param applicationService the application service
+     * @param scanner the scanner for input
+     */
     public StudentMenuHandler(Student student, InternshipService internshipService, ApplicationService applicationService, Scanner scanner) {
         this(student, internshipService, applicationService, null, scanner);
     }
 
+    /**
+     * Constructs a StudentMenuHandler with user service.
+     *
+     * @param student the student
+     * @param internshipService the internship service
+     * @param applicationService the application service
+     * @param userService the user service
+     * @param scanner the scanner for input
+     */
     public StudentMenuHandler(Student student, InternshipService internshipService, ApplicationService applicationService, UserService userService, Scanner scanner) {
         this.student = student;
         this.internshipService = internshipService;
@@ -24,6 +45,9 @@ public class StudentMenuHandler implements IMenuHandler {
         this.filterManager = new FilterManager(scanner);
     }
 
+    /**
+     * Displays the menu and handles user choices.
+     */
     @Override
     public void showMenu() {
         UIHelper.printStudentMenu();
@@ -38,38 +62,51 @@ public class StudentMenuHandler implements IMenuHandler {
         System.out.println("9. Logout");
         System.out.print("\nEnter your choice: ");
 
-        String choice = scanner.nextLine();
+        try {
+            String choice = scanner.nextLine();
 
-        switch (choice) {
-            case "1":
-                viewEligibleInternships();
-                break;
-            case "2":
-                applyForInternship();
-                break;
-            case "3":
-                viewMyApplications();
-                break;
-            case "4":
-                acceptInternship();
-                break;
-            case "5":
-                requestWithdrawal();
-                break;
-            case "6":
-                viewStudentStatistics();
-                break;
-            case "7":
-                filterManager.manageFilters();
-                break;
-            case "8":
-                changePassword();
-                break;
-            case "9":
-                logout();
-                break;
-            default:
-                UIHelper.printErrorMessage("Invalid choice. Please try again.");
+            switch (choice.toLowerCase()) {
+                case "1":
+                case "v":
+                    viewEligibleInternships();
+                    break;
+                case "2":
+                case "a":
+                    applyForInternship();
+                    break;
+                case "3":
+                case "m":
+                    viewMyApplications();
+                    break;
+                case "4":
+                case "c":
+                    acceptInternship();
+                    break;
+                case "5":
+                case "w":
+                    requestWithdrawal();
+                    break;
+                case "6":
+                case "s":
+                    viewStudentStatistics();
+                    break;
+                case "7":
+                case "f":
+                    filterManager.manageFilters();
+                    break;
+                case "8":
+                case "p":
+                    changePassword();
+                    break;
+                case "9":
+                case "l":
+                    logout();
+                    break;
+                default:
+                    UIHelper.printErrorMessage("Invalid choice. Please try again.");
+            }
+        } catch (Exception e) {
+            UIHelper.printErrorMessage("Error reading input. Please try again.");
         }
     }
 
@@ -83,7 +120,7 @@ public class StudentMenuHandler implements IMenuHandler {
 
         // Use InternshipService to get all internships
         List<InternshipOpportunity> internships = internshipService.getAllInternships().stream()
-            .filter(i -> i.isVisible() && i.getStatus().equals("Approved") && i.getPreferredMajor().equalsIgnoreCase(student.getMajor()) && student.getGpa() >= i.getMinGPA())
+            .filter(i -> i.isVisible() && i.getStatus().equals("Approved") && student.isEligibleForInternship(i))
             .collect(Collectors.toList());
         internships = filterManager.getFilterSettings().applyFilters(internships);
 
@@ -103,55 +140,67 @@ public class StudentMenuHandler implements IMenuHandler {
                 System.out.println("Slots: " + filledSlots + "/" + internship.getMaxSlots());
                 System.out.println("Opening Date: " + dateFormat.format(internship.getOpeningDate()));
                 System.out.println("Closing Date: " + dateFormat.format(internship.getClosingDate()));
-                if (!student.isEligibleForInternship(internship)) {
-                    System.out.println("Ineligible: " + student.getIneligibilityReason(internship));
-                }
                 System.out.println("-------------------");
             }
         }
     }
 
     private void applyForInternship() {
-        // Display eligible internships first
-        viewEligibleInternships();
+        UIHelper.printSectionHeader("APPLY FOR INTERNSHIP");
 
-        System.out.print("\nEnter Internship ID(s) (space-separated for multiple): ");
-        String input = scanner.nextLine().trim();
-        if (input.isEmpty()) {
-            System.out.println("Internship ID cannot be empty.");
+        // Get eligible internships
+        List<InternshipOpportunity> internships = internshipService.getAllInternships().stream()
+            .filter(i -> i.isVisible() && i.getStatus().equals("Approved") && student.isEligibleForInternship(i))
+            .collect(Collectors.toList());
+        internships = filterManager.getFilterSettings().applyFilters(internships);
+
+        if (internships.isEmpty()) {
+            System.out.println("No eligible internships found.");
             return;
         }
 
-        String[] internshipIDs = input.split("\\s+");
+        // Display eligible internships with numbers
+        System.out.println("\nEligible Internships:");
+        int index = 1;
+        for (InternshipOpportunity internship : internships) {
+            int filledSlots = applicationService.getApplicationsForInternship(internship.getOpportunityID()).stream()
+                .mapToInt(app -> "Confirmed".equals(app.getStatus()) ? 1 : 0).sum();
+            System.out.println(index + ". ID: " + internship.getOpportunityID() + " - " + internship.getTitle() + " (Filled: " + filledSlots + "/" + internship.getMaxSlots() + ")");
+            index++;
+        }
+
+        System.out.print("\nEnter Internship numbers or IDs (space-separated, e.g., 1 2 or INT001 INT002): ");
+        String input = scanner.nextLine().trim();
+        if (input.isEmpty()) {
+            System.out.println("Input cannot be empty.");
+            return;
+        }
+
+        String[] inputs = input.split("\\s+");
         int successCount = 0;
         int failCount = 0;
 
-        for (String internshipID : internshipIDs) {
-            internshipID = internshipID.trim();
+        for (String inp : inputs) {
+            inp = inp.trim();
+            String internshipID = null;
+            try {
+                int num = Integer.parseInt(inp);
+                if (num >= 1 && num <= internships.size()) {
+                    internshipID = internships.get(num - 1).getOpportunityID();
+                } else {
+                    System.out.println("[SKIP] " + inp + ": Invalid number");
+                    failCount++;
+                    continue;
+                }
+            } catch (NumberFormatException e) {
+                // treat as ID
+                internshipID = inp;
+            }
+
             boolean result = applicationService.applyForInternship(student.getUserID(), internshipID);
 
             if (result) {
-                // Determine final status to tailor message (Pending vs Queued)
-                InternshipOpportunity opp = internshipService.getInternship(internshipID);
-                String status = null;
-                for (Application app : applicationService
-                        .getAllApplicationsForStudent(student.getUserID())) {
-                    if (app.getOpportunity().getOpportunityID().equals(internshipID)) {
-                        status = app.getStatus();
-                    }
-                }
-                if ("Queued".equals(status)) {
-                    long confirmed = applicationService.getAllApplicationsForInternship(internshipID).stream()
-                        .filter(a -> "Confirmed".equals(a.getStatus()))
-                        .count();
-                    long queued = applicationService.getAllApplicationsForInternship(internshipID).stream()
-                        .filter(a -> "Queued".equals(a.getStatus()))
-                        .count();
-                    System.out.println("[WAITLISTED] " + internshipID + ": Internship is full (" + confirmed + "/" + opp.getMaxSlots() + ")");
-                    System.out.println("You have been added to the waitlist. Current waitlist size: " + queued + ".");
-                } else {
-                    System.out.println("[SUCCESS] " + internshipID + ": Application submitted successfully!");
-                }
+                System.out.println("[SUCCESS] " + internshipID + ": Application submitted successfully!");
                 successCount++;
             } else {
                 InternshipOpportunity opp = internshipService.getInternship(internshipID);

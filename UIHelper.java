@@ -1,5 +1,15 @@
+/**
+ * Utility class for UI-related helper methods.
+ * Provides static methods for displaying menus, messages, and banners.
+ */
 public class UIHelper {
-    
+    private UIHelper() {
+        // Utility class
+    }
+
+    /**
+     * Prints the welcome banner.
+     */
     public static void printWelcomeBanner() {
         System.out.println("╔═══════════════════════════════════════════════════════════════╗");
         System.out.println("║                                                               ║");
@@ -10,7 +20,10 @@ public class UIHelper {
         System.out.println("╚═══════════════════════════════════════════════════════════════╝");
         System.out.println();
     }
-    
+
+    /**
+     * Prints the main menu.
+     */
     public static void printMainMenu() {
         System.out.println("\n┌─────────────────────────────────────────────────────────────┐");
         System.out.println("│                         MAIN MENU                           │");
@@ -22,7 +35,10 @@ public class UIHelper {
         System.out.println();
         System.out.print(" Enter your choice: ");
     }
-    
+
+    /**
+     * Prints the registration menu.
+     */
     public static void printRegistrationMenu() {
         System.out.println("\n┌─────────────────────────────────────────────────────────────┐");
         System.out.println("│                    REGISTRATION MENU                        │");
@@ -35,7 +51,10 @@ public class UIHelper {
         System.out.println();
         System.out.print(" Enter your choice: ");
     }
-    
+
+    /**
+     * Prints the goodbye message.
+     */
     public static void printGoodbyeMessage() {
         System.out.println();
         System.out.println("  ╔═════════════════════════════════════════════════════════╗");
@@ -44,7 +63,10 @@ public class UIHelper {
         System.out.println("  ╚═════════════════════════════════════════════════════════╝");
         System.out.println();
     }
-    
+
+    /**
+     * Prints the login header.
+     */
     public static void printLoginHeader() {
         System.out.println();
         System.out.println("┌─────────────────────────────────────────────────────────────┐");
@@ -52,44 +74,75 @@ public class UIHelper {
         System.out.println("└─────────────────────────────────────────────────────────────┘");
         System.out.println();
     }
-    
+
+    /**
+     * Prints a success message.
+     *
+     * @param message the message to print
+     */
     public static void printSuccessMessage(String message) {
         System.out.println();
         System.out.println("  " + message);
         System.out.println();
     }
-    
+
+    /**
+     * Prints an error message.
+     *
+     * @param message the message to print
+     */
     public static void printErrorMessage(String message) {
         System.out.println();
         System.out.println("  " + message);
     }
-    
+
+    /**
+     * Prints a warning message.
+     *
+     * @param message the message to print
+     */
     public static void printWarningMessage(String message) {
         System.out.println();
         System.out.println("  " + message);
     }
-    
+
+    /**
+     * Prints a section header.
+     *
+     * @param title the title to print
+     */
     public static void printSectionHeader(String title) {
         System.out.println("\n=== " + title + " ===");
     }
-    
+
+    /**
+     * Prints a divider.
+     */
     public static void printDivider() {
         System.out.println("-------------------");
     }
 
-    // Additional menu headers
+    /**
+     * Prints the student menu header.
+     */
     public static void printStudentMenu() {
         System.out.println("\n╔═════════════════════════════════════════════╗");
         System.out.println("║          STUDENT MENU                       ║");
         System.out.println("╚═════════════════════════════════════════════╝");
     }
 
+    /**
+     * Prints the company representative menu header.
+     */
     public static void printCompanyRepMenu() {
         System.out.println("\n╔═════════════════════════════════════════════╗");
         System.out.println("║     COMPANY REPRESENTATIVE MENU             ║");
         System.out.println("╚═════════════════════════════════════════════╝");
     }
 
+    /**
+     * Prints the career center staff menu header.
+     */
     public static void printCareerStaffMenu() {
         System.out.println("\n╔═════════════════════════════════════════════╗");
         System.out.println("║       CAREER CENTER STAFF MENU              ║");
