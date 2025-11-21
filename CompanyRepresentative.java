@@ -207,11 +207,20 @@ public class CompanyRepresentative extends User {
             target.getStatus().equals("Pending")) {
 
             if (approve) {
+                // Check slot limit before approving
+                InternshipOpportunity opp = target.getOpportunity();
+                long filledSlots = applicationRepository.getAllApplications().stream()
+                    .filter(a -> a.getOpportunity().getOpportunityID().equals(opp.getOpportunityID()) &&
+                           (a.getStatus().equals("Successful") || a.getStatus().equals("Confirmed")))
+                    .count();
+                if (filledSlots >= opp.getMaxSlots()) {
+                    return false; // Cannot approve - slots are full
+                }
                 target.updateStatus("Successful");
             } else {
                 target.updateStatus("Unsuccessful");
             }
-            
+
             applicationRepository.saveApplications();
             internshipRepository.saveInternships();
             return true;

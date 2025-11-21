@@ -7,6 +7,7 @@ import java.util.Scanner;
 public class InternshipPlacementSystem {
     private final Scanner scanner = new Scanner(System.in);
     private User currentUser = null;
+    private IMenuHandler currentMenuHandler = null;
     private IUserRepository userRepository;
     private IInternshipRepository internshipRepository;
     private IApplicationRepository applicationRepository;
@@ -75,6 +76,7 @@ public class InternshipPlacementSystem {
                 // Check if user logged out
                 if (currentUser != null && !currentUser.isLoggedIn()) {
                     currentUser = null;
+                    currentMenuHandler = null; // Clear cached menu handler
                 }
             }
         }
@@ -86,7 +88,24 @@ public class InternshipPlacementSystem {
      * @return the menu handler
      */
     private IMenuHandler getMenuHandler() {
-        return currentUser.createMenuHandler(internshipService, applicationService, userService, scanner);
+        // Cache the menu handler to preserve state like filters
+        if (currentMenuHandler == null || !isCurrentMenuHandlerValid()) {
+            currentMenuHandler = currentUser.createMenuHandler(internshipService, applicationService, userService, scanner);
+        }
+        return currentMenuHandler;
+    }
+
+    /**
+     * Checks if the current menu handler is still valid for the current user.
+     *
+     * @return true if valid
+     */
+    private boolean isCurrentMenuHandlerValid() {
+        if (currentMenuHandler == null || currentUser == null) {
+            return false;
+        }
+        // For now, assume it's valid. Could add more sophisticated checks if needed.
+        return true;
     }
 
     /**

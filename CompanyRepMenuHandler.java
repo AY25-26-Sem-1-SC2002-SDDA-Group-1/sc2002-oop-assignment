@@ -617,7 +617,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             // Show available actions
             System.out.println("\nActions:");
             if (pendingCount > 0) {
-                System.out.println("1. Approve/Reject Applications (enter App IDs)");
+                System.out.println("1. Accept/Reject Applications (enter App IDs)");
             }
             System.out.println("0. Back");
 
@@ -644,11 +644,11 @@ public class CompanyRepMenuHandler implements IMenuHandler {
     
     private void processApplicationsBatch(InternshipOpportunity opp, List<Application> pendingApps) {
         System.out.println("\n" + "=".repeat(70));
-        System.out.println("APPROVE/REJECT APPLICATIONS");
+        System.out.println("ACCEPT/REJECT APPLICATIONS");
         System.out.println("=".repeat(70));
         System.out.println("Max Slots: " + opp.getMaxSlots());
-        System.out.println("\nNote: You can approve or reject multiple applications.");
-        System.out.println("      All selected applications will be processed.");
+        System.out.println("\nNote: You can accept or reject multiple applications.");
+        System.out.println("      Applications will be accepted up to the available slot limit.");
         
         System.out.print("\nEnter Application IDs or numbers (space-separated, e.g., 1 2 or APP001 APP002): ");
         String input = scanner.nextLine().trim();
@@ -699,36 +699,36 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 " | GPA: " + student.getGpa() + " | " + student.getMajor());
         }
         
-        System.out.print("\nDecision (approve/reject): ");
+        System.out.print("\nDecision (accept/reject): ");
         String decision = scanner.nextLine().trim().toLowerCase();
 
-        if (!decision.equals("approve") && !decision.equals("a") && !decision.equals("reject") && !decision.equals("r")) {
-            UIHelper.printErrorMessage("Invalid decision. Use 'approve'/'a' or 'reject'/'r'.");
+        if (!decision.equals("accept") && !decision.equals("a") && !decision.equals("reject") && !decision.equals("r")) {
+            UIHelper.printErrorMessage("Invalid decision. Use 'accept'/'a' or 'reject'/'r'.");
             return;
         }
 
-        boolean isApprove = decision.equals("approve") || decision.equals("a");
-        
-        // No slot limits - all selected applications will be processed
-        
+        boolean isAccept = decision.equals("accept") || decision.equals("a");
+
+        // Applications will be accepted up to the slot limit
+
         System.out.print("\nConfirm " + decision + " for " + validApps.size() + " application(s)? (yes/no): ");
         String confirm = scanner.nextLine().trim();
-        
+
         if (!confirm.equalsIgnoreCase("yes") && !confirm.equalsIgnoreCase("y")) {
             UIHelper.printWarningMessage("Operation cancelled.");
             return;
         }
-        
+
         // Process applications
         int successCount = 0;
 
-        
+
         for (int i = 0; i < validApps.size(); i++) {
             Application app = validApps.get(i);
-            boolean success = rep.processApplication(app.getApplicationID(), isApprove);
-            
+            boolean success = rep.processApplication(app.getApplicationID(), isAccept);
+
             if (success) {
-                if (isApprove) {
+                if (isAccept) {
                     System.out.println("[ACCEPTED] " + app.getApplicationID() + ": " + app.getApplicant().getName());
                     successCount++;
                 } else {
@@ -739,9 +739,9 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 System.out.println("[FAILED] " + app.getApplicationID() + ": Could not process");
             }
         }
-        
+
         System.out.println("\n" + "=".repeat(70));
-        if (isApprove) {
+        if (isAccept) {
             UIHelper.printSuccessMessage(successCount + " accepted");
         } else {
             UIHelper.printSuccessMessage(successCount + " rejected");
@@ -787,10 +787,31 @@ public class CompanyRepMenuHandler implements IMenuHandler {
     }
 
     private void viewAllInternshipsFiltered() {
-        System.out.println("\n=== VIEW ALL INTERNSHIPS ===");
-        List<InternshipOpportunity> internships = internshipService.getAllInternships();
-        for (InternshipOpportunity opp : internships) {
-            System.out.println(opp.getOpportunityID() + " - " + opp.getTitle() + " (" + opp.getStatus() + ")");
+        UIHelper.printSectionHeader("ALL INTERNSHIPS (FILTERED)");
+
+        if (filterManager.hasActiveFilters()) {
+            System.out.println(filterManager.getFilterSettings().toString());
+            System.out.println();
+        }
+
+        List<InternshipOpportunity> allInternships = internshipService.getAllInternships();
+        allInternships = filterManager.getFilterSettings().applyFilters(allInternships);
+
+        if (allInternships.isEmpty()) {
+            System.out.println("No internships match your filters.");
+        } else {
+            for (InternshipOpportunity internship : allInternships) {
+                System.out.println("ID: " + internship.getOpportunityID());
+                System.out.println("Title: " + internship.getTitle());
+                System.out.println("Company: " + internship.getCreatedBy().getCompanyName());
+                System.out.println("Level: " + internship.getLevel());
+                System.out.println("Preferred Major: " + internship.getPreferredMajor());
+                System.out.println("Min GPA: " + internship.getMinGPA());
+                System.out.println("Status: " + internship.getStatus());
+                System.out.println("Closing Date: " + internship.getClosingDate());
+                System.out.println("Visible: " + (internship.isVisible() ? "Yes" : "No"));
+                System.out.println("-------------------");
+            }
         }
         System.out.print("\nPress Enter to continue...");
         scanner.nextLine();
