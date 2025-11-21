@@ -6,6 +6,7 @@ public class InternshipPlacementSystem {
     private IUserRepository userRepository;
     private IInternshipRepository internshipRepository;
     private IApplicationRepository applicationRepository;
+    private IWaitlistManager waitlistManager;
     private UserService userService;
     private InternshipService internshipService;
     private ApplicationService applicationService;
@@ -39,6 +40,16 @@ public class InternshipPlacementSystem {
         this.userService = new UserService(userRepository, internshipRepository, applicationRepository);
         this.internshipService = new InternshipService(internshipRepository, userRepository);
         this.applicationService = new ApplicationService(applicationRepository, internshipRepository, userRepository);
+        this.waitlistManager = new WaitlistManager(applicationRepository, internshipRepository);
+        
+        // Inject waitlistManager into company representatives and staff
+        for (User user : userRepository.getAllUsers()) {
+            if (user.isCompanyRepresentative()) {
+                user.asCompanyRepresentative().setWaitlistManager(waitlistManager);
+            } else if (user.isCareerCenterStaff()) {
+                user.asCareerCenterStaff().setWaitlistManager(waitlistManager);
+            }
+        }
     }
 
     public static void main(String[] args) {

@@ -1,7 +1,6 @@
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Scanner;
 
 public class Student extends User {
     private final int yearOfStudy;
@@ -261,32 +260,17 @@ public class Student extends User {
             }
         }
         
-        // Check if internship is already full
-        int confirmedCount = 0;
-        for (Application app : applicationRepository.getAllApplications()) {
-            if (app.getOpportunity().getOpportunityID().equals(opportunity.getOpportunityID()) &&
-                app.getStatus().equals("Confirmed")) {
-                confirmedCount++;
-            }
-        }
+        // Check if internship is already full - count confirmed slots
+        long confirmedCount = applicationRepository.getAllApplications().stream()
+            .filter(app -> app.getOpportunity().getOpportunityID().equals(opportunity.getOpportunityID()))
+            .filter(app -> app.getStatus().equals("Confirmed"))
+            .count();
         
         if (confirmedCount >= opportunity.getMaxSlots()) {
-            // Inform user and request explicit confirmation before queuing
-            System.out.println("[INFO] The internship '" + opportunity.getTitle() + "' is currently full (" + confirmedCount + "/" + opportunity.getMaxSlots() + " slots filled).");
-            System.out.print("Proceed to join the queue? (Y/N): ");
-            Scanner confirmScanner = new Scanner(System.in);
-            String confirm = confirmScanner.nextLine().trim().toLowerCase();
-            // Do not close System.in backed scanner to avoid affecting other input operations
-            if (!(confirm.equals("y") || confirm.equals("yes"))) {
-                System.out.println("[CANCELLED] You chose not to join the queue. Your application remains in 'Successful' status.");
-                return;
-            }
-            // Add to waitlist queue upon confirmation
-            application.updateStatus("Queued");
-            System.out.println("[QUEUED] You have been added to the waitlist. You will be automatically confirmed if a slot becomes available.");
-            if (applicationRepository != null) {
-                applicationRepository.saveApplications();
-            }
+            System.out.println("[BLOCKED] Cannot accept this internship.");
+            System.out.println("Reason: The internship '" + opportunity.getTitle() + "' is already full (" + confirmedCount + "/" + opportunity.getMaxSlots() + " slots filled).");
+            System.out.println("Your application remains in 'Successful' status. You are on the waitlist.");
+            System.out.println("You will be automatically notified and promoted if a slot becomes available.");
             return;
         }
         

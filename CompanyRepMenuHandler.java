@@ -1,5 +1,6 @@
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
@@ -444,95 +445,305 @@ public class CompanyRepMenuHandler implements IMenuHandler {
     }
 
     private void processApplications() {
-        UIHelper.printSectionHeader("PROCESS APPLICATIONS");
-
-        List<Application> pendingApplications = rep.getPendingApplications();
-
-        if (pendingApplications.isEmpty()) {
-            UIHelper.printWarningMessage("No applications to process.");
+        while (true) {
+            UIHelper.printSectionHeader("PROCESS APPLICATIONS & MANAGE WAITLIST");
+            
+            // Get rep's internships
+            List<InternshipOpportunity> myInternships = new ArrayList<>();
+            for (InternshipOpportunity opp : internshipService.getAllInternships()) {
+                if (opp.getCreatedBy().getUserID().equals(rep.getUserID()) &&
+                    opp.getStatus().equals("Approved")) {
+                    myInternships.add(opp);
+                }
+            }
+            
+            if (myInternships.isEmpty()) {
+                UIHelper.printWarningMessage("You have no approved internships.");
+                return;
+            }
+            
+            // Display internships with slot status
+            System.out.println("\nYour Internships:");
+            for (InternshipOpportunity opp : myInternships) {
+                // Count both Confirmed and Successful as filled slots
+                long filledSlots = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
+                    .filter(app -> app.getStatus().equals("Confirmed") || app.getStatus().equals("Successful"))
+                    .count();
+                long pendingCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
+                    .filter(app -> app.getStatus().equals("Pending"))
+                    .count();
+                int waitlistSize = rep.viewWaitlist(opp.getOpportunityID()).size();
+                
+                System.out.println("[" + opp.getOpportunityID() + "] " + opp.getTitle());
+                System.out.println("   Slots: " + filledSlots + "/" + opp.getMaxSlots() + " filled" +
+                    (filledSlots >= opp.getMaxSlots() ? " [FULL]" : " [" + (opp.getMaxSlots() - filledSlots) + " available]"));
+                System.out.println("   Pending: " + pendingCount + " | Waitlist: " + waitlistSize);
+            }
+            
+            System.out.print("\nEnter Internship ID (e.g., INT001) or 'back' to return: ");
+            String internshipId = scanner.nextLine().trim();
+            
+            if (internshipId.equalsIgnoreCase("back")) {
+                return;
+            }
+            
+            // Find internship by ID
+            InternshipOpportunity selectedOpp = myInternships.stream()
+                .filter(opp -> opp.getOpportunityID().equalsIgnoreCase(internshipId))
+                .findFirst()
+                .orElse(null);
+            
+            if (selectedOpp == null) {
+                UIHelper.printErrorMessage("Invalid internship ID. Please enter a valid ID like INT001.");
+                continue;
+            }
+            
+            manageInternshipApplications(selectedOpp);
+        }
+    }
+    
+    private void manageInternshipApplications(InternshipOpportunity opp) {
+        while (true) {
+            System.out.println("\n" + "=".repeat(70));
+            System.out.println("Managing: " + opp.getTitle());
+            System.out.println("=".repeat(70));
+            
+            // Get counts - note: Confirmed = accepted by student, Successful = approved but not accepted
+            long confirmedCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
+                .filter(app -> app.getStatus().equals("Confirmed"))
+                .count();
+            long successfulCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
+                .filter(app -> app.getStatus().equals("Successful"))
+                .count();
+            long pendingCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
+                .filter(app -> app.getStatus().equals("Pending"))
+                .count();
+            int waitlistSize = rep.viewWaitlist(opp.getOpportunityID()).size();
+            // Available slots = max - (confirmed + successful)
+            long filledSlots = confirmedCount + successfulCount;
+            int availableSlots = (int)(opp.getMaxSlots() - filledSlots);
+            
+            System.out.println("Slots: " + filledSlots + "/" + opp.getMaxSlots() + 
+                " (" + confirmedCount + " confirmed, " + successfulCount + " awaiting acceptance)" +
+                (filledSlots >= opp.getMaxSlots() ? " [FULL]" : " [" + availableSlots + " available]"));
+            System.out.println("Pending: " + pendingCount + " | Waitlist: " + waitlistSize);
+            
+            // Show pending applications
+            List<Application> pendingApps = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
+                .filter(app -> app.getStatus().equals("Pending"))
+                .toList();
+            
+            if (!pendingApps.isEmpty()) {
+                System.out.println("\n" + "-".repeat(70));
+                System.out.println("PENDING APPLICATIONS");
+                System.out.println("-".repeat(70));
+                for (Application app : pendingApps) {
+                    Student student = app.getApplicant();
+                    System.out.println("[" + app.getApplicationID() + "] " + student.getName() + 
+                        " | GPA: " + student.getGpa() + " | " + student.getMajor() + " (Year " + student.getYearOfStudy() + ")");
+                }
+                System.out.println("-".repeat(70));
+            }
+            
+            // Show waitlist if not empty
+            List<WaitlistEntry> waitlist = rep.viewWaitlist(opp.getOpportunityID());
+            if (!waitlist.isEmpty()) {
+                System.out.println("\nWaitlist (in priority order):");
+                for (int i = 0; i < Math.min(3, waitlist.size()); i++) {
+                    WaitlistEntry entry = waitlist.get(i);
+                    System.out.println((i + 1) + ". " + entry.getStudentProfileSummary());
+                }
+                if (waitlist.size() > 3) {
+                    System.out.println("   ... and " + (waitlist.size() - 3) + " more");
+                }
+            }
+            
+            // Show available actions
+            System.out.println("\nActions:");
+            if (pendingCount > 0) {
+                System.out.println("1. Approve/Reject Applications (enter App IDs)");
+            }
+            if (waitlistSize > 0) {
+                System.out.println("2. Manage Waitlist (reorder/promote)");
+            }
+            System.out.println("0. Back");
+            
+            System.out.print("\nChoose action: ");
+            String choice = scanner.nextLine().trim();
+            
+            if (choice.equals("0")) {
+                return;
+            }
+            
+            switch (choice) {
+                case "1":
+                    if (pendingCount > 0) {
+                        processApplicationsBatch(opp, pendingApps, availableSlots);
+                    } else {
+                        UIHelper.printErrorMessage("No pending applications.");
+                    }
+                    break;
+                case "2":
+                    if (waitlistSize > 0) {
+                        manageWaitlistActions(opp, waitlist, availableSlots);
+                    } else {
+                        UIHelper.printErrorMessage("No waitlist to manage.");
+                    }
+                    break;
+                default:
+                    UIHelper.printErrorMessage("Invalid choice.");
+            }
+        }
+    }
+    
+    private void processApplicationsBatch(InternshipOpportunity opp, List<Application> pendingApps, int availableSlots) {
+        System.out.println("\n" + "=".repeat(70));
+        System.out.println("APPROVE/REJECT APPLICATIONS");
+        System.out.println("=".repeat(70));
+        System.out.println("Available Slots: " + availableSlots + " of " + opp.getMaxSlots());
+        System.out.println("\nNote: You can approve multiple applications.");
+        System.out.println("      If slots run out, additional approvals will be waitlisted.");
+        
+        System.out.print("\nEnter Application IDs (space-separated, e.g., APP001 APP002): ");
+        String input = scanner.nextLine().trim();
+        
+        if (input.isEmpty()) {
+            UIHelper.printWarningMessage("No application IDs entered.");
             return;
         }
-
-        // Display all pending applications
-        System.out.println("\nPending Applications:");
-        for (Application app : pendingApplications) {
-            System.out.println("\n" + "=".repeat(50));
-            System.out.println("Application ID: " + app.getApplicationID());
-            System.out.println("Student Name: " + app.getApplicant().getName());
-            System.out.println("Student ID: " + app.getApplicant().getUserID());
-            System.out.println("Student Year: Year " + app.getApplicant().getYearOfStudy());
-            System.out.println("Student Major: " + app.getApplicant().getMajor());
-            System.out.println("Student GPA: " + app.getApplicant().getGpa());
-            System.out.println("Internship: " + app.getOpportunity().getTitle());
-            System.out.println("Applied Date: " + app.getAppliedDate());
-            System.out.println("=".repeat(50));
+        
+        String[] appIds = input.split("\\s+");
+        
+        // Validate all IDs exist and are pending
+        List<Application> validApps = new ArrayList<>();
+        for (String appId : appIds) {
+            Application app = pendingApps.stream()
+                .filter(a -> a.getApplicationID().equalsIgnoreCase(appId.trim()))
+                .findFirst()
+                .orElse(null);
+            
+            if (app == null) {
+                System.out.println("[SKIP] " + appId + ": Not found or not pending");
+            } else {
+                validApps.add(app);
+            }
         }
-
-        // Process applications (space-separated for batch processing)
-        System.out.print("\nEnter Application ID(s) to process (space-separated for multiple, or 'cancel' to go back): ");
-        String input = scanner.nextLine().trim();
-
-        if (input.equalsIgnoreCase("cancel")) {
+        
+        if (validApps.isEmpty()) {
+            UIHelper.printErrorMessage("No valid application IDs found.");
+            return;
+        }
+        
+        // Show summary
+        System.out.println("\nApplications to process:");
+        for (Application app : validApps) {
+            Student student = app.getApplicant();
+            System.out.println("  [" + app.getApplicationID() + "] " + student.getName() + 
+                " | GPA: " + student.getGpa() + " | " + student.getMajor());
+        }
+        
+        System.out.print("\nDecision (approve/reject): ");
+        String decision = scanner.nextLine().trim().toLowerCase();
+        
+        if (!decision.equals("approve") && !decision.equals("reject")) {
+            UIHelper.printErrorMessage("Invalid decision. Use 'approve' or 'reject'.");
+            return;
+        }
+        
+        boolean isApprove = decision.equals("approve");
+        
+        // Warn if approving more than available slots
+        if (isApprove && validApps.size() > availableSlots) {
+            System.out.println("\n[WARNING] You selected " + validApps.size() + " applications but only " + availableSlots + " slots available.");
+            System.out.println("          First " + availableSlots + " will be approved, remaining " + (validApps.size() - availableSlots) + " will be WAITLISTED.");
+        }
+        
+        System.out.print("\nConfirm " + decision + " for " + validApps.size() + " application(s)? (yes/no): ");
+        String confirm = scanner.nextLine().trim();
+        
+        if (!confirm.equalsIgnoreCase("yes") && !confirm.equalsIgnoreCase("y")) {
             UIHelper.printWarningMessage("Operation cancelled.");
             return;
         }
-
-        if (input.isEmpty()) {
-            UIHelper.printErrorMessage("Application ID cannot be empty.");
-            return;
-        }
-
-        // Get decision first
-        System.out.print("Decision for all selected applications (approve/reject): ");
-        String decision = scanner.nextLine().trim().toLowerCase();
-
-        if (!decision.equals("approve") && !decision.equals("reject")) {
-            UIHelper.printErrorMessage("Invalid decision. Please enter 'approve' or 'reject'.");
-            return;
-        }
-
-        // Process each application ID
-        String[] applicationIDs = input.split("\\s+");
+        
+        // Process applications
         int successCount = 0;
-        int failCount = 0;
-
-        for (String applicationID : applicationIDs) {
-            applicationID = applicationID.trim();
-            if (applicationID.isEmpty()) continue;
-
-            // Verify the application exists in pending list
-            boolean found = false;
-            for (Application app : pendingApplications) {
-                if (app.getApplicationID().equals(applicationID)) {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                System.out.println("Skipped " + applicationID + ": Invalid or not pending");
-                failCount++;
-                continue;
-            }
-
-            boolean success;
-            if (decision.equals("approve")) {
-                success = rep.processApplication(applicationID, true);
-            } else {
-                success = rep.processApplication(applicationID, false);
-            }
-
+        int waitlistedCount = 0;
+        
+        for (int i = 0; i < validApps.size(); i++) {
+            Application app = validApps.get(i);
+            boolean success = rep.processApplication(app.getApplicationID(), isApprove);
+            
             if (success) {
-                successCount++;
+                if (isApprove) {
+                    // Check if it was waitlisted (happens when slots full)
+                    if (app.getStatus().equals("Waitlisted")) {
+                        System.out.println("[WAITLIST] " + app.getApplicationID() + ": " + app.getApplicant().getName());
+                        waitlistedCount++;
+                    } else {
+                        System.out.println("[APPROVED] " + app.getApplicationID() + ": " + app.getApplicant().getName());
+                        successCount++;
+                    }
+                } else {
+                    System.out.println("[REJECTED] " + app.getApplicationID() + ": " + app.getApplicant().getName());
+                    successCount++;
+                }
             } else {
-                System.out.println("Failed to process: " + applicationID);
-                failCount++;
+                System.out.println("[FAILED] " + app.getApplicationID() + ": Could not process");
             }
         }
-
-        System.out.println("\n" + "=".repeat(50));
-        System.out.println("Processing complete: " + successCount + " succeeded, " + failCount + " failed");
-        System.out.println("=".repeat(50));
+        
+        System.out.println("\n" + "=".repeat(70));
+        if (isApprove) {
+            UIHelper.printSuccessMessage(successCount + " approved" + 
+                (waitlistedCount > 0 ? ", " + waitlistedCount + " waitlisted" : ""));
+        } else {
+            UIHelper.printSuccessMessage(successCount + " rejected");
+        }
+        System.out.println("=".repeat(70));
+        
+        System.out.print("\nPress Enter to continue...");
+        scanner.nextLine();
+    }
+    
+    private void manageWaitlistActions(InternshipOpportunity opp, List<WaitlistEntry> waitlist, int availableSlots) {
+        System.out.println("\n" + "=".repeat(70));
+        System.out.println("Waitlist Management - " + opp.getTitle());
+        System.out.println("=".repeat(70));
+        System.out.println("Available Slots: " + availableSlots);
+        System.out.println("\nWaitlist (in priority order):");
+        for (int i = 0; i < waitlist.size(); i++) {
+            WaitlistEntry entry = waitlist.get(i);
+            System.out.println((i + 1) + ". " + entry.getStudentProfileSummary());
+            System.out.println("   App ID: " + entry.getApplicationId());
+        }
+        
+        System.out.println("\nActions:");
+        System.out.println("1. Reorder Waitlist");
+        if (availableSlots > 0) {
+            System.out.println("2. Promote Student (" + availableSlots + " slots available)");
+        }
+        System.out.println("0. Back");
+        
+        System.out.print("\nChoose action: ");
+        String choice = scanner.nextLine().trim();
+        
+        switch (choice) {
+            case "1":
+                reorderWaitlistAction(opp.getOpportunityID(), waitlist);
+                break;
+            case "2":
+                if (availableSlots > 0) {
+                    promoteFromWaitlistAction(opp.getOpportunityID(), waitlist);
+                } else {
+                    UIHelper.printErrorMessage("No slots available for promotion.");
+                }
+                break;
+            case "0":
+                return;
+            default:
+                UIHelper.printErrorMessage("Invalid choice.");
+        }
     }
 
     private void toggleVisibility() {
@@ -690,5 +901,64 @@ public class CompanyRepMenuHandler implements IMenuHandler {
     private void logout() {
         System.out.println("Logging out...");
         rep.logout();
+    }
+    
+    private void reorderWaitlistAction(String opportunityId, List<WaitlistEntry> waitlist) {
+        System.out.print("Enter application position to move (1-" + waitlist.size() + "): ");
+        try {
+            int oldPos = Integer.parseInt(scanner.nextLine()) - 1;
+            if (oldPos < 0 || oldPos >= waitlist.size()) {
+                UIHelper.printErrorMessage("Invalid position.");
+                return;
+            }
+            
+            System.out.print("Enter new position (1-" + waitlist.size() + "): ");
+            int newPos = Integer.parseInt(scanner.nextLine()) - 1;
+            if (newPos < 0 || newPos >= waitlist.size()) {
+                UIHelper.printErrorMessage("Invalid position.");
+                return;
+            }
+            
+            String appId = waitlist.get(oldPos).getApplicationId();
+            boolean success = rep.reorderWaitlist(opportunityId, appId, newPos);
+            
+            if (success) {
+                UIHelper.printSuccessMessage("Waitlist reordered successfully!");
+            } else {
+                UIHelper.printErrorMessage("Failed to reorder waitlist.");
+            }
+            
+        } catch (NumberFormatException e) {
+            UIHelper.printErrorMessage("Invalid input.");
+        }
+    }
+    
+    private void promoteFromWaitlistAction(String opportunityId, List<WaitlistEntry> waitlist) {
+        System.out.print("Enter position to promote (1-" + waitlist.size() + "), or 0 for automatic (first in line): ");
+        try {
+            int pos = Integer.parseInt(scanner.nextLine());
+            
+            if (pos == 0) {
+                boolean success = rep.promoteFromWaitlist(opportunityId, waitlist.get(0).getApplicationId());
+                if (success) {
+                    UIHelper.printSuccessMessage("Application promoted successfully!");
+                } else {
+                    UIHelper.printErrorMessage("Failed to promote application.");
+                }
+            } else if (pos > 0 && pos <= waitlist.size()) {
+                String appId = waitlist.get(pos - 1).getApplicationId();
+                boolean success = rep.promoteFromWaitlist(opportunityId, appId);
+                if (success) {
+                    UIHelper.printSuccessMessage("Application promoted successfully!");
+                } else {
+                    UIHelper.printErrorMessage("Failed to promote application.");
+                }
+            } else {
+                UIHelper.printErrorMessage("Invalid position.");
+            }
+            
+        } catch (NumberFormatException e) {
+            UIHelper.printErrorMessage("Invalid input.");
+        }
     }
 }

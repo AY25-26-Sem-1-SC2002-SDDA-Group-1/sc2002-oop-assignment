@@ -1,6 +1,8 @@
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CompanyRepresentative extends User {
     private final String companyName;
@@ -13,6 +15,7 @@ public class CompanyRepresentative extends User {
     // Repositories for data access
     private IInternshipRepository internshipRepository;
     private IApplicationRepository applicationRepository;
+    private IWaitlistManager waitlistManager;
 
     public CompanyRepresentative(String userID, String name, String password,
                                 String companyName, String department, String position, String email,
@@ -35,6 +38,10 @@ public class CompanyRepresentative extends User {
 
     public void setApplicationRepository(IApplicationRepository applicationRepository) {
         this.applicationRepository = applicationRepository;
+    }
+    
+    public void setWaitlistManager(IWaitlistManager waitlistManager) {
+        this.waitlistManager = waitlistManager;
     }
 
     // Constructor with hash and salt for secure password storage
@@ -129,11 +136,167 @@ public class CompanyRepresentative extends User {
         if (target != null &&
             target.getOpportunity().getCreatedBy().getUserID().equals(this.userID) &&
             target.getStatus().equals("Pending")) {
-            target.updateStatus(approve ? "Successful" : "Unsuccessful");
+            
+            if (approve) {
+                // Check if internship already has confirmed OR approved (successful) students at max slots
+                InternshipOpportunity opportunity = target.getOpportunity();
+                long filledSlots = applicationRepository.getAllApplications().stream()
+                    .filter(app -> app.getOpportunity().getOpportunityID().equals(opportunity.getOpportunityID()))
+                    .filter(app -> app.getStatus().equals("Confirmed") || app.getStatus().equals("Successful"))
+                    .count();
+                
+                if (filledSlots >= opportunity.getMaxSlots()) {
+                    // Add to waitlist instead of approving directly
+                    target.updateStatus("Successful");
+                    if (waitlistManager != null) {
+                        waitlistManager.addToWaitlist(opportunity.getOpportunityID(), target);
+                    }
+                } else {
+                    target.updateStatus("Successful");
+                }
+            } else {
+                target.updateStatus("Unsuccessful");
+            }
+            
             applicationRepository.saveApplications();
             internshipRepository.saveInternships();
             return true;
         }
+        return false;
+    }
+    
+    /**
+     * Batch approve applications with slot limit enforcement.
+     * Only approves up to available slots, rest are added to waitlist.
+     */
+    public int batchApproveApplications(List<String> applicationIds) {
+        if (applicationIds == null || applicationIds.isEmpty()) {
+            return 0;
+        }
+        
+        // Group applications by internship to enforce slot limits per internship
+        Map<String, List<Application>> appsByInternship = new HashMap<>();
+        
+        for (String appId : applicationIds) {
+            Application app = applicationRepository.getApplicationById(appId);
+            if (app != null && 
+                app.getStatus().equals("Pending") &&
+                app.getOpportunity().getCreatedBy().getUserID().equals(this.userID)) {
+                
+                String oppId = app.getOpportunity().getOpportunityID();
+                appsByInternship.computeIfAbsent(oppId, k -> new ArrayList<>()).add(app);
+            }
+        }
+        
+        int approvedCount = 0;
+        int waitlistedCount = 0;
+        
+        // Process each internship separately
+        for (Map.Entry<String, List<Application>> entry : appsByInternship.entrySet()) {
+            String oppId = entry.getKey();
+            List<Application> apps = entry.getValue();
+            InternshipOpportunity opportunity = internshipRepository.getInternshipById(oppId);
+            
+            if (opportunity == null) continue;
+            
+            // Count current confirmed AND successful (approved) applications
+            long filledSlots = applicationRepository.getAllApplications().stream()
+                .filter(app -> app.getOpportunity().getOpportunityID().equals(oppId))
+                .filter(app -> app.getStatus().equals("Confirmed") || app.getStatus().equals("Successful"))
+                .count();
+            
+            int availableSlots = (int)(opportunity.getMaxSlots() - filledSlots);
+            
+            // Approve up to available slots, waitlist the rest
+            for (int i = 0; i < apps.size(); i++) {
+                Application app = apps.get(i);
+                if (i < availableSlots) {
+                    // Directly approve
+                    app.updateStatus("Successful");
+                    approvedCount++;
+                } else {
+                    // Add to waitlist (this will set status to "Waitlisted")
+                    if (waitlistManager != null) {
+                        waitlistManager.addToWaitlist(oppId, app);
+                        waitlistedCount++;
+                    }
+                }
+            }
+        }
+        
+        applicationRepository.saveApplications();
+        System.out.println("Batch approval complete: " + approvedCount + " approved, " + waitlistedCount + " added to waitlist.");
+        return approvedCount + waitlistedCount;
+    }
+    
+    /**
+     * View waitlist for a specific internship
+     */
+    public List<WaitlistEntry> viewWaitlist(String opportunityID) {
+        if (waitlistManager == null) {
+            return new ArrayList<>();
+        }
+        
+        InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
+        if (opportunity == null || !opportunity.getCreatedBy().getUserID().equals(this.userID)) {
+            return new ArrayList<>();
+        }
+        
+        return waitlistManager.getWaitlist(opportunityID);
+    }
+    
+    /**
+     * Reorder waitlist by moving an application to a new position
+     */
+    public boolean reorderWaitlist(String opportunityID, String applicationID, int newPosition) {
+        if (waitlistManager == null) {
+            return false;
+        }
+        
+        InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
+        if (opportunity == null || !opportunity.getCreatedBy().getUserID().equals(this.userID)) {
+            return false;
+        }
+        
+        return waitlistManager.reorderWaitlist(opportunityID, applicationID, newPosition);
+    }
+    
+    /**
+     * Manually promote an application from waitlist to successful
+     */
+    public boolean promoteFromWaitlist(String opportunityID, String applicationID) {
+        if (waitlistManager == null) {
+            return false;
+        }
+        
+        InternshipOpportunity opportunity = internshipRepository.getInternshipById(opportunityID);
+        if (opportunity == null || !opportunity.getCreatedBy().getUserID().equals(this.userID)) {
+            return false;
+        }
+        
+        // Check if there are available slots
+        long filledSlots = applicationRepository.getAllApplications().stream()
+            .filter(app -> app.getOpportunity().getOpportunityID().equals(opportunityID))
+            .filter(app -> app.getStatus().equals("Confirmed") || app.getStatus().equals("Successful"))
+            .count();
+        
+        if (filledSlots >= opportunity.getMaxSlots()) {
+            System.out.println("Cannot promote: All slots are filled.");
+            return false;
+        }
+        
+        // Remove from waitlist and update status
+        boolean removed = waitlistManager.removeFromWaitlist(opportunityID, applicationID);
+        if (removed) {
+            Application app = applicationRepository.getApplicationById(applicationID);
+            if (app != null) {
+                app.updateStatus("Successful");
+                applicationRepository.saveApplications();
+                System.out.println("Application promoted from waitlist to Successful status.");
+                return true;
+            }
+        }
+        
         return false;
     }
 

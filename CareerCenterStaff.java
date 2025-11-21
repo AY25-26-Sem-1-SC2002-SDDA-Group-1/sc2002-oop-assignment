@@ -1,13 +1,13 @@
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 public class CareerCenterStaff extends User {
     private final String staffDepartment;
     private final IUserRepository userRepository;
-    private final IInternshipRepository internshipRepository;
-    private final IApplicationRepository applicationRepository;
+    private IInternshipRepository internshipRepository;
+    private IApplicationRepository applicationRepository;
+    private IWaitlistManager waitlistManager;
 
     public CareerCenterStaff(String userID, String name, String password, String staffDepartment) {
         super(userID, name, password);
@@ -35,6 +35,19 @@ public class CareerCenterStaff extends User {
         this.staffDepartment = staffDepartment;
         this.userRepository = userRepository;
         this.internshipRepository = internshipRepository;
+        this.applicationRepository = applicationRepository;
+        this.waitlistManager = null; // Set via setter if needed
+    }
+    
+    public void setWaitlistManager(IWaitlistManager waitlistManager) {
+        this.waitlistManager = waitlistManager;
+    }
+    
+    public void setInternshipRepository(IInternshipRepository internshipRepository) {
+        this.internshipRepository = internshipRepository;
+    }
+    
+    public void setApplicationRepository(IApplicationRepository applicationRepository) {
         this.applicationRepository = applicationRepository;
     }
 
@@ -113,90 +126,54 @@ public class CareerCenterStaff extends User {
         if (application == null || !application.getStatus().equals("Withdrawal Requested")) {
             return false;
         }
-
+        
         if (approve) {
-            // Approve withdrawal: mark as Withdrawn
-            application.updateStatus("Withdrawn");
-
-            // If previous status was Confirmed, free a slot and process queue
-            String prev = application.getPreviousStatus();
-            if (prev != null && prev.equals("Confirmed")) {
-                InternshipOpportunity internship = application.getOpportunity();
-                if (internship != null) {
-                    // Count remaining confirmed applications
-                    List<Application> allApplications = applicationRepository.getAllApplications();
-                    int confirmedCount = 0;
-                    for (Application app : allApplications) {
-                        if (app.getOpportunity().getOpportunityID().equals(internship.getOpportunityID()) && 
-                            app.getStatus().equals("Confirmed")) {
-                            confirmedCount++;
-                        }
+            String previousStatus = application.getPreviousStatus();
+            
+            // If previous status was Confirmed or Successful, free a slot and process waitlist
+            // Both statuses count toward slot limits, so withdrawal should trigger promotion
+            if ("Confirmed".equals(previousStatus) || "Successful".equals(previousStatus)) {
+                application.updateStatus("Withdrawn");
+                
+                // Withdraw all other pending/successful applications for this student
+                Student student = application.getApplicant();
+                for (Application app : applicationRepository.getAllApplications()) {
+                    if (app.getApplicant().getUserID().equals(student.getUserID()) &&
+                        !app.getApplicationID().equals(applicationID) &&
+                        (app.getStatus().equals("Pending") || 
+                         app.getStatus().equals("Successful") ||
+                         app.getStatus().equals("Waitlisted"))) {
+                        app.updateStatus("Withdrawn");
                     }
-                    if (internship.getStatus().equals("Filled") && confirmedCount < internship.getMaxSlots()) {
-                        internship.setStatus("Approved");
-                    }
-                    processQueue(internship);
                 }
+                
+                // Get the internship opportunity
+                InternshipOpportunity internship = application.getOpportunity();
+                
+                // Auto-promote from waitlist if available
+                if (waitlistManager != null) {
+                    Application promoted = waitlistManager.promoteNextFromWaitlist(internship.getOpportunityID());
+                    if (promoted != null) {
+                        System.out.println("[AUTO-PROMOTION] Application " + promoted.getApplicationID() + 
+                                         " for student " + promoted.getApplicant().getName() + 
+                                         " has been automatically promoted from waitlist to Successful status.");
+                    }
+                }
+                
+                applicationRepository.saveApplications();
+                return true;
+                
+            } else {
+                // For Pending withdrawals, just mark as withdrawn (no slot to free)
+                application.updateStatus("Withdrawn");
+                applicationRepository.saveApplications();
+                return true;
             }
         } else {
-            // Reject withdrawal: restore to previous status or Successful
+            // Rejection: revert to previous status
             application.updateStatus("Withdrawal Rejected");
-        }
-
-        applicationRepository.saveApplications();
-        internshipRepository.saveInternships();
-        return true;
-    }
-    
-    private void processQueue(InternshipOpportunity internship) {
-        String internshipId = internship.getOpportunityID();
-
-        // Pre-filter applications for this internship to avoid repeated iterations
-        List<Application> internshipApplications = applicationRepository.getAllApplications().stream()
-            .filter(app -> app.getOpportunity().getOpportunityID().equals(internshipId))
-            .toList();
-
-        // While slots available and queue has applications
-        while (true) {
-            // Count current confirmed applications for this internship
-            long confirmedCount = internshipApplications.stream()
-                .filter(app -> app.getStatus().equals("Confirmed"))
-                .count();
-
-            // Check if slots are available
-            if (confirmedCount >= internship.getMaxSlots()) {
-                break; // Internship is full
-            }
-
-            // Find oldest queued application using streams for efficiency
-            Application queuedApp = internshipApplications.stream()
-                .filter(app -> app.getStatus().equals("Queued"))
-                .min((app1, app2) -> {
-                    Date date1 = app1.getQueuedDate() != null ? app1.getQueuedDate() : app1.getAppliedDate();
-                    Date date2 = app2.getQueuedDate() != null ? app2.getQueuedDate() : app2.getAppliedDate();
-                    return date1.compareTo(date2);
-                })
-                .orElse(null);
-
-            if (queuedApp == null) {
-                break; // No more queued applications
-            }
-
-            // Confirm the queued application
-            queuedApp.updateStatus("Confirmed");
-
-            // Withdraw all other applications for this student (only for this internship)
-            Student student = queuedApp.getApplicant();
-            internshipApplications.stream()
-                .filter(app -> !app.getApplicationID().equals(queuedApp.getApplicationID()) &&
-                              app.getApplicant().getUserID().equals(student.getUserID()) &&
-                              !app.getStatus().equals("Withdrawn"))
-                .forEach(app -> app.updateStatus("Withdrawn"));
-
-            // Save changes to persist immediately
             applicationRepository.saveApplications();
-
-            // The loop will check confirmedCount in the next iteration and break if full
+            return true;
         }
     }
 

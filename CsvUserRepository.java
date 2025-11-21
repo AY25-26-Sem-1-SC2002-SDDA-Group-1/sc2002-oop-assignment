@@ -28,6 +28,8 @@ public class CsvUserRepository implements IUserRepository {
                 user.asStudent().setInternshipRepository(internshipRepository);
             } else if (user.isCompanyRepresentative()) {
                 user.asCompanyRepresentative().setInternshipRepository(internshipRepository);
+            } else if (user.isCareerCenterStaff()) {
+                user.asCareerCenterStaff().setInternshipRepository(internshipRepository);
             }
         }
     }
@@ -40,6 +42,8 @@ public class CsvUserRepository implements IUserRepository {
                 user.asStudent().setApplicationRepository(applicationRepository);
             } else if (user.isCompanyRepresentative()) {
                 user.asCompanyRepresentative().setApplicationRepository(applicationRepository);
+            } else if (user.isCareerCenterStaff()) {
+                user.asCareerCenterStaff().setApplicationRepository(applicationRepository);
             }
         }
     }

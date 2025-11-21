@@ -328,4 +328,5 @@ public class StudentMenuHandler implements IMenuHandler {
         System.out.println("Logging out...");
         student.logout();
     }
+    
 }
