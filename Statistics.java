@@ -146,14 +146,14 @@ public class Statistics {
                             case "Pending":
                                 pendingApplications++;
                                 break;
-                    case "Accepted":
-                            case "Confirmed":
+                    case "Successful":
+                    case "Confirmed":
                                 totalAccepted++;
                                 if (app.getStatus().equals("Confirmed")) {
                                     confirmedPlacements++;
                                 }
                                 break;
-                    case "Rejected":
+                    case "Unsuccessful":
                                 totalRejected++;
                                 break;
                         }

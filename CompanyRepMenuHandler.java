@@ -519,7 +519,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                     .filter(app -> app.getStatus().equals("Confirmed") || app.getStatus().equals("Successful"))
                     .count();
                 long pendingCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
-                    .filter(app -> app.getStatus().equals("Applied"))
+                    .filter(app -> app.getStatus().equals("Pending"))
                     .count();
 
 
@@ -582,9 +582,9 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             long successfulCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
                 .filter(app -> app.getStatus().equals("Successful"))
                 .count();
-            long pendingCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
-                .filter(app -> app.getStatus().equals("Applied"))
-                .count();
+                long pendingCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
+                    .filter(app -> app.getStatus().equals("Pending"))
+                    .count();
 
             // Available slots = max - (confirmed + successful)
             long filledSlots = confirmedCount + successfulCount;
@@ -593,7 +593,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             System.out.println("Slots: " + filledSlots + "/" + opp.getMaxSlots() + 
                 " (" + confirmedCount + " confirmed, " + successfulCount + " awaiting acceptance)" +
                 (filledSlots >= opp.getMaxSlots() ? " [FULL]" : " [" + availableSlots + " available]"));
-            System.out.println("Applied: " + pendingCount);
+            System.out.println("Pending: " + pendingCount);
             
             // Show pending applications
             List<Application> pendingApps = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
@@ -820,10 +820,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
 
     private void logout() {
         System.out.println("\n=== LOGOUT ===");
-        System.out.print("Are you sure you want to logout? (y/n): ");
-        if (scanner.nextLine().trim().toLowerCase().startsWith("y")) {
-            rep.logout();
-            System.out.println("Logged out successfully!");
-        }
+        rep.logout();
+        System.out.println("Logged out successfully!");
     }
 }

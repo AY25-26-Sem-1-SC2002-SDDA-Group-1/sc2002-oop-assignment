@@ -205,7 +205,7 @@ public class CareerCenterStaff extends User {
         if (approve) {
             String previousStatus = application.getPreviousStatus();
             
-            // If previous status was Confirmed or Accepted, free a slot
+            // If previous status was Confirmed or Successful, free a slot
             // Both statuses count toward slot limits, so withdrawal should trigger promotion
             if ("Confirmed".equals(previousStatus) || "Successful".equals(previousStatus)) {
                 application.updateStatus("Withdrawn");

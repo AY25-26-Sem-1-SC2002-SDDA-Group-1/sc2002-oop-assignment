@@ -73,7 +73,7 @@ public class ApplicationService {
     public void approveApplication(String applicationId) {
         Application app = applicationRepository.getApplicationById(applicationId);
         if (app != null) {
-            app.updateStatus("Accepted");
+            app.updateStatus("Successful");
             applicationRepository.saveApplications();
         }
     }
