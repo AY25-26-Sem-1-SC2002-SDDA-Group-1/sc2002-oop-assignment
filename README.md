@@ -33,7 +33,7 @@ An Internship Placement System, designed with Object-Oriented Principles
 - **Code Quality**: Clean compilation without warnings, proper error handling
 - **Code Cleanup**: Removed all unused legacy classes (`ApplicationManager`, `InternshipManager`, `Database`)
 - **Dependency Injection Container**: `ServiceFactory` provides centralized dependency management
-- **Interface Segregation**: Split application services into `IStudentApplicationService` and `IStaffApplicationService`
+- **Interface Segregation**: Split application services into `IStudentApplicationService`, `IStaffApplicationService`, and `ICompanyRepApplicationService`
 - **Single Responsibility Principle**: Large methods broken down into focused, testable components
 
 ## Recent Enhancements (v2.0.0)
@@ -87,7 +87,8 @@ An Internship Placement System, designed with Object-Oriented Principles
 - `IApplicationService`: Base interface for application business logic
 - `IStudentApplicationService`: Segregated interface for student-specific application operations
 - `IStaffApplicationService`: Segregated interface for staff-specific application operations
-- `ApplicationService`: Implements both IStudentApplicationService and IStaffApplicationService
+- `ICompanyRepApplicationService`: Segregated interface for company representative-specific application operations
+- `ApplicationService`: Implements IStudentApplicationService, IStaffApplicationService, and ICompanyRepApplicationService
 - `ServiceFactory`: Dependency injection container for managing service and repository instances
 - `IMenuHandler`: Interface for menu handling
 - `StudentMenuHandler`: Handles student UI menus

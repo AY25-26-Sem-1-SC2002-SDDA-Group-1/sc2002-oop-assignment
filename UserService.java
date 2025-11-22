@@ -7,6 +7,7 @@ public class UserService implements IUserService {
     private final IUserRepository userRepository;
     private final IInternshipRepository internshipRepository;
     private final IApplicationRepository applicationRepository;
+    private ICompanyRepApplicationService applicationService;
 
     /**
      * Constructs a UserService.
@@ -19,6 +20,15 @@ public class UserService implements IUserService {
         this.userRepository = userRepository;
         this.internshipRepository = internshipRepository;
         this.applicationRepository = applicationRepository;
+    }
+
+    /**
+     * Sets the company rep application service.
+     *
+     * @param applicationService the application service
+     */
+    public void setApplicationService(ICompanyRepApplicationService applicationService) {
+        this.applicationService = applicationService;
     }
 
     /**
@@ -130,6 +140,7 @@ public class UserService implements IUserService {
             }
         }
         CompanyRepresentative rep = new CompanyRepresentative(userId, name, password, company, department, position, email, internshipRepository, applicationRepository);
+        rep.setApplicationService(applicationService);
         userRepository.addUser(rep);
         try {
             userRepository.saveUsers();

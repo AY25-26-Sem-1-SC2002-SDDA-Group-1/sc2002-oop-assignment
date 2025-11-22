@@ -1,4 +1,4 @@
 InternshipID,Title,Description,Level,PreferredMajor,OpeningDate,ClosingDate,Status,MaxSlots,Visibility,MinGPA,CreatedBy
 INT001,SWE,SW,Basic,Computer Science,20/11/2025,01/01/2026,Approved,2,false,3.5,JH
 INT002,HWE,SW,Basic,Computer Science,20/11/2025,01/01/2026,Approved,2,false,3.5,JH
-INT003,SWE,Software Eng,Intermediate,Computer Science,22/11/2025,23/11/2025,Approved,1,false,3.5,vivian
+INT003,SWE,Software Eng,Intermediate,Computer Science,22/11/2025,23/11/2025,Approved,1,true,3.5,vivian

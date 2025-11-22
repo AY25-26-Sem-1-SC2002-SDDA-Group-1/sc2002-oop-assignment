@@ -12,6 +12,7 @@ public class CsvUserRepository implements IUserRepository {
     private static boolean isLoaded = false; // Track if data already loaded
     private IInternshipRepository internshipRepository;
     private IApplicationRepository applicationRepository;
+    private ICompanyRepApplicationService applicationService;
 
     /**
      * Constructs a CsvUserRepository.
@@ -68,8 +69,19 @@ public class CsvUserRepository implements IUserRepository {
     }
 
     /**
-     * Loads all users from CSV files.
+     * Sets the application service and updates references in users.
+     *
+     * @param applicationService the application service
      */
+    public void setApplicationService(ICompanyRepApplicationService applicationService) {
+        this.applicationService = applicationService;
+        // Update service references in all user objects
+        for (User user : users) {
+            if (user.isCompanyRepresentative()) {
+                user.asCompanyRepresentative().setApplicationService(applicationService);
+            }
+        }
+    }
     private void loadUsers() {
         users.clear(); // Clear before loading to avoid duplicates
         try {

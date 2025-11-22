@@ -22,11 +22,15 @@ public class ServiceFactory {
         // Update user repository with dependencies
         ((CsvUserRepository) this.userRepository).setInternshipRepository(internshipRepository);
         ((CsvUserRepository) this.userRepository).setApplicationRepository(applicationRepository);
+        ((CsvUserRepository) this.userRepository).setApplicationService((ICompanyRepApplicationService) this.applicationService);
 
         // Initialize services
         this.userService = new UserService(userRepository, internshipRepository, applicationRepository);
         this.internshipService = new InternshipService(internshipRepository, userRepository);
         this.applicationService = new ApplicationService(applicationRepository, internshipRepository, userRepository);
+
+        // Set dependencies
+        ((UserService) this.userService).setApplicationService((ICompanyRepApplicationService) this.applicationService);
     }
 
     // Getters for repositories
@@ -38,4 +42,5 @@ public class ServiceFactory {
     public IUserService getUserService() { return userService; }
     public IInternshipService getInternshipService() { return internshipService; }
     public IApplicationService getApplicationService() { return applicationService; }
+    public ICompanyRepApplicationService getCompanyRepApplicationService() { return (ICompanyRepApplicationService) applicationService; }
 }

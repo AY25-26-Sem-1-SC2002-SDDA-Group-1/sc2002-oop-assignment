@@ -5,7 +5,7 @@ import java.util.List;
  * Service class for managing internship applications.
  * Handles application submission, approval, rejection, and withdrawal processes.
  */
-public class ApplicationService implements IApplicationService, IStudentApplicationService, IStaffApplicationService {
+public class ApplicationService implements IApplicationService, IStudentApplicationService, IStaffApplicationService, ICompanyRepApplicationService {
     private static final int MAX_ACTIVE_APPLICATIONS = 3;
     private final IApplicationRepository applicationRepository;
     private final IInternshipRepository internshipRepository;
@@ -248,6 +248,58 @@ public class ApplicationService implements IApplicationService, IStudentApplicat
         return applicationRepository.getAllApplications().stream()
             .filter(a -> a.getOpportunity().getCreatedBy().getUserID().equals(repId))
             .toList();
+    }
+
+    /**
+     * Gets applications for a specific internship opportunity created by the company representative.
+     *
+     * @param repId the company representative ID
+     * @param opportunityId the opportunity ID
+     * @return list of applications
+     */
+    @Override
+    public List<Application> getApplicationsForCompanyRepOpportunity(String repId, String opportunityId) {
+        return applicationRepository.getAllApplications().stream()
+            .filter(a -> a.getOpportunity().getCreatedBy().getUserID().equals(repId) &&
+                       a.getOpportunity().getOpportunityID().equals(opportunityId))
+            .toList();
+    }
+
+    /**
+     * Processes an internship application (approve or reject).
+     *
+     * @param repId the company representative ID
+     * @param applicationId the application ID to process
+     * @param approve true to approve, false to reject
+     * @return true if processed successfully
+     */
+    @Override
+    public boolean processApplication(String repId, String applicationId, boolean approve) {
+        Application target = applicationRepository.getApplicationById(applicationId);
+        if (target != null &&
+            target.getOpportunity().getCreatedBy().getUserID().equals(repId) &&
+            target.getStatusEnum() == ApplicationStatus.PENDING) {
+
+            if (approve) {
+                // Check slot limit before approving
+                InternshipOpportunity opp = target.getOpportunity();
+                long filledSlots = applicationRepository.getAllApplications().stream()
+                    .filter(a -> a.getOpportunity().getOpportunityID().equals(opp.getOpportunityID()) &&
+                           (a.getStatusEnum() == ApplicationStatus.SUCCESSFUL || a.getStatusEnum() == ApplicationStatus.CONFIRMED))
+                    .count();
+                if (filledSlots >= opp.getMaxSlots()) {
+                    return false; // Cannot approve - slots are full
+                }
+                target.updateStatus(ApplicationStatus.SUCCESSFUL);
+            } else {
+                target.updateStatus(ApplicationStatus.UNSUCCESSFUL);
+            }
+
+            applicationRepository.saveApplications();
+            internshipRepository.saveInternships();
+            return true;
+        }
+        return false;
     }
 
     /**

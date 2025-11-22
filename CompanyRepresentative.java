@@ -16,6 +16,7 @@ public class CompanyRepresentative extends User {
     // Repositories for data access
     private IInternshipRepository internshipRepository;
     private IApplicationRepository applicationRepository;
+    private ICompanyRepApplicationService applicationService;
 
     /**
      * Constructs a CompanyRepresentative.
@@ -60,6 +61,15 @@ public class CompanyRepresentative extends User {
      */
     public void setApplicationRepository(IApplicationRepository applicationRepository) {
         this.applicationRepository = applicationRepository;
+    }
+
+    /**
+     * Sets the company rep application service.
+     *
+     * @param applicationService the company rep application service
+     */
+    public void setApplicationService(ICompanyRepApplicationService applicationService) {
+        this.applicationService = applicationService;
     }
     
 
@@ -145,13 +155,7 @@ public class CompanyRepresentative extends User {
      * @return list of applications
      */
     public List<Application> viewApplications() {
-        List<Application> myApplications = new ArrayList<>();
-        for (Application app : applicationRepository.getAllApplications()) {
-            if (app.getOpportunity().getCreatedBy().getUserID().equals(this.userID)) {
-                myApplications.add(app);
-            }
-        }
-        return myApplications;
+        return applicationService.getApplicationsForCompanyRep(this.userID);
     }
 
     /**
@@ -161,14 +165,7 @@ public class CompanyRepresentative extends User {
      * @return list of applications
      */
     public List<Application> viewApplications(String opportunityID) {
-        List<Application> opportunityApplications = new ArrayList<>();
-        for (Application app : applicationRepository.getAllApplications()) {
-            if (app.getOpportunity().getOpportunityID().equals(opportunityID) &&
-                app.getOpportunity().getCreatedBy().getUserID().equals(this.userID)) {
-                opportunityApplications.add(app);
-            }
-        }
-        return opportunityApplications;
+        return applicationService.getApplicationsForCompanyRepOpportunity(this.userID, opportunityID);
     }
 
     /**
@@ -195,37 +192,7 @@ public class CompanyRepresentative extends User {
      * @return true if processed successfully
      */
     public boolean processApplication(String applicationID, boolean approve) {
-        Application target = null;
-        for (Application app : applicationRepository.getAllApplications()) {
-            if (app.getApplicationID().equals(applicationID)) {
-                target = app;
-                break;
-            }
-        }
-        if (target != null &&
-            target.getOpportunity().getCreatedBy().getUserID().equals(this.userID) &&
-            target.getStatusEnum() == ApplicationStatus.PENDING) {
-
-            if (approve) {
-                // Check slot limit before approving
-                InternshipOpportunity opp = target.getOpportunity();
-                long filledSlots = applicationRepository.getAllApplications().stream()
-                    .filter(a -> a.getOpportunity().getOpportunityID().equals(opp.getOpportunityID()) &&
-                           (a.getStatusEnum() == ApplicationStatus.SUCCESSFUL || a.getStatusEnum() == ApplicationStatus.CONFIRMED))
-                    .count();
-                if (filledSlots >= opp.getMaxSlots()) {
-                    return false; // Cannot approve - slots are full
-                }
-                target.updateStatus(ApplicationStatus.SUCCESSFUL);
-            } else {
-                target.updateStatus(ApplicationStatus.UNSUCCESSFUL);
-            }
-
-            applicationRepository.saveApplications();
-            internshipRepository.saveInternships();
-            return true;
-        }
-        return false;
+        return applicationService.processApplication(this.userID, applicationID, approve);
     }
 
     /**

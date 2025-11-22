@@ -422,6 +422,13 @@ classDiagram
         +getAllApplicationsForInternship(opportunityId: String): List~Application~
     }
 
+    class ICompanyRepApplicationService {
+        <<interface>>
+        +getApplicationsForCompanyRep(repId: String): List~Application~
+        +approveApplication(applicationId: String): void
+        +rejectApplication(applicationId: String): void
+    }
+
     class ServiceFactory {
         -CsvUserRepository userRepository
         -CsvInternshipRepository internshipRepository
@@ -436,6 +443,7 @@ classDiagram
         +getUserService(): IUserService
         +getInternshipService(): IInternshipService
         +getApplicationService(): IApplicationService
+        +getCompanyRepApplicationService(): ICompanyRepApplicationService
         <<Dependency Injection Container>>
     }
 
@@ -501,6 +509,7 @@ classDiagram
 
      IStudentApplicationService <|.. ApplicationService
      IStaffApplicationService <|.. ApplicationService
+     ICompanyRepApplicationService <|.. ApplicationService
 
      IMenuHandler <|.. StudentMenuHandler
      IMenuHandler <|.. CompanyRepMenuHandler
