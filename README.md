@@ -33,41 +33,12 @@ An Internship Placement System, designed with Object-Oriented Principles
 - **Code Quality**: Clean compilation without warnings, proper error handling
 - **Code Cleanup**: Removed all unused legacy classes (`ApplicationManager`, `InternshipManager`, `Database`)
 
-## Testing
-
-### Manual Testing Guide
-
-The project includes comprehensive manual testing procedures covering all system functionality:
-
-- **15 Detailed Test Scenarios**: Step-by-step procedures for testing all features
-- **Expected Behavior Documentation**: Clear descriptions of correct system responses
-- **Edge Case Coverage**: Error handling and boundary condition testing
-- **Data Persistence Verification**: Tests that ensure changes survive application restarts
-- **Workflow Validation**: End-to-end testing of business processes
-
-### Testing Guide Location
-
-- **Complete Manual Testing Guide**: `docs/TESTING_GUIDE.md`
-- **Step-by-step Instructions**: Detailed procedures with expected outcomes
-- **Test Data Reference**: Sample credentials and data for testing
-- **Troubleshooting**: Common issues and resolution steps
-
-### Test Coverage
-
-- **User Authentication**: All user types and role-based access
-- **Input Validation**: Registration, internship creation, application processing
-- **Business Logic**: GPA eligibility, internship restrictions, workflow rules
-- **Data Persistence**: CSV operations and restart verification
-- **Error Handling**: Invalid inputs, boundary conditions, edge cases
-- **UI/UX**: Menu navigation, formatting, user experience
-
 ## Recent Enhancements (v2.0.0)
 
 ### Flexible Withdrawal System
 
 - **Multi-Stage Withdrawal**: Students can request withdrawal at any stage (Pending, Successful, or Confirmed)
 - **Smart Processing**: Career staff approval intelligently handles different withdrawal scenarios
-- **Automatic Queue Advancement**: When confirmed placements are withdrawn, queued students automatically advance
 - **Status Transparency**: UI displays current application status for informed withdrawal decisions
 
 ### User Experience
@@ -79,10 +50,9 @@ The project includes comprehensive manual testing procedures covering all system
 
 ### Advanced Features
 
-- **Waitlist Queue**: Students added to queue when internship is full, automatically confirmed when slots open
 - **Manual Withdrawal Tracking**: Prevents reapplication to internships students manually withdrew from
 - **Auto Status Updates**: Internships automatically change from "Filled" to "Approved" when slots become available
-- **Queue Processing**: Automatic confirmation of queued applications in FIFO order
+- **Queue Processing(Deprecated)**: Automatic confirmation of queued applications in FIFO order
 
 ### Registration Workflows
 
@@ -163,8 +133,6 @@ All users have default password: `password`
 3. **Students** can only apply to approved, visible internships matching their major
 4. **Applications** go through approval/rejection workflow
 5. **Students** can accept successful offers and request withdrawals at any stage (Pending, Successful, or Confirmed)
-6. **Waitlist Queue** automatically manages students when internships are full
-7. **Withdrawal Processing** by Career Staff triggers queue advancement for confirmed placements
 
 ## Key Features Explained
 
@@ -174,7 +142,7 @@ All users have default password: `password`
 - **Successful Stage**: Student can withdraw after approval but before accepting
 - **Confirmed Stage**: Student can withdraw after accepting placement
 - All withdrawals must be approved by Career Center Staff
-- Confirmed withdrawals trigger automatic queue processing
+- Confirmed withdrawals trigger automatic queue processing(Deprecated)
 
 ### Batch Processing
 
@@ -182,12 +150,11 @@ All users have default password: `password`
 - Process multiple applications: `APP0001 APP0002 APP0003`
 - Toggle multiple visibility settings: `INT0001 INT0002`
 
-### Waitlist Queue
+### Waitlist Queue(Depcrecated due to privacy concern)
 
 - Automatically activated when internship reaches max slots
 - Students added to queue in FIFO order
-- Queue automatically processed when slots become available
-- Queued students notified of automatic confirmation
+- Queue processing is currently disabled for privacy considerations
 
 ### Manual Withdrawal Tracking
 
@@ -216,8 +183,6 @@ All users have default password: `password`
 
 ## Documentation
 
-- **docs/CHANGELOG.md**: Complete version history and feature additions
-- **docs/DESIGN_PRINCIPLES.md**: Detailed explanation of SOLID principles and design patterns used
 - **docs/UML.md**: All UML class and sequence diagrams
-- **docs/TESTING_GUIDE.md**: Comprehensive testing procedures and validation checklists
 - **README.md**: This file - system overview and usage guide
+- **docs/javadoc**: This folder contains all the javadoc
