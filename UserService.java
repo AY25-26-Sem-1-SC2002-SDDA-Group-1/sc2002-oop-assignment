@@ -1,3 +1,5 @@
+import java.io.IOException;
+
 /**
  * Service class for managing user operations like login and registration.
  */
@@ -57,7 +59,12 @@ public class UserService {
         if (userRepository.getUserById(userId) != null) return false;
         Student student = new Student(userId, name, password, yearOfStudy, major, gpa, internshipRepository, applicationRepository);
         userRepository.addUser(student);
-        userRepository.saveUsers();
+        try {
+            userRepository.saveUsers();
+        } catch (IOException e) {
+            System.err.println("Error saving users: " + e.getMessage());
+            return false;
+        }
         return true;
     }
 
@@ -80,7 +87,12 @@ public class UserService {
         if (userRepository.getUserById(userId) != null) return false;
         CareerCenterStaff staff = new CareerCenterStaff(userId, name, password, department, userRepository, internshipRepository, applicationRepository);
         userRepository.addUser(staff);
-        userRepository.saveUsers();
+        try {
+            userRepository.saveUsers();
+        } catch (IOException e) {
+            System.err.println("Error saving users: " + e.getMessage());
+            return false;
+        }
         return true;
     }
 
@@ -119,7 +131,12 @@ public class UserService {
         }
         CompanyRepresentative rep = new CompanyRepresentative(userId, name, password, company, department, position, email, internshipRepository, applicationRepository);
         userRepository.addUser(rep);
-        userRepository.saveUsers();
+        try {
+            userRepository.saveUsers();
+        } catch (IOException e) {
+            System.err.println("Error saving users: " + e.getMessage());
+            return false;
+        }
         return true;
     }
 
@@ -132,7 +149,11 @@ public class UserService {
         User user = userRepository.getUserById(repId);
         if (user.isCompanyRepresentative()) {
             user.asCompanyRepresentative().setApproved(true);
-            userRepository.saveUsers();
+            try {
+                userRepository.saveUsers();
+            } catch (IOException e) {
+                System.err.println("Error saving users: " + e.getMessage());
+            }
         }
     }
 
@@ -165,7 +186,7 @@ public class UserService {
     /**
      * Save all user data to persistent storage
      */
-    public void saveUsers() {
+    public void saveUsers() throws IOException {
         userRepository.saveUsers();
     }
 

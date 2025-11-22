@@ -1,3 +1,3 @@
 CompanyRepID,Name,CompanyName,Department,Position,Email,PasswordHash,Salt,Status
 JH,Jensen Huang,Nvidia,Engineering,CEO,jensen@nvidia.com,EaI/af7MPXcd+vU5XhqgSmwszVQ872z7yCLJYbMUdbo=,mljxZ4pWhGFDUIfvnKrvsg==,Approved
-LKM,Lakshmanan,ANCIT,Testing software,Engineer,lkm@MB.com,D5U4cMjKoi4ZKEGRVYr/dhVHmqGykxicEi7Zm9ZJopw=,+cLVlmGMcLlog7tOSHkFGQ==,Approved
+vivian,Vivian,Google,IT,Manager,vivian@google.com,UNwrKj3fTMNqvl0iAvPPSHkiRSVUyCtK6eeo9av+ZdA=,c3UJvNYkPljudlQqKrhqDg==,Approved

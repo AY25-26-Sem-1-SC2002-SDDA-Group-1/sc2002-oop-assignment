@@ -126,14 +126,10 @@ public class CsvUserRepository implements IUserRepository {
      * Saves all users to CSV files.
      */
     @Override
-    public void saveUsers() {
-        try {
-            saveStudents();
-            saveStaff();
-            saveCompanyRepresentatives();
-        } catch (Exception e) {
-            System.err.println("Error saving users: " + e.getMessage());
-        }
+    public void saveUsers() throws IOException {
+        saveStudents();
+        saveStaff();
+        saveCompanyRepresentatives();
     }
 
     /**
@@ -217,7 +213,7 @@ public class CsvUserRepository implements IUserRepository {
     /**
      * Saves students to CSV file.
      */
-    private void saveStudents() {
+    private void saveStudents() throws IOException {
         try (PrintWriter pw = new PrintWriter(new FileWriter("data/sample_student_list.csv"))) {
             pw.println("UserID,Name,Major,Year,GPA,PasswordHash,Salt");
             for (User user : users) {
@@ -233,15 +229,13 @@ public class CsvUserRepository implements IUserRepository {
                         student.getSalt());
                 }
             }
-        } catch (IOException e) {
-            System.err.println("Error saving students: " + e.getMessage());
         }
     }
 
     /**
      * Saves staff to CSV file.
      */
-    private void saveStaff() {
+    private void saveStaff() throws IOException {
         try (PrintWriter pw = new PrintWriter(new FileWriter("data/sample_staff_list.csv"))) {
             pw.println("UserID,Name,Department,PasswordHash,Salt");
             for (User user : users) {
@@ -255,15 +249,13 @@ public class CsvUserRepository implements IUserRepository {
                         staff.getSalt());
                 }
             }
-        } catch (IOException e) {
-            System.err.println("Error saving staff: " + e.getMessage());
         }
     }
 
     /**
      * Saves company representatives to CSV file.
      */
-    private void saveCompanyRepresentatives() {
+    private void saveCompanyRepresentatives() throws IOException {
         try (PrintWriter pw = new PrintWriter(new FileWriter("data/sample_company_representative_list.csv"))) {
             pw.println("CompanyRepID,Name,CompanyName,Department,Position,Email,PasswordHash,Salt,Status");
             for (User user : users) {
@@ -282,8 +274,6 @@ public class CsvUserRepository implements IUserRepository {
                         status);
                 }
             }
-        } catch (IOException e) {
-            System.err.println("Error saving company representatives: " + e.getMessage());
         }
     }
 

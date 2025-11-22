@@ -258,7 +258,9 @@ public class CareerStaffMenuHandler implements IMenuHandler {
             successCount++;
         }
 
-
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("Processing complete: " + successCount + " succeeded, " + failCount + " failed.");
+        System.out.println("=".repeat(50));
     }
 
     private void processWithdrawals() {
@@ -335,29 +337,17 @@ public class CareerStaffMenuHandler implements IMenuHandler {
 
         if (isApprove) {
             staff.processWithdrawal(applicationID, true);
-            System.out.println("[APPROVED] " + applicationID + ": Withdrawal approved.");
+            UIHelper.printSuccessMessage("[APPROVED] " + applicationID + ": Withdrawal approved.");
         } else {
             staff.processWithdrawal(applicationID, false);
-            System.out.println("[REJECTED] " + applicationID + ": Withdrawal rejected.");
+            UIHelper.printWarningMessage("[REJECTED] " + applicationID + ": Withdrawal rejected.");
         }
 
 
 
 
 
-        // Verify application exists in withdrawal requests list
-        boolean found = false;
-        for (Application app : withdrawalRequests) {
-            if (app.getApplicationID().equalsIgnoreCase(applicationID)) {
-                found = true;
-                break;
-            }
-        }
 
-        if (!found) {
-            UIHelper.printErrorMessage("Invalid Application ID or no withdrawal request exists.");
-            return;
-        }
 
 
     }
@@ -374,7 +364,7 @@ public class CareerStaffMenuHandler implements IMenuHandler {
         allInternships = filterManager.getFilterSettings().applyFilters(allInternships);
 
         if (allInternships.isEmpty()) {
-            System.out.println("No internships match your filters.");
+            UIHelper.printWarningMessage("No internships match your filters.");
         } else {
             for (InternshipOpportunity internship : allInternships) {
                 System.out.println("ID: " + internship.getOpportunityID());
@@ -442,7 +432,7 @@ public class CareerStaffMenuHandler implements IMenuHandler {
 
         // Verify current password
         if (!staff.verifyPassword(currentPassword)) {
-            System.out.println("Current password is incorrect.");
+            UIHelper.printErrorMessage("Current password is incorrect.");
             return;
         }
 
@@ -450,13 +440,13 @@ public class CareerStaffMenuHandler implements IMenuHandler {
         String newPassword = scanner.nextLine().trim();
 
         if (newPassword.isEmpty()) {
-            System.out.println("Password cannot be empty.");
+            UIHelper.printErrorMessage("Password cannot be empty.");
             return;
         }
 
         // Check if new password is same as current password
         if (newPassword.equals(currentPassword)) {
-            System.out.println("New password cannot be the same as current password.");
+            UIHelper.printErrorMessage("New password cannot be the same as current password.");
             return;
         }
 
@@ -464,17 +454,25 @@ public class CareerStaffMenuHandler implements IMenuHandler {
         String confirmPassword = scanner.nextLine().trim();
 
         if (!newPassword.equals(confirmPassword)) {
-            System.out.println("Passwords do not match.");
+            UIHelper.printErrorMessage("Passwords do not match.");
             return;
         }
 
+        String oldPasswordHash = staff.getPasswordHash();
+        String oldSalt = staff.getSalt();
         staff.changePassword(newPassword);
-        userService.saveUsers();
-        System.out.println("Password changed successfully!");
+        try {
+            userService.saveUsers();
+            UIHelper.printSuccessMessage("Password changed successfully!");
+        } catch (Exception e) {
+            staff.setPasswordHash(oldPasswordHash);
+            staff.setSalt(oldSalt);
+            UIHelper.printErrorMessage("Failed to save password change: " + e.getMessage());
+        }
     }
 
     private void logout() {
-        System.out.println("Logging out...");
+        UIHelper.printSuccessMessage("Logged out successfully!");
         staff.logout();
     }
 }

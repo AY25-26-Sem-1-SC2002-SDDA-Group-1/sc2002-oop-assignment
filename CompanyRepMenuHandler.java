@@ -107,7 +107,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
 
     private void createInternship() {
         if (!rep.isApproved()) {
-            System.out.println("Your account is not approved yet. Please wait for Career Center Staff approval.");
+            UIHelper.printWarningMessage("Your account is not approved yet. Please wait for Career Center Staff approval.");
             return;
         }
 
@@ -119,21 +119,21 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             }
         }
         if (internshipCount >= 5) {
-            System.out.println("You have reached the maximum limit of 5 internships.");
+            UIHelper.printWarningMessage("You have reached the maximum limit of 5 internships.");
             return;
         }
 
         System.out.print("Enter Title: ");
         String title = scanner.nextLine();
         if (title.trim().isEmpty()) {
-            System.out.println("Title cannot be empty.");
+            UIHelper.printErrorMessage("Title cannot be empty.");
             return;
         }
 
         System.out.print("Enter Description: ");
         String description = scanner.nextLine();
         if (description.trim().isEmpty()) {
-            System.out.println("Description cannot be empty.");
+            UIHelper.printErrorMessage("Description cannot be empty.");
             return;
         }
 
@@ -158,14 +158,14 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                         level = "Advanced";
                         break;
                     default:
-                        System.out.println("Invalid number. Please try again.");
+                        UIHelper.printErrorMessage("Invalid number. Please try again.");
                         continue;
                 }
             } catch (NumberFormatException e) {
                 if (input.equals("Basic") || input.equals("Intermediate") || input.equals("Advanced")) {
                     level = input;
                 } else {
-                    System.out.println("Invalid level. Must be Basic, Intermediate, or Advanced. Please try again.");
+                    UIHelper.printErrorMessage("Invalid level. Must be Basic, Intermediate, or Advanced. Please try again.");
                 }
             }
         }
@@ -174,7 +174,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         System.out.print("Enter number or Major: ");
         String preferredMajor = MajorCatalog.resolveMajor(scanner.nextLine());
         if (preferredMajor == null) {
-            System.out.println("Invalid major selection.");
+            UIHelper.printErrorMessage("Invalid major selection.");
             return;
         }
 
@@ -182,7 +182,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         try {
             int maxSlots = Integer.parseInt(scanner.nextLine());
             if (maxSlots <= 0 || maxSlots > 10) {
-                System.out.println("Max slots must be between 1 and 10.");
+                UIHelper.printErrorMessage("Max slots must be between 1 and 10.");
                 return;
             }
 
@@ -209,7 +209,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                         openingDate = null;
                     }
                 } catch (ParseException e) {
-                    System.out.println("Invalid date format. Please use dd/MM/yyyy.");
+                    UIHelper.printErrorMessage("Invalid date format. Please use dd/MM/yyyy.");
                 }
             }
 
@@ -223,11 +223,11 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                                 .println("Closing date cannot be in the past. Please enter a date from today onwards.");
                         closingDate = null;
                     } else if (closingDate.before(openingDate) || closingDate.equals(openingDate)) {
-                        System.out.println("Closing date must be after opening date.");
+                        UIHelper.printErrorMessage("Closing date must be after opening date.");
                         closingDate = null;
                     }
                 } catch (ParseException e) {
-                    System.out.println("Invalid date format. Please use dd/MM/yyyy.");
+                    UIHelper.printErrorMessage("Invalid date format. Please use dd/MM/yyyy.");
                 }
             }
 
@@ -236,22 +236,22 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             try {
                 minimumGPA = Double.parseDouble(scanner.nextLine().trim());
                 if (minimumGPA < 0.0 || minimumGPA > 5.0) {
-                    System.out.println("Minimum GPA must be between 0.0 and 5.0.");
+                    UIHelper.printErrorMessage("Minimum GPA must be between 0.0 and 5.0.");
                     return;
                 }
             } catch (NumberFormatException e) {
-                System.out.println("Invalid GPA format.");
+                UIHelper.printErrorMessage("Invalid GPA format.");
                 return;
             }
 
             if (internshipService.createInternship(rep.getUserID(), title, description, level, preferredMajor,
                     openingDate, closingDate, maxSlots, minimumGPA)) {
-                System.out.println("Internship created successfully! It's pending approval from Career Center Staff.");
+                UIHelper.printSuccessMessage("Internship created successfully! It's pending approval from Career Center Staff.");
             } else {
-                System.out.println("Failed to create internship. Please check all requirements.");
+                UIHelper.printErrorMessage("Failed to create internship. Please check all requirements.");
             }
         } catch (NumberFormatException e) {
-            System.out.println("Invalid number for max slots.");
+            UIHelper.printErrorMessage("Invalid number for max slots.");
         }
     }
 
@@ -274,7 +274,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             }
         }
         if (!found) {
-            System.out.println("No internships created yet.");
+            UIHelper.printWarningMessage("No internships created yet.");
         }
     }
 
@@ -299,12 +299,12 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         System.out.print("Enter Internship ID to edit: ");
         String internshipID = scanner.nextLine().trim();
         if (internshipID.isEmpty()) {
-            System.out.println("ID cannot be empty.");
+            UIHelper.printErrorMessage("ID cannot be empty.");
             return;
         }
         InternshipOpportunity opp = internshipService.getInternship(internshipID);
         if (opp == null || !opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
-            System.out.println("Internship not found or you don't have permission to edit it.");
+            UIHelper.printErrorMessage("Internship not found or you don't have permission to edit it.");
             return;
         }
         if (!opp.getStatus().equals("Pending") && !opp.getStatus().equals("Rejected")) {
@@ -314,7 +314,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         }
         if (opp.getStatus().equals("Rejected")) {
             opp.setStatus("Pending");
-            System.out.println("Note: This internship status has been changed from Rejected to Pending for re-review.");
+            UIHelper.printWarningMessage("Note: This internship status has been changed from Rejected to Pending for re-review.");
         }
         System.out.println("Leave field blank to keep current value.");
         System.out.print("Enter new Title [" + opp.getTitle() + "]: ");
@@ -354,7 +354,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             if (newLevel != null) {
                 opp.setLevel(newLevel);
             } else {
-                System.out.println("Invalid level. Keeping current value.");
+                UIHelper.printErrorMessage("Invalid level. Keeping current value.");
             }
         }
         System.out.print("Enter new Preferred Major [" + opp.getPreferredMajor() + "]: ");
@@ -370,10 +370,10 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 if (maxSlots >= 1 && maxSlots <= 10) {
                     opp.setMaxSlots(maxSlots);
                 } else {
-                    System.out.println("Max slots must be between 1 and 10. Keeping current value.");
+                    UIHelper.printErrorMessage("Max slots must be between 1 and 10. Keeping current value.");
                 }
             } catch (NumberFormatException e) {
-                System.out.println("Invalid number. Keeping current value.");
+                UIHelper.printErrorMessage("Invalid number. Keeping current value.");
             }
         }
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
@@ -385,7 +385,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 Date openingDate = dateFormat.parse(openingDateStr);
                 opp.setOpeningDate(openingDate);
             } catch (ParseException e) {
-                System.out.println("Invalid date format. Keeping current value.");
+                UIHelper.printErrorMessage("Invalid date format. Keeping current value.");
             }
         }
         System.out.print("Enter new Closing Date (dd/MM/yyyy) [" + dateFormat.format(opp.getClosingDate()) + "]: ");
@@ -396,10 +396,10 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 if (closingDate.after(opp.getOpeningDate())) {
                     opp.setClosingDate(closingDate);
                 } else {
-                    System.out.println("Closing date must be after opening date. Keeping current value.");
+                    UIHelper.printErrorMessage("Closing date must be after opening date. Keeping current value.");
                 }
             } catch (ParseException e) {
-                System.out.println("Invalid date format. Keeping current value.");
+                UIHelper.printErrorMessage("Invalid date format. Keeping current value.");
             }
         }
         System.out.print("Enter new Minimum GPA (0.0-5.0) [" + opp.getMinGPA() + "]: ");
@@ -410,14 +410,14 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 if (minimumGPA >= 0.0 && minimumGPA <= 5.0) {
                     opp.setMinGPA(minimumGPA);
                 } else {
-                    System.out.println("Minimum GPA must be between 0.0 and 5.0. Keeping current value.");
+                    UIHelper.printErrorMessage("Minimum GPA must be between 0.0 and 5.0. Keeping current value.");
                 }
             } catch (NumberFormatException e) {
-                System.out.println("Invalid GPA format. Keeping current value.");
+                UIHelper.printErrorMessage("Invalid GPA format. Keeping current value.");
             }
         }
         internshipService.getAllInternships(); // To trigger persistence if needed
-        System.out.println("Internship updated successfully!");
+        UIHelper.printSuccessMessage("Internship updated successfully!");
     }
 
     private void deleteInternship() {
@@ -433,27 +433,27 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             }
         }
         if (!found) {
-            System.out.println("No internships to delete.");
+            UIHelper.printWarningMessage("No internships to delete.");
             return;
         }
         System.out.print("Enter Internship ID to delete: ");
         String internshipID = scanner.nextLine().trim();
         if (internshipID.isEmpty()) {
-            System.out.println("ID cannot be empty.");
+            UIHelper.printErrorMessage("ID cannot be empty.");
             return;
         }
         InternshipOpportunity opp = internshipService.getInternship(internshipID);
         if (opp == null || !opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
-            System.out.println("Internship not found or you don't have permission to delete it.");
+            UIHelper.printErrorMessage("Internship not found or you don't have permission to delete it.");
             return;
         }
         System.out.print("Are you sure you want to delete '" + opp.getTitle() + "'? (yes/no): ");
         String confirm = scanner.nextLine().trim().toLowerCase();
         if (confirm.equals("yes")) {
             internshipService.deleteInternship(internshipID);
-            System.out.println("Internship deleted successfully!");
+            UIHelper.printSuccessMessage("Internship deleted successfully!");
         } else {
-            System.out.println("Deletion cancelled.");
+            UIHelper.printWarningMessage("Deletion cancelled.");
         }
     }
 
@@ -489,7 +489,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         List<Application> applications = rep.viewApplications(internshipID);
 
         if (applications.isEmpty()) {
-            System.out.println("No applications found for this internship.");
+            UIHelper.printWarningMessage("No applications found for this internship.");
             return;
         }
 
@@ -901,7 +901,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         allInternships = filterManager.getFilterSettings().applyFilters(allInternships);
 
         if (allInternships.isEmpty()) {
-            System.out.println("No internships match your filters.");
+            UIHelper.printWarningMessage("No internships match your filters.");
         } else {
             for (InternshipOpportunity internship : allInternships) {
                 System.out.println("ID: " + internship.getOpportunityID());
@@ -916,14 +916,12 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 System.out.println("-------------------");
             }
         }
-        System.out.print("\nPress Enter to continue...");
-        scanner.nextLine();
     }
 
     private void changePassword() {
         System.out.println("\n=== CHANGE PASSWORD ===");
         System.out.print("Enter current password: ");
-        String currentPassword = scanner.nextLine();
+        String currentPassword = scanner.nextLine().trim();
 
         if (!rep.verifyPassword(currentPassword)) {
             UIHelper.printErrorMessage("Current password is incorrect.");
@@ -931,20 +929,42 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         }
 
         System.out.print("Enter new password: ");
-        String newPassword = scanner.nextLine();
+        String newPassword = scanner.nextLine().trim();
 
-        if (newPassword.trim().isEmpty()) {
+        if (newPassword.isEmpty()) {
             UIHelper.printErrorMessage("Password cannot be empty.");
             return;
         }
 
+        // Check if new password is same as current password
+        if (newPassword.equals(currentPassword)) {
+            UIHelper.printErrorMessage("New password cannot be the same as current password.");
+            return;
+        }
+
+        System.out.print("Confirm new password: ");
+        String confirmPassword = scanner.nextLine().trim();
+
+        if (!newPassword.equals(confirmPassword)) {
+            UIHelper.printErrorMessage("Passwords do not match.");
+            return;
+        }
+
+        String oldPasswordHash = rep.getPasswordHash();
+        String oldSalt = rep.getSalt();
         rep.changePassword(newPassword);
-        UIHelper.printSuccessMessage("Password changed successfully!");
+        try {
+            userService.saveUsers();
+            UIHelper.printSuccessMessage("Password changed successfully!");
+        } catch (Exception e) {
+            rep.setPasswordHash(oldPasswordHash);
+            rep.setSalt(oldSalt);
+            UIHelper.printErrorMessage("Failed to save password change: " + e.getMessage());
+        }
     }
 
     private void logout() {
-        System.out.println("\n=== LOGOUT ===");
+        UIHelper.printSuccessMessage("Logged out successfully!");
         rep.logout();
-        System.out.println("Logged out successfully!");
     }
 }

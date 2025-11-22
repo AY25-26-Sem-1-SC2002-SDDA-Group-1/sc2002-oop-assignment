@@ -1,204 +1,3 @@
-# UML Diagrams
-
-This document contains the UML diagrams for the refactored Internship Placement System.
-
----
-
-## Recent Updates (as of Nov 22, 2025)
-
-- **Statistics**: Updated student and company representative statistics to include withdrawn applications in acceptance counts, added withdrawal rates, and provided additional insights like GPA and unique companies applied to.
-- **ReportManager**: Updated detailed internship reports to display all application statuses (including withdrawn and withdrawal requested) for comprehensive visibility.
-- **Application Status Handling**: Improved handling of withdrawal requests in statistics, counting them under previous status until approval and including withdrawn applications in success metrics.
-- **Slot Management**: Slots are now considered filled for applications with status "Successful", "Confirmed", or "Withdrawal Requested". Prevents new applications when slots are full. Displays capped at max slots to avoid overfilled indicators.
-- **Application Submission**: Students cannot apply to internships that are at capacity (filled slots >= max slots).
-- **SOLID Principles**: All changes maintain SRP, OCP, LSP, ISP, DIP.
-
----
-
-## UML Class Diagram (Key Changes)
-
-```mermaid
-classDiagram
-    class MajorCatalog {
-        -List~String~ MAJORS
-        -MajorCatalog()
-        +getMajors(): List~String~
-        +displayMajors(): void
-        +resolveMajor(userInput: String): String
-        <<static utility class>>
-    }
-
-    class FilterManager {
-        -Scanner scanner
-        -FilterSettings filterSettings
-        -String userType
-        +FilterManager(scanner: Scanner)
-        +FilterManager(scanner: Scanner, userType: String)
-        +manageFilters(): void
-        +hasActiveFilters(): bool
-        +getFilterSettings(): FilterSettings
-        <<instance-based, customizable per user type>>
-    }
-
-    class Statistics {
-        -IApplicationRepository applicationRepository
-        -IInternshipRepository internshipRepository
-        -IUserRepository userRepository
-        +Statistics(appRepo: IApplicationRepository, internshipRepo: IInternshipRepository, userRepo: IUserRepository)
-        +displayStudentStatistics(student: Student): void
-        +displayCompanyRepresentativeStatistics(rep: CompanyRepresentative): void
-        +displaySystemStatistics(): void
-        <<uses repositories instead of Database static methods>>
-    }
-
-    StudentMenuHandler ..> Statistics : uses
-    CompanyRepMenuHandler ..> FilterManager : uses
-    CompanyRepMenuHandler ..> MajorCatalog : uses
-    InternshipPlacementSystem ..> MajorCatalog : uses
-```
-
----
-
-## Integration Notes
-
-- All menu handlers now use try-catch for error handling.
-- MajorCatalog is the single source of truth for majors.
-- FilterManager userType parameter customizes menu for company reps.
-- Student statistics show eligible internships and active application count.
-
----
-
-## Architecture Notes
-
-**Service Layer Pattern**: UI handlers interact via services (`UserService`, `InternshipService`, `ApplicationService`). Domain objects delegate persistence to repositories. Legacy `Database` class fully removed.
-
-**SOLID Principles Enforcement**:
-
-- **Single Responsibility**: Handlers = UI orchestration; Services = business rules + validation; Repositories = persistence; Domain objects = state + light invariants.
-- **Dependency Inversion**: High-level code depends on interfaces (`IUserRepository`, `IInternshipRepository`, `IApplicationRepository`).
-- **Open/Closed**: New persistence strategies can be added behind repository interfaces. New user types can extend `User` without modifying existing code.
-- **Liskov Substitution**: Code works with `User` base type; polymorphic methods eliminate `instanceof` checks.
-- **Security**: Password hashing with salt; comprehensive input validation; secure data handling.
-
-**Data Layer Status**:
-
-- **Complete Repository Migration**: All classes now use repository pattern exclusively
-- **No Legacy Database Usage**: `Database` class fully removed from active code paths
-- **Dependency Injection**: All repositories properly injected with correct initialization order
-- **Security**: Password hashing implemented with secure storage
-- **Validation**: Comprehensive input validation at service layer
-- **Performance**: Optimized algorithms using Java streams and efficient data structures
-- **Testing**: Comprehensive automated test suite with 13 tests covering all major functionality
-- **MajorCatalog**: Centralized major list for consistency across student registration, internship creation, and filtering
-- **FilterManager Customization**: Company representatives see filtered menu options (no "Company" sort) using userType parameter
-- **Error Handling**: Consistent try-catch blocks in all menu handlers following SOLID principles
-- **Recent Updates**: Student internship viewing now shows all matching major/GPA internships with ineligibility reasons displayed. Statistics eligibility checks now include year restrictions. Filtering integrated into internship viewing for improved UX.
-
-## Status Model
-
-The system uses the following application and internship statuses:
-
-- Application: `Pending`, `Successful`, `Unsuccessful`, `Confirmed`, `Withdrawn`, `Withdrawal Requested`, `Withdrawal Rejected`
-- Internship: `Pending`, `Approved`, `Rejected`, `Filled`
-
-## Security Model
-
-- **Password Storage**: SHA-256 hashing with random salt for all user passwords
-- **Input Validation**: Comprehensive validation at service layer for all user inputs
-- **Data Protection**: No plain text password storage in memory or persistent files
-- **Session Security**: Proper logout and session management
-
-## Business Rules
-
-**Application Constraints**:
-
-- Students can have a maximum of 3 active applications (excludes `Withdrawn` and `Unsuccessful`).
-- Students with a `Confirmed` internship **cannot** apply to new internships.
-- Students cannot reapply to internships they manually withdrew from.
-
-**Status Transitions**:
-
-- `Withdrawal Requested` → `Withdrawal Rejected`: Restores `previousStatus` (typically `Successful` or `Confirmed`).
-- `Successful` → `Confirmed`: Auto-withdraws all other applications for that student.
-
-**Input Validation Rules**:
-
-- User ID: 3-20 characters, alphanumeric
-- Name: 2-50 characters, required
-- Password: minimum 6 characters, hashed with salt
-- Year of Study: 1-4 range
-- Major: must match predefined list (Computer Science, Computer Engineering, etc.)
-- GPA: 0.0-5.0 range
-- Department/Position: 2-50 characters
-- Email: basic format validation
-
-## Testing Framework
-
-### Automated Test Architecture
-
-The system includes a comprehensive automated testing framework with the following structure:
-
-```
-test/
-├── TestFramework.java       # Core assertion utilities
-├── TestRunner.java          # Main test orchestrator
-├── UserServiceTest.java     # Authentication & validation tests
-├── RepositoryTest.java      # Data persistence tests
-└── BusinessLogicTest.java   # Business rule tests
-```
-
-### Test Coverage
-
-**UserService Tests (6 tests)**:
-
-- Student, Staff, and Company Rep authentication
-- Invalid credential rejection
-- Registration input validation (user ID, GPA ranges)
-
-**Repository Tests (5 tests)**:
-
-- CSV file loading and parsing
-- Data retrieval by ID
-- Repository initialization
-- ID generation functionality
-
-**Business Logic Tests (2 tests)**:
-
-- GPA-based eligibility filtering
-- Internship validation rules
-
-### Enhanced Testing Features
-
-**Verbose Output**:
-
-- Detailed logging of test conditions and object types (ASCII-compatible)
-- Value comparison showing expected vs actual results
-- Step-by-step verification of test assertions
-
-**Confirmation Bias Protection**:
-
-- Tests run against production code (not simplified test versions)
-- Object type verification ensures correct return types
-- Comprehensive assertion checking prevents false positives
-
-**Testing Mode**:
-
-- Application can run in testing mode for automated verification
-- Isolated test environment prevents interference with production data
-- Detailed reporting with pass rates and failure analysis
-
-**Total**: 24 comprehensive manual test scenarios covering all system functionality with detailed expected behaviors
-
-### Test Execution
-
-Follow the comprehensive manual testing procedures in `docs/TESTING_GUIDE.md` for complete system validation.
-
-**Error Messages**:
-
-- Application rejections include detailed explanations with `[BLOCKED]` or `[ERROR]` prefixes.
-- Registration failures provide specific validation error details.
-- Context provided: current values vs requirements, related application details.
-
 ## UML Class Diagram
 
 ```mermaid
@@ -249,6 +48,8 @@ classDiagram
         +login(password: String): bool
         +logout(): void
         +changePassword(newPassword: String): void
+        +setPasswordHash(passwordHash: String): void
+        +setSalt(salt: String): void
         +verifyPassword(password: String): bool
         +getUserID(): String
         +getName(): String
@@ -457,11 +258,21 @@ classDiagram
     }
 
     class IUserRepository {
+        <<interface>>
         +getAllUsers(): List~User~
         +getUserById(userId: String): User
         +addUser(user: User): void
         +removeUser(userId: String): void
-        +saveUsers(): void
+        +saveUsers(): void throws IOException
+        +generateCompanyRepId(): String
+    }
+
+    class CsvUserRepository {
+        +getAllUsers(): List~User~
+        +getUserById(userId: String): User
+        +addUser(user: User): void
+        +removeUser(userId: String): void
+        +saveUsers(): void throws IOException
         +generateCompanyRepId(): String
     }
 
@@ -520,6 +331,7 @@ classDiagram
         +registerStaff(userId: String, name: String, password: String, department: String): bool
         +registerCompanyRep(userId: String, name: String, password: String, company: String, department: String, position: String, email: String): bool
         +approveCompanyRep(repId: String): void
+        +saveUsers(): void throws IOException
         +isUserIdAvailable(userId: String, allowRejectedCompanyRep: bool): bool
         +getUserRepository(): IUserRepository
         -isValidUserId(userId: String): bool
@@ -1085,7 +897,7 @@ sequenceDiagram
 
 ```
 
-### Secure Password Change with Hashing
+### Secure Password Change with Hashing and Persistence
 
 ```mermaid
 sequenceDiagram
@@ -1093,6 +905,8 @@ sequenceDiagram
     participant MenuHandler
     participant User
     participant PasswordUtil
+    participant UserService
+    participant IUserRepository
 
     user->>MenuHandler: changePassword()
     MenuHandler->>user: prompt current password
@@ -1106,6 +920,7 @@ sequenceDiagram
     MenuHandler->>user: confirm new password
     user->>MenuHandler: confirm password
     MenuHandler->>MenuHandler: validate passwords match and not same as current
+    MenuHandler->>MenuHandler: save old passwordHash and salt
     MenuHandler->>User: changePassword(newPassword)
     User->>PasswordUtil: generateSalt()
     PasswordUtil-->>User: newSalt
@@ -1113,7 +928,17 @@ sequenceDiagram
     PasswordUtil-->>User: newHash
     User->>User: store newHash and newSalt
     User-->>MenuHandler: password changed
-    MenuHandler-->>user: password change successful
+    MenuHandler->>UserService: saveUsers()
+    UserService->>IUserRepository: saveUsers()
+    IUserRepository-->>UserService: success or IOException
+    UserService-->>MenuHandler: success or exception
+    alt success
+        MenuHandler-->>user: password change successful
+    else exception
+        MenuHandler->>User: setPasswordHash(oldHash)
+        MenuHandler->>User: setSalt(oldSalt)
+        MenuHandler-->>user: failed to save password change
+    end
 
 ```
 
@@ -1230,5 +1055,27 @@ sequenceDiagram
     InternshipService->>InternshipOpportunity: setVisibility(visible)
     InternshipService-->>CompanyRepMenuHandler: success
     CompanyRepMenuHandler-->>companyRep: visibility toggled
+
+```
+
+### Batch Internship Approval
+
+```mermaid
+sequenceDiagram
+    participant careerStaff
+    participant CareerStaffMenuHandler
+    participant InternshipService
+    participant IInternshipRepository
+
+    careerStaff->>CareerStaffMenuHandler: processInternships([opportunityIDs])
+    loop for each opportunityID
+        CareerStaffMenuHandler->>InternshipService: approveInternship(opportunityID)
+        InternshipService->>IInternshipRepository: getInternshipById(opportunityID)
+        IInternshipRepository-->>InternshipService: InternshipOpportunity
+        InternshipService->>InternshipOpportunity: setStatus("Approved")
+        InternshipService-->>CareerStaffMenuHandler: success
+    end
+    CareerStaffMenuHandler->>CareerStaffMenuHandler: display batch summary
+    CareerStaffMenuHandler-->>careerStaff: batch approval complete
 
 ```

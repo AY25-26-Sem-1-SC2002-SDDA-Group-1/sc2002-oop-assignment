@@ -84,6 +84,24 @@ public abstract class User {
     }
 
     /**
+     * Sets the password hash.
+     *
+     * @param passwordHash the password hash
+     */
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    /**
+     * Sets the salt.
+     *
+     * @param salt the salt
+     */
+    public void setSalt(String salt) {
+        this.salt = salt;
+    }
+
+    /**
      * Verifies the given password.
      *
      * @param password the password to verify

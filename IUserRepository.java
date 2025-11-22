@@ -1,5 +1,7 @@
 import java.util.List;
 
+import java.io.IOException;
+
 /**
  * Repository interface for managing users.
  */
@@ -36,7 +38,7 @@ public interface IUserRepository {
     /**
      * Saves all users to persistent storage.
      */
-    void saveUsers();
+    void saveUsers() throws IOException;
 
     /**
      * Generates a new unique company representative ID.

@@ -124,8 +124,12 @@ public class InternshipPlacementSystem {
                     break;
                 case "3":
                     UIHelper.printGoodbyeMessage();
-                    userRepository.saveUsers();
-                    applicationRepository.saveApplications();
+                    try {
+                        userRepository.saveUsers();
+                        applicationRepository.saveApplications();
+                    } catch (Exception e) {
+                        System.err.println("Error saving data on exit: " + e.getMessage());
+                    }
                     System.exit(0);
                     break;
                  default:
@@ -171,7 +175,7 @@ public class InternshipPlacementSystem {
 
             User user = userService.login(userID, password);
             if (user == null) {
-                System.out.println("Invalid user ID or password.");
+                UIHelper.printErrorMessage("Invalid user ID or password.");
                 return;
             }
 
@@ -179,19 +183,19 @@ public class InternshipPlacementSystem {
             if (user.isCompanyRepresentative()) {
                 CompanyRepresentative rep = user.asCompanyRepresentative();
                 if (rep.isRejected()) {
-                    System.out.println("Your account is rejected.");
+                    UIHelper.printErrorMessage("Your account is rejected.");
                     return;
                 }
                 if (!rep.isApproved()) {
-                    System.out.println("Your account is pending approval.");
+                    UIHelper.printWarningMessage("Your account is pending approval.");
                     return;
                 }
             }
 
             currentUser = user;
-            System.out.println("Login successful! Welcome, " + user.getName() + "!");
+            UIHelper.printSuccessMessage("Login successful! Welcome, " + user.getName() + "!");
         } catch (Exception e) {
-            System.out.println("Error during login. Please try again.");
+            UIHelper.printErrorMessage("Error during login. Please try again.");
         }
     }
 
@@ -206,13 +210,13 @@ public class InternshipPlacementSystem {
 
             // Validate User ID format for students
             if (!isValidStudentUserId(userID)) {
-                System.out.println("Invalid User ID format. Student IDs must start with 'U', followed by 7 digits, and end with a letter (e.g., U2345123F).");
+                UIHelper.printErrorMessage("Invalid User ID format. Student IDs must start with 'U', followed by 7 digits, and end with a letter (e.g., U2345123F).");
                 return;
             }
 
             // Check for duplicate User ID immediately
             if (!userService.isUserIdAvailable(userID, false)) {
-                System.out.println("User ID already exists. Registration cancelled.");
+                UIHelper.printErrorMessage("User ID already exists. Registration cancelled.");
                 return;
             }
             
@@ -228,19 +232,19 @@ public class InternshipPlacementSystem {
             String major = MajorCatalog.resolveMajor(majorInput);
             
             if (major == null) {
-                System.out.println("Invalid major. Registration cancelled.");
+                UIHelper.printErrorMessage("Invalid major. Registration cancelled.");
                 return;
             }
             System.out.print("Enter GPA (0.0-5.0): ");
             double gpa = Double.parseDouble(scanner.nextLine().trim());
 
             if (userService.registerStudent(userID, name, password, yearOfStudy, major, gpa)) {
-                System.out.println("Registration successful!");
+                UIHelper.printSuccessMessage("Registration successful!");
             } else {
-                System.out.println("Registration failed.");
+                UIHelper.printErrorMessage("Registration failed.");
             }
         } catch (Exception e) {
-            System.out.println("Error during registration. Please try again.");
+            UIHelper.printErrorMessage("Error during registration. Please try again.");
         }
     }
 
@@ -252,7 +256,7 @@ public class InternshipPlacementSystem {
             
             // Check for duplicate User ID immediately
             if (!userService.isUserIdAvailable(userID, false)) {
-                System.out.println("User ID already exists. Registration cancelled.");
+                UIHelper.printErrorMessage("User ID already exists. Registration cancelled.");
                 return;
             }
             
@@ -264,12 +268,12 @@ public class InternshipPlacementSystem {
             String department = scanner.nextLine().trim();
 
             if (userService.registerStaff(userID, name, password, department)) {
-                System.out.println("Registration successful!");
+                UIHelper.printSuccessMessage("Registration successful!");
             } else {
-                System.out.println("Registration failed.");
+                UIHelper.printErrorMessage("Registration failed.");
             }
         } catch (Exception e) {
-            System.out.println("Error during registration. Please try again.");
+            UIHelper.printErrorMessage("Error during registration. Please try again.");
         }
     }
 
@@ -281,7 +285,7 @@ public class InternshipPlacementSystem {
             
             // Check for duplicate User ID immediately (allows rejected usernames to be reused)
             if (!userService.isUserIdAvailable(userID, true)) {
-                System.out.println("User ID already exists. Registration cancelled.");
+                UIHelper.printErrorMessage("User ID already exists. Registration cancelled.");
                 return;
             }
             
@@ -299,12 +303,12 @@ public class InternshipPlacementSystem {
             String email = scanner.nextLine().trim();
 
             if (userService.registerCompanyRep(userID, name, password, company, department, position, email)) {
-                System.out.println("Registration successful! Pending approval.");
+                UIHelper.printSuccessMessage("Registration successful! Pending approval.");
             } else {
-                System.out.println("Registration failed.");
+                UIHelper.printErrorMessage("Registration failed.");
             }
         } catch (Exception e) {
-            System.out.println("Error during registration. Please try again.");
+            UIHelper.printErrorMessage("Error during registration. Please try again.");
         }
     }
 

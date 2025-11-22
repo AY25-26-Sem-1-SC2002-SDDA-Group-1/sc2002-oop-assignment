@@ -125,7 +125,7 @@ public class StudentMenuHandler implements IMenuHandler {
         internships = filterManager.getFilterSettings().applyFilters(internships);
 
         if (internships.isEmpty()) {
-            System.out.println("No eligible internships found.");
+            UIHelper.printWarningMessage("No eligible internships found.");
         } else {
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             for (var internship : internships) {
@@ -206,18 +206,24 @@ public class StudentMenuHandler implements IMenuHandler {
                 InternshipOpportunity opp = internshipService.getInternship(internshipID);
                 if (opp == null) {
                     System.out.println("[FAILED] " + internshipID + ": Internship not found.");
-                } else if (!opp.isVisible() || !opp.getStatus().equals("Approved")) {
-                    System.out.println("[FAILED] " + internshipID + ": Not available for applications.");
-                } else if (!opp.isOpen()) {
-                    System.out.println("[FAILED] " + internshipID + ": Not accepting applications (check dates).");
-                } else if (!opp.getPreferredMajor().equalsIgnoreCase(student.getMajor())) {
-                    System.out.println("[FAILED] " + internshipID + ": Major mismatch.");
-                } else if (student.getYearOfStudy() <= 2 && !opp.getLevel().equals("Basic")) {
-                    System.out.println("[FAILED] " + internshipID + ": Year 1-2 students can only apply for Basic level.");
-                } else if (student.getGpa() < opp.getMinGPA()) {
-                    System.out.println("[FAILED] " + internshipID + ": GPA requirement not met (required: " + opp.getMinGPA() + ").");
                 } else {
-                    System.out.println("[FAILED] " + internshipID + ": Failed (already applied or max 3 applications reached).");
+                    int filledSlots = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
+                        .mapToInt(app -> ("Confirmed".equals(app.getStatus()) || "Successful".equals(app.getStatus()) || "Withdrawal Requested".equals(app.getStatus())) ? 1 : 0).sum();
+                    if (!opp.isVisible() || !opp.getStatus().equals("Approved")) {
+                        System.out.println("[FAILED] " + internshipID + ": Not available for applications.");
+                    } else if (!opp.isOpen()) {
+                        System.out.println("[FAILED] " + internshipID + ": Not accepting applications (check dates).");
+                    } else if (!opp.getPreferredMajor().equalsIgnoreCase(student.getMajor())) {
+                        System.out.println("[FAILED] " + internshipID + ": Major mismatch.");
+                    } else if (student.getYearOfStudy() <= 2 && !opp.getLevel().equals("Basic")) {
+                        System.out.println("[FAILED] " + internshipID + ": Year 1-2 students can only apply for Basic level.");
+                    } else if (student.getGpa() < opp.getMinGPA()) {
+                        System.out.println("[FAILED] " + internshipID + ": GPA requirement not met (required: " + opp.getMinGPA() + ").");
+                    } else if (filledSlots >= opp.getMaxSlots()) {
+                        System.out.println("[FAILED] " + internshipID + ": Internship is full.");
+                    } else {
+                        System.out.println("[FAILED] " + internshipID + ": Failed (already applied or max 3 applications reached).");
+                    }
                 }
                 failCount++;
             }
@@ -232,7 +238,7 @@ public class StudentMenuHandler implements IMenuHandler {
         UIHelper.printSectionHeader("MY APPLICATIONS");
         var applications = student.viewApplications();
         if (applications.isEmpty()) {
-            System.out.println("No applications found.");
+            UIHelper.printWarningMessage("No applications found.");
         } else {
             for (var app : applications) {
                 InternshipOpportunity opp = app.getOpportunity();
@@ -264,7 +270,7 @@ public class StudentMenuHandler implements IMenuHandler {
         }
 
         if (successfulApps.isEmpty()) {
-            System.out.println("\nNo successful applications to accept.");
+            UIHelper.printWarningMessage("No successful applications to accept.");
             return;
         }
 
@@ -298,7 +304,7 @@ public class StudentMenuHandler implements IMenuHandler {
         }
 
         if (withdrawableApps.isEmpty()) {
-            System.out.println("\nNo withdrawable applications found (Pending, Successful, or Confirmed).");
+            UIHelper.printWarningMessage("No withdrawable applications found (Pending, Successful, or Confirmed).");
             return;
         }
 
@@ -340,7 +346,7 @@ public class StudentMenuHandler implements IMenuHandler {
 
         // Verify current password
         if (!student.verifyPassword(currentPassword)) {
-            System.out.println("Current password is incorrect.");
+            UIHelper.printErrorMessage("Current password is incorrect.");
             return;
         }
 
@@ -348,13 +354,13 @@ public class StudentMenuHandler implements IMenuHandler {
         String newPassword = scanner.nextLine().trim();
 
         if (newPassword.isEmpty()) {
-            System.out.println("Password cannot be empty.");
+            UIHelper.printErrorMessage("Password cannot be empty.");
             return;
         }
 
         // Check if new password is same as current password
         if (newPassword.equals(currentPassword)) {
-            System.out.println("New password cannot be the same as current password.");
+            UIHelper.printErrorMessage("New password cannot be the same as current password.");
             return;
         }
 
@@ -362,17 +368,25 @@ public class StudentMenuHandler implements IMenuHandler {
         String confirmPassword = scanner.nextLine().trim();
 
         if (!newPassword.equals(confirmPassword)) {
-            System.out.println("Passwords do not match.");
+            UIHelper.printErrorMessage("Passwords do not match.");
             return;
         }
 
+        String oldPasswordHash = student.getPasswordHash();
+        String oldSalt = student.getSalt();
         student.changePassword(newPassword);
-        userService.saveUsers();
-        System.out.println("Password changed successfully!");
+        try {
+            userService.saveUsers();
+            UIHelper.printSuccessMessage("Password changed successfully!");
+        } catch (Exception e) {
+            student.setPasswordHash(oldPasswordHash);
+            student.setSalt(oldSalt);
+            UIHelper.printErrorMessage("Failed to save password change: " + e.getMessage());
+        }
     }
 
     private void logout() {
-        System.out.println("Logging out...");
+        UIHelper.printSuccessMessage("Logged out successfully!");
         student.logout();
     }
     
