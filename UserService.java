@@ -3,7 +3,7 @@ import java.io.IOException;
 /**
  * Service class for managing user operations like login and registration.
  */
-public class UserService {
+public class UserService implements IUserService {
     private final IUserRepository userRepository;
     private final IInternshipRepository internshipRepository;
     private final IApplicationRepository applicationRepository;
@@ -195,15 +195,15 @@ public class UserService {
         return userId != null && !userId.trim().isEmpty() && userId.length() >= 3 && userId.length() <= 20;
     }
 
-    private boolean isValidName(String name) {
+    public boolean isValidName(String name) {
         return name != null && !name.trim().isEmpty() && name.length() >= 2 && name.length() <= 50;
     }
 
-    private boolean isValidPassword(String password) {
+    public boolean isValidPassword(String password) {
         return password != null && password.length() >= 6;
     }
 
-    private boolean isValidYearOfStudy(int year) {
+    public boolean isValidYearOfStudy(int year) {
         return year >= 1 && year <= 4;
     }
 
@@ -221,23 +221,23 @@ public class UserService {
         return false;
     }
 
-    private boolean isValidGpa(double gpa) {
+    public boolean isValidGpa(double gpa) {
         return gpa >= 0.0 && gpa <= 5.0;
     }
 
-    private boolean isValidDepartment(String department) {
+    public boolean isValidDepartment(String department) {
         return department != null && !department.trim().isEmpty() && department.length() >= 2 && department.length() <= 50;
     }
 
-    private boolean isValidCompanyName(String company) {
+    public boolean isValidCompanyName(String company) {
         return company != null && !company.trim().isEmpty() && company.length() >= 2 && company.length() <= 50;
     }
 
-    private boolean isValidPosition(String position) {
+    public boolean isValidPosition(String position) {
         return position != null && !position.trim().isEmpty() && position.length() >= 2 && position.length() <= 50;
     }
 
-    private boolean isValidEmail(String email) {
+    public boolean isValidEmail(String email) {
         if (email == null || email.trim().isEmpty()) return false;
         // Basic email validation
         return email.contains("@") && email.contains(".") && email.length() >= 5 && email.length() <= 100;

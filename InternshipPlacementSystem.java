@@ -8,50 +8,15 @@ public class InternshipPlacementSystem {
     private final Scanner scanner = new Scanner(System.in);
     private User currentUser = null;
     private IMenuHandler currentMenuHandler = null;
-    private IUserRepository userRepository;
-    private IInternshipRepository internshipRepository;
-    private IApplicationRepository applicationRepository;
-
-    private UserService userService;
-    private InternshipService internshipService;
-    private ApplicationService applicationService;
+    private ServiceFactory serviceFactory;
 
     /**
-     * Constructs the InternshipPlacementSystem and initializes repositories and services.
+     * Constructs the InternshipPlacementSystem and initializes services via DI container.
      */
     public InternshipPlacementSystem() {
-        // Initialize repositories with proper dependency injection
-        initializeRepositories();
-        initializeServices();
-    }
-
-    /**
-     * Initializes the repositories with proper dependency injection.
-     */
-    private void initializeRepositories() {
-        // Initialize repositories in dependency order to avoid circular dependencies
-
-        // 1. Create user repository first (it can load users without dependencies)
-        this.userRepository = new CsvUserRepository(null, null);
-
-        // 2. Create internship repository with user repository
-        this.internshipRepository = new CsvInternshipRepository(userRepository);
-
-        // 3. Create application repository with both dependencies
-        this.applicationRepository = new CsvApplicationRepository(userRepository, internshipRepository);
-
-        // 4. Update user repository with the other repositories (for consistency)
-        ((CsvUserRepository) this.userRepository).setInternshipRepository(internshipRepository);
-        ((CsvUserRepository) this.userRepository).setApplicationRepository(applicationRepository);
-    }
-
-    /**
-     * Initializes the services with the repositories.
-     */
-    private void initializeServices() {
-        this.userService = new UserService(userRepository, internshipRepository, applicationRepository);
-        this.internshipService = new InternshipService(internshipRepository, userRepository);
-        this.applicationService = new ApplicationService(applicationRepository, internshipRepository, userRepository);
+        // Initialize DI container
+        this.serviceFactory = new ServiceFactory();
+        serviceFactory.initialize();
     }
 
     /**
@@ -90,7 +55,7 @@ public class InternshipPlacementSystem {
     private IMenuHandler getMenuHandler() {
         // Cache the menu handler to preserve state like filters
         if (currentMenuHandler == null || !isCurrentMenuHandlerValid()) {
-            currentMenuHandler = currentUser.createMenuHandler(internshipService, applicationService, userService, scanner);
+            currentMenuHandler = MenuHandlerFactory.createMenuHandler(currentUser, serviceFactory.getInternshipService(), serviceFactory.getApplicationService(), serviceFactory.getUserService(), scanner);
         }
         return currentMenuHandler;
     }
@@ -125,8 +90,8 @@ public class InternshipPlacementSystem {
                 case "3":
                     UIHelper.printGoodbyeMessage();
                     try {
-                        userRepository.saveUsers();
-                        applicationRepository.saveApplications();
+                        serviceFactory.getUserRepository().saveUsers();
+                        serviceFactory.getApplicationRepository().saveApplications();
                     } catch (Exception e) {
                         System.err.println("Error saving data on exit: " + e.getMessage());
                     }
@@ -173,7 +138,7 @@ public class InternshipPlacementSystem {
             System.out.print("  Password: ");
             String password = scanner.nextLine().trim();
 
-            User user = userService.login(userID, password);
+            User user = serviceFactory.getUserService().login(userID, password);
             if (user == null) {
                 UIHelper.printErrorMessage("Invalid user ID or password.");
                 return;
@@ -215,17 +180,38 @@ public class InternshipPlacementSystem {
             }
 
             // Check for duplicate User ID immediately
-            if (!userService.isUserIdAvailable(userID, false)) {
+            if (!serviceFactory.getUserService().isUserIdAvailable(userID, false)) {
                 UIHelper.printErrorMessage("User ID already exists. Registration cancelled.");
                 return;
             }
             
             System.out.print("Enter Name: ");
             String name = scanner.nextLine().trim();
+            if (!serviceFactory.getUserService().isValidName(name)) {
+                UIHelper.printErrorMessage("Invalid name. Name must be 2-50 characters long.");
+                return;
+            }
+
             System.out.print("Enter Password: ");
             String password = scanner.nextLine().trim();
+            if (!serviceFactory.getUserService().isValidPassword(password)) {
+                UIHelper.printErrorMessage("Invalid password. Password must be at least 6 characters long.");
+                return;
+            }
+
             System.out.print("Enter Year of Study (1-4): ");
-            int yearOfStudy = Integer.parseInt(scanner.nextLine().trim());
+            int yearOfStudy;
+            try {
+                yearOfStudy = Integer.parseInt(scanner.nextLine().trim());
+                if (!serviceFactory.getUserService().isValidYearOfStudy(yearOfStudy)) {
+                    UIHelper.printErrorMessage("Invalid year of study. Must be between 1 and 4.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                UIHelper.printErrorMessage("Invalid year of study. Please enter a number between 1 and 4.");
+                return;
+            }
+
             MajorCatalog.displayMajors();
             System.out.print("Enter number or Major: ");
             String majorInput = scanner.nextLine().trim();
@@ -235,10 +221,21 @@ public class InternshipPlacementSystem {
                 UIHelper.printErrorMessage("Invalid major. Registration cancelled.");
                 return;
             }
-            System.out.print("Enter GPA (0.0-5.0): ");
-            double gpa = Double.parseDouble(scanner.nextLine().trim());
 
-            if (userService.registerStudent(userID, name, password, yearOfStudy, major, gpa)) {
+            System.out.print("Enter GPA (0.0-5.0): ");
+            double gpa;
+            try {
+                gpa = Double.parseDouble(scanner.nextLine().trim());
+                if (!serviceFactory.getUserService().isValidGpa(gpa)) {
+                    UIHelper.printErrorMessage("Invalid GPA. GPA must be between 0.0 and 5.0.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                UIHelper.printErrorMessage("Invalid GPA. Please enter a number between 0.0 and 5.0.");
+                return;
+            }
+
+            if (serviceFactory.getUserService().registerStudent(userID, name, password, yearOfStudy, major, gpa)) {
                 UIHelper.printSuccessMessage("Registration successful!");
             } else {
                 UIHelper.printErrorMessage("Registration failed.");
@@ -255,19 +252,33 @@ public class InternshipPlacementSystem {
             String userID = scanner.nextLine().trim();
             
             // Check for duplicate User ID immediately
-            if (!userService.isUserIdAvailable(userID, false)) {
+            if (!serviceFactory.getUserService().isUserIdAvailable(userID, false)) {
                 UIHelper.printErrorMessage("User ID already exists. Registration cancelled.");
                 return;
             }
             
             System.out.print("Enter Name: ");
             String name = scanner.nextLine().trim();
+            if (!serviceFactory.getUserService().isValidName(name)) {
+                UIHelper.printErrorMessage("Invalid name. Name must be 2-50 characters long.");
+                return;
+            }
+
             System.out.print("Enter Password: ");
             String password = scanner.nextLine().trim();
+            if (!serviceFactory.getUserService().isValidPassword(password)) {
+                UIHelper.printErrorMessage("Invalid password. Password must be at least 6 characters long.");
+                return;
+            }
+
             System.out.print("Enter Staff Department: ");
             String department = scanner.nextLine().trim();
+            if (!serviceFactory.getUserService().isValidDepartment(department)) {
+                UIHelper.printErrorMessage("Invalid department. Department must be 2-50 characters long.");
+                return;
+            }
 
-            if (userService.registerStaff(userID, name, password, department)) {
+            if (serviceFactory.getUserService().registerStaff(userID, name, password, department)) {
                 UIHelper.printSuccessMessage("Registration successful!");
             } else {
                 UIHelper.printErrorMessage("Registration failed.");
@@ -284,25 +295,54 @@ public class InternshipPlacementSystem {
             String userID = scanner.nextLine().trim();
             
             // Check for duplicate User ID immediately (allows rejected usernames to be reused)
-            if (!userService.isUserIdAvailable(userID, true)) {
+            if (!serviceFactory.getUserService().isUserIdAvailable(userID, true)) {
                 UIHelper.printErrorMessage("User ID already exists. Registration cancelled.");
                 return;
             }
             
             System.out.print("Enter Name: ");
             String name = scanner.nextLine().trim();
+            if (!serviceFactory.getUserService().isValidName(name)) {
+                UIHelper.printErrorMessage("Invalid name. Name must be 2-50 characters long.");
+                return;
+            }
+
             System.out.print("Enter Password: ");
             String password = scanner.nextLine().trim();
+            if (!serviceFactory.getUserService().isValidPassword(password)) {
+                UIHelper.printErrorMessage("Invalid password. Password must be at least 6 characters long.");
+                return;
+            }
+
             System.out.print("Enter Company Name: ");
             String company = scanner.nextLine().trim();
+            if (!serviceFactory.getUserService().isValidCompanyName(company)) {
+                UIHelper.printErrorMessage("Invalid company name. Company name must be 2-50 characters long.");
+                return;
+            }
+
             System.out.print("Enter Department: ");
             String department = scanner.nextLine().trim();
+            if (!serviceFactory.getUserService().isValidDepartment(department)) {
+                UIHelper.printErrorMessage("Invalid department. Department must be 2-50 characters long.");
+                return;
+            }
+
             System.out.print("Enter Position: ");
             String position = scanner.nextLine().trim();
+            if (!serviceFactory.getUserService().isValidPosition(position)) {
+                UIHelper.printErrorMessage("Invalid position. Position must be 2-50 characters long.");
+                return;
+            }
+
             System.out.print("Enter Email: ");
             String email = scanner.nextLine().trim();
+            if (!serviceFactory.getUserService().isValidEmail(email)) {
+                UIHelper.printErrorMessage("Invalid email format. Email must contain '@' and '.' and be 5-100 characters long.");
+                return;
+            }
 
-            if (userService.registerCompanyRep(userID, name, password, company, department, position, email)) {
+            if (serviceFactory.getUserService().registerCompanyRep(userID, name, password, company, department, position, email)) {
                 UIHelper.printSuccessMessage("Registration successful! Pending approval.");
             } else {
                 UIHelper.printErrorMessage("Registration failed.");

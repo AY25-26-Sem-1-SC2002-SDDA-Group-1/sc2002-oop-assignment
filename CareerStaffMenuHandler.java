@@ -8,9 +8,9 @@ import java.util.Scanner;
  */
 public class CareerStaffMenuHandler implements IMenuHandler {
     private final CareerCenterStaff staff;
-    private final UserService userService;
-    private final InternshipService internshipService;
-    private final ApplicationService applicationService;
+    private final IUserService userService;
+    private final IInternshipService internshipService;
+    private final IApplicationService applicationService;
     private final Scanner scanner;
     private final FilterManager filterManager;
 
@@ -23,7 +23,7 @@ public class CareerStaffMenuHandler implements IMenuHandler {
      * @param applicationService the application service
      * @param scanner the scanner for input
      */
-    public CareerStaffMenuHandler(CareerCenterStaff staff, UserService userService, InternshipService internshipService, ApplicationService applicationService, Scanner scanner) {
+    public CareerStaffMenuHandler(CareerCenterStaff staff, IUserService userService, IInternshipService internshipService, IApplicationService applicationService, Scanner scanner) {
         this.staff = staff;
         this.userService = userService;
         this.internshipService = internshipService;

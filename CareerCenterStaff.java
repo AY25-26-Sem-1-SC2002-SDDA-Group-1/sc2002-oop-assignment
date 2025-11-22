@@ -182,7 +182,7 @@ public class CareerCenterStaff extends User {
         List<Application> withdrawalRequests = new ArrayList<>();
         List<Application> allApplications = applicationRepository.getAllApplications();
         for (Application app : allApplications) {
-            if (app.getStatus().equals("Withdrawal Requested")) {
+            if (app.getStatusEnum() == ApplicationStatus.WITHDRAWAL_REQUESTED) {
                 withdrawalRequests.add(app);
             }
         }
@@ -198,44 +198,41 @@ public class CareerCenterStaff extends User {
      */
     public boolean processWithdrawal(String applicationID, boolean approve) {
         Application application = applicationRepository.getApplicationById(applicationID);
-        if (application == null || !application.getStatus().equals("Withdrawal Requested")) {
+        if (application == null || application.getStatusEnum() != ApplicationStatus.WITHDRAWAL_REQUESTED) {
             return false;
         }
         
         if (approve) {
-            String previousStatus = application.getPreviousStatus();
+            ApplicationStatus previousStatus = application.getPreviousStatusEnum();
             
             // If previous status was Confirmed or Successful, free a slot
             // Both statuses count toward slot limits, so withdrawal should trigger promotion
-            if ("Confirmed".equals(previousStatus) || "Successful".equals(previousStatus)) {
-                application.updateStatus("Withdrawn");
+            if (previousStatus == ApplicationStatus.CONFIRMED || previousStatus == ApplicationStatus.SUCCESSFUL) {
+                application.updateStatus(ApplicationStatus.WITHDRAWN);
                 
                 // Withdraw all other pending/successful applications for this student
                 Student student = application.getApplicant();
                 for (Application app : applicationRepository.getAllApplications()) {
                     if (app.getApplicant().getUserID().equals(student.getUserID()) &&
                         !app.getApplicationID().equals(applicationID) &&
-                        (app.getStatus().equals("Pending") ||
-                         app.getStatus().equals("Successful"))) {
-                        app.updateStatus("Withdrawn");
+                        (app.getStatusEnum() == ApplicationStatus.PENDING ||
+                         app.getStatusEnum() == ApplicationStatus.SUCCESSFUL)) {
+                        app.updateStatus(ApplicationStatus.WITHDRAWN);
                     }
                 }
-                
-                // Get the internship opportunity
-                InternshipOpportunity internship = application.getOpportunity();
                 
                 applicationRepository.saveApplications();
                 return true;
                 
             } else {
                 // For Pending withdrawals, just mark as withdrawn (no slot to free)
-                application.updateStatus("Withdrawn");
+                application.updateStatus(ApplicationStatus.WITHDRAWN);
                 applicationRepository.saveApplications();
                 return true;
             }
         } else {
             // Rejection: revert to previous status
-            application.updateStatus("Withdrawal Rejected");
+            application.updateStatus(ApplicationStatus.WITHDRAWAL_REJECTED);
             applicationRepository.saveApplications();
             return true;
         }
@@ -283,25 +280,6 @@ public class CareerCenterStaff extends User {
      */
     public String getStaffDepartment() {
         return staffDepartment;
-    }
-
-    /**
-     * Creates a menu handler for this staff member.
-     *
-     * @param internshipService the internship service
-     * @param applicationService the application service
-     * @param userService the user service
-     * @param scanner the scanner for input
-     * @return the menu handler
-     */
-    @Override
-    public IMenuHandler createMenuHandler(
-        InternshipService internshipService,
-        ApplicationService applicationService,
-        UserService userService,
-        java.util.Scanner scanner
-    ) {
-        return new CareerStaffMenuHandler(this, userService, internshipService, applicationService, scanner);
     }
 
     /**

@@ -9,9 +9,9 @@ import java.util.stream.Collectors;
  */
 public class StudentMenuHandler implements IMenuHandler {
     private final Student student;
-    private final InternshipService internshipService;
-    private final ApplicationService applicationService;
-    private final UserService userService;
+    private final IInternshipService internshipService;
+    private final IStudentApplicationService applicationService;
+    private final IUserService userService;
     private final Scanner scanner;
     private final FilterManager filterManager;
 
@@ -23,7 +23,7 @@ public class StudentMenuHandler implements IMenuHandler {
      * @param applicationService the application service
      * @param scanner the scanner for input
      */
-    public StudentMenuHandler(Student student, InternshipService internshipService, ApplicationService applicationService, Scanner scanner) {
+    public StudentMenuHandler(Student student, IInternshipService internshipService, IStudentApplicationService applicationService, Scanner scanner) {
         this(student, internshipService, applicationService, null, scanner);
     }
 
@@ -36,13 +36,13 @@ public class StudentMenuHandler implements IMenuHandler {
      * @param userService the user service
      * @param scanner the scanner for input
      */
-    public StudentMenuHandler(Student student, InternshipService internshipService, ApplicationService applicationService, UserService userService, Scanner scanner) {
+    public StudentMenuHandler(Student student, IInternshipService internshipService, IStudentApplicationService applicationService, IUserService userService, Scanner scanner) {
         this.student = student;
         this.internshipService = internshipService;
         this.applicationService = applicationService;
         this.userService = userService;
         this.scanner = scanner;
-        this.filterManager = new FilterManager(scanner);
+        this.filterManager = FilterManagerFactory.createFilterManager(scanner);
     }
 
     /**
@@ -118,10 +118,8 @@ public class StudentMenuHandler implements IMenuHandler {
             System.out.println();
         }
 
-        // Use InternshipService to get all internships
-        List<InternshipOpportunity> internships = internshipService.getAllInternships().stream()
-            .filter(i -> i.isVisible() && i.getStatus().equals("Approved") && student.isEligibleForInternship(i))
-            .collect(Collectors.toList());
+        // Use ApplicationService to get eligible internships
+        List<InternshipOpportunity> internships = applicationService.getEligibleInternshipsForStudent(student.getUserID());
         internships = filterManager.getFilterSettings().applyFilters(internships);
 
         if (internships.isEmpty()) {
@@ -130,7 +128,10 @@ public class StudentMenuHandler implements IMenuHandler {
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             for (var internship : internships) {
                 int filledSlots = applicationService.getApplicationsForInternship(internship.getOpportunityID()).stream()
-                    .mapToInt(app -> ("Confirmed".equals(app.getStatus()) || "Successful".equals(app.getStatus()) || "Withdrawal Requested".equals(app.getStatus())) ? 1 : 0).sum();
+                    .mapToInt(app -> {
+                        ApplicationStatus status = app.getStatusEnum();
+                        return (status == ApplicationStatus.CONFIRMED || status == ApplicationStatus.SUCCESSFUL || status == ApplicationStatus.WITHDRAWAL_REQUESTED) ? 1 : 0;
+                    }).sum();
                 System.out.println("ID: " + internship.getOpportunityID());
                 System.out.println("Title: " + internship.getTitle());
                 System.out.println("Company: " + internship.getCreatedBy().getCompanyName());
@@ -164,7 +165,10 @@ public class StudentMenuHandler implements IMenuHandler {
         int index = 1;
         for (InternshipOpportunity internship : internships) {
             int filledSlots = applicationService.getApplicationsForInternship(internship.getOpportunityID()).stream()
-                .mapToInt(app -> ("Confirmed".equals(app.getStatus()) || "Successful".equals(app.getStatus()) || "Withdrawal Requested".equals(app.getStatus())) ? 1 : 0).sum();
+                .mapToInt(app -> {
+                    ApplicationStatus status = app.getStatusEnum();
+                    return (status == ApplicationStatus.CONFIRMED || status == ApplicationStatus.SUCCESSFUL || status == ApplicationStatus.WITHDRAWAL_REQUESTED) ? 1 : 0;
+                }).sum();
             System.out.println(index + ". ID: " + internship.getOpportunityID() + " - " + internship.getTitle() + " (Filled: " + filledSlots + "/" + internship.getMaxSlots() + ")");
             index++;
         }
@@ -197,34 +201,13 @@ public class StudentMenuHandler implements IMenuHandler {
                 internshipID = inp;
             }
 
-            boolean result = applicationService.applyForInternship(student.getUserID(), internshipID);
+            OperationResult result = applicationService.applyForInternship(student.getUserID(), internshipID);
 
-            if (result) {
-                System.out.println("[SUCCESS] " + internshipID + ": Application submitted successfully!");
+            if (result.isSuccess()) {
+                System.out.println("[SUCCESS] " + internshipID + ": " + result.getMessage());
                 successCount++;
             } else {
-                InternshipOpportunity opp = internshipService.getInternship(internshipID);
-                if (opp == null) {
-                    System.out.println("[FAILED] " + internshipID + ": Internship not found.");
-                } else {
-                    int filledSlots = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
-                        .mapToInt(app -> ("Confirmed".equals(app.getStatus()) || "Successful".equals(app.getStatus()) || "Withdrawal Requested".equals(app.getStatus())) ? 1 : 0).sum();
-                    if (!opp.isVisible() || !opp.getStatus().equals("Approved")) {
-                        System.out.println("[FAILED] " + internshipID + ": Not available for applications.");
-                    } else if (!opp.isOpen()) {
-                        System.out.println("[FAILED] " + internshipID + ": Not accepting applications (check dates).");
-                    } else if (!opp.getPreferredMajor().equalsIgnoreCase(student.getMajor())) {
-                        System.out.println("[FAILED] " + internshipID + ": Major mismatch.");
-                    } else if (student.getYearOfStudy() <= 2 && !opp.getLevel().equals("Basic")) {
-                        System.out.println("[FAILED] " + internshipID + ": Year 1-2 students can only apply for Basic level.");
-                    } else if (student.getGpa() < opp.getMinGPA()) {
-                        System.out.println("[FAILED] " + internshipID + ": GPA requirement not met (required: " + opp.getMinGPA() + ").");
-                    } else if (filledSlots >= opp.getMaxSlots()) {
-                        System.out.println("[FAILED] " + internshipID + ": Internship is full.");
-                    } else {
-                        System.out.println("[FAILED] " + internshipID + ": Failed (already applied or max 3 applications reached).");
-                    }
-                }
+                System.out.println("[FAILED] " + internshipID + ": " + result.getMessage());
                 failCount++;
             }
         }
@@ -236,7 +219,7 @@ public class StudentMenuHandler implements IMenuHandler {
 
     private void viewMyApplications() {
         UIHelper.printSectionHeader("MY APPLICATIONS");
-        var applications = student.viewApplications();
+        var applications = applicationService.getApplicationsForStudent(student.getUserID());
         if (applications.isEmpty()) {
             UIHelper.printWarningMessage("No applications found.");
         } else {
@@ -262,12 +245,9 @@ public class StudentMenuHandler implements IMenuHandler {
 
     private void acceptInternship() {
         // Show successful applications first
-        List<Application> successfulApps = new java.util.ArrayList<>();
-        for (Application app : student.viewApplications()) {
-            if (app.getStatus().equals("Successful")) {
-                successfulApps.add(app);
-            }
-        }
+        List<Application> successfulApps = applicationService.getApplicationsForStudent(student.getUserID()).stream()
+            .filter(app -> app.getStatusEnum() == ApplicationStatus.SUCCESSFUL)
+            .toList();
 
         if (successfulApps.isEmpty()) {
             UIHelper.printWarningMessage("No successful applications to accept.");
@@ -290,18 +270,22 @@ public class StudentMenuHandler implements IMenuHandler {
         if (applicationID.isEmpty() || applicationID.equalsIgnoreCase("back")) {
             return;
         }
-        student.acceptInternship(applicationID);
+        OperationResult result = applicationService.acceptInternship(student.getUserID(), applicationID);
+        if (result.isSuccess()) {
+            UIHelper.printSuccessMessage(result.getMessage());
+        } else {
+            UIHelper.printWarningMessage(result.getMessage());
+        }
     }
 
     private void requestWithdrawal() {
         // Show withdrawable applications (Pending, Successful, or Confirmed)
-        List<Application> withdrawableApps = new java.util.ArrayList<>();
-        for (Application app : student.viewApplications()) {
-            String status = app.getStatus();
-            if (status.equals("Pending") || status.equals("Successful") || status.equals("Confirmed")) {
-                withdrawableApps.add(app);
-            }
-        }
+        List<Application> withdrawableApps = applicationService.getApplicationsForStudent(student.getUserID()).stream()
+            .filter(app -> {
+                ApplicationStatus status = app.getStatusEnum();
+                return status == ApplicationStatus.PENDING || status == ApplicationStatus.SUCCESSFUL || status == ApplicationStatus.CONFIRMED;
+            })
+            .toList();
 
         if (withdrawableApps.isEmpty()) {
             UIHelper.printWarningMessage("No withdrawable applications found (Pending, Successful, or Confirmed).");
@@ -325,7 +309,12 @@ public class StudentMenuHandler implements IMenuHandler {
         if (applicationID.isEmpty() || applicationID.equalsIgnoreCase("back")) {
             return;
         }
-        student.requestWithdrawal(applicationID);
+        OperationResult result = applicationService.requestWithdrawal(student.getUserID(), applicationID);
+        if (result.isSuccess()) {
+            UIHelper.printSuccessMessage(result.getMessage());
+        } else {
+            UIHelper.printWarningMessage(result.getMessage());
+        }
     }
 
     private void viewStudentStatistics() {
@@ -334,9 +323,7 @@ public class StudentMenuHandler implements IMenuHandler {
             System.out.println("Error: User repository not available.");
             return;
         }
-        Statistics stats = new Statistics(applicationService.getApplicationRepository(),
-                                         internshipService.getInternshipRepository(),
-                                         userRepo);
+        Statistics stats = new Statistics(applicationService.getApplicationRepository(), applicationService, internshipService.getInternshipRepository(), userRepo);
         stats.displayStudentStatistics(student);
     }
 

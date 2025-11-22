@@ -180,7 +180,7 @@ public class CompanyRepresentative extends User {
         List<Application> pendingApplications = new ArrayList<>();
         for (Application app : applicationRepository.getAllApplications()) {
             if (app.getOpportunity().getCreatedBy().getUserID().equals(this.userID) &&
-                app.getStatus().equals("Pending")) {
+                app.getStatusEnum() == ApplicationStatus.PENDING) {
                 pendingApplications.add(app);
             }
         }
@@ -204,21 +204,21 @@ public class CompanyRepresentative extends User {
         }
         if (target != null &&
             target.getOpportunity().getCreatedBy().getUserID().equals(this.userID) &&
-            target.getStatus().equals("Pending")) {
+            target.getStatusEnum() == ApplicationStatus.PENDING) {
 
             if (approve) {
                 // Check slot limit before approving
                 InternshipOpportunity opp = target.getOpportunity();
                 long filledSlots = applicationRepository.getAllApplications().stream()
                     .filter(a -> a.getOpportunity().getOpportunityID().equals(opp.getOpportunityID()) &&
-                           (a.getStatus().equals("Successful") || a.getStatus().equals("Confirmed")))
+                           (a.getStatusEnum() == ApplicationStatus.SUCCESSFUL || a.getStatusEnum() == ApplicationStatus.CONFIRMED))
                     .count();
                 if (filledSlots >= opp.getMaxSlots()) {
                     return false; // Cannot approve - slots are full
                 }
-                target.updateStatus("Successful");
+                target.updateStatus(ApplicationStatus.SUCCESSFUL);
             } else {
-                target.updateStatus("Unsuccessful");
+                target.updateStatus(ApplicationStatus.UNSUCCESSFUL);
             }
 
             applicationRepository.saveApplications();
@@ -268,16 +268,6 @@ public class CompanyRepresentative extends User {
         } else {
             this.isRejected = false;
         }
-    }
-
-    @Override
-    public IMenuHandler createMenuHandler(
-        InternshipService internshipService,
-        ApplicationService applicationService,
-        UserService userService,
-        java.util.Scanner scanner
-    ) {
-        return new CompanyRepMenuHandler(this, internshipService, applicationService, userService, scanner);
     }
 
     @Override

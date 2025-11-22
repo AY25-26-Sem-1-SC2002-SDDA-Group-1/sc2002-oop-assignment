@@ -32,6 +32,9 @@ An Internship Placement System, designed with Object-Oriented Principles
 - **Performance Optimization**: Streamlined algorithms using Java streams for better performance
 - **Code Quality**: Clean compilation without warnings, proper error handling
 - **Code Cleanup**: Removed all unused legacy classes (`ApplicationManager`, `InternshipManager`, `Database`)
+- **Dependency Injection Container**: `ServiceFactory` provides centralized dependency management
+- **Interface Segregation**: Split application services into `IStudentApplicationService` and `IStaffApplicationService`
+- **Single Responsibility Principle**: Large methods broken down into focused, testable components
 
 ## Recent Enhancements (v2.0.0)
 
@@ -77,9 +80,15 @@ An Internship Placement System, designed with Object-Oriented Principles
 - `CsvInternshipRepository`: Implementation of IInternshipRepository
 - `IApplicationRepository`: Interface for application data access
 - `CsvApplicationRepository`: Implementation of IApplicationRepository
-- `UserService`: Business logic for user operations
-- `InternshipService`: Business logic for internship operations
-- `ApplicationService`: Business logic for application operations
+- `IUserService`: Interface for user business logic
+- `UserService`: Implementation of IUserService for user operations
+- `IInternshipService`: Interface for internship business logic
+- `InternshipService`: Implementation of IInternshipService for internship operations
+- `IApplicationService`: Base interface for application business logic
+- `IStudentApplicationService`: Segregated interface for student-specific application operations
+- `IStaffApplicationService`: Segregated interface for staff-specific application operations
+- `ApplicationService`: Implements both IStudentApplicationService and IStaffApplicationService
+- `ServiceFactory`: Dependency injection container for managing service and repository instances
 - `IMenuHandler`: Interface for menu handling
 - `StudentMenuHandler`: Handles student UI menus
 - `CompanyRepMenuHandler`: Handles company representative UI menus
@@ -87,7 +96,7 @@ An Internship Placement System, designed with Object-Oriented Principles
 - `InternshipPlacementSystem`: Main CLI application with dependency injection
 - `UIHelper`: Centralized UI formatting utilities
 - `FilterSettings`: Manages persistent filter preferences including GPA
-- `Statistics`: Provides comprehensive statistics for users
+- `Statistics`: Provides comprehensive statistics for users with SRP-compliant methods
 
 ### Data Storage
 

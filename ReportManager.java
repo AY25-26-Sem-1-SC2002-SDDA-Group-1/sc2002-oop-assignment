@@ -120,24 +120,28 @@ public class ReportManager {
                 for (Application app : applicationRepository.getAllApplications()) {
                     if (app.getOpportunity().getOpportunityID().equals(opp.getOpportunityID())) {
                         totalApps++;
-                        switch (app.getStatus()) {
-                            case "Pending":
+                        switch (app.getStatusEnum()) {
+                            case PENDING:
                                 pendingApps++;
                                 break;
-                            case "Successful":
+                            case SUCCESSFUL:
                                 successfulApps++;
                                 break;
-                            case "Confirmed":
+                            case CONFIRMED:
                                 confirmedApps++;
                                 break;
-                            case "Unsuccessful":
+                            case UNSUCCESSFUL:
                                 unsuccessfulApps++;
                                 break;
-                            case "Withdrawn":
+                            case WITHDRAWN:
                                 withdrawnApps++;
                                 break;
-                            case "Withdrawal Requested":
+                            case WITHDRAWAL_REQUESTED:
                                 withdrawalRequestedApps++;
+                                break;
+                            case WITHDRAWAL_REJECTED:
+                                // Withdrawal rejected, status reverted, count as unsuccessful for now
+                                unsuccessfulApps++;
                                 break;
                         }
                     }
@@ -167,21 +171,29 @@ public class ReportManager {
         
         for (Application app : applicationRepository.getAllApplications()) {
             total++;
-            switch (app.getStatus()) {
-                case "Pending":
+            switch (app.getStatusEnum()) {
+                case PENDING:
                     pending++;
                     break;
-                case "Successful":
+                case SUCCESSFUL:
                     successful++;
                     break;
-                case "Unsuccessful":
+                case UNSUCCESSFUL:
                     unsuccessful++;
                     break;
-                case "Confirmed":
+                case CONFIRMED:
                     confirmed++;
                     break;
-                case "Withdrawn":
+                case WITHDRAWN:
                     withdrawn++;
+                    break;
+                case WITHDRAWAL_REQUESTED:
+                    // Count as pending or separate, but for now pending
+                    pending++;
+                    break;
+                case WITHDRAWAL_REJECTED:
+                    // Reverted, count as unsuccessful
+                    unsuccessful++;
                     break;
             }
         }

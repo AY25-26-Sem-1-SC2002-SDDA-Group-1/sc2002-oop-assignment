@@ -70,10 +70,12 @@ public class CsvApplicationRepository implements IApplicationRepository {
                         String appId = parts[0].trim();
                         String studentId = parts[1].trim();
                         String opportunityId = parts[2].trim();
-                        String status = parts[3].trim();
+                        ApplicationStatus status = ApplicationStatus.fromLabel(parts[3].trim());
                         Date appliedDate = dateFormat.parse(parts[4].trim());
                         boolean manuallyWithdrawn = parts.length > 5 ? Boolean.parseBoolean(parts[5].trim()) : false;
-                        String previousStatus = (parts.length > 6 && !parts[6].trim().isEmpty()) ? parts[6].trim() : null;
+                        ApplicationStatus previousStatus = (parts.length > 6 && !parts[6].trim().isEmpty())
+                            ? ApplicationStatus.fromLabel(parts[6].trim())
+                            : null;
 
                         User student = userRepository.getUserById(studentId);
                         InternshipOpportunity internship = internshipRepository.getInternshipById(opportunityId);
@@ -144,7 +146,6 @@ public class CsvApplicationRepository implements IApplicationRepository {
             for (Application app : applications) {
                 // Format date consistently for parsing
                 String formattedDate = app.getAppliedDate().toString();
-                String prevStatus = (app.getPreviousStatus() != null) ? app.getPreviousStatus() : "";
                 writer.write(
                     app.getApplicationID() + "," +
                     app.getApplicant().getUserID() + "," +
@@ -152,7 +153,7 @@ public class CsvApplicationRepository implements IApplicationRepository {
                     app.getStatus() + "," +
                     formattedDate + "," +
                     app.isManuallyWithdrawn() + "," +
-                    prevStatus
+                    (app.getPreviousStatus() != null ? app.getPreviousStatus() : "")
                 );
                 writer.newLine();
             }

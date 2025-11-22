@@ -4,6 +4,12 @@ import java.util.Date;
  * Represents an internship opportunity created by a company representative.
  */
 public class InternshipOpportunity {
+    // Status constants
+    public static final String STATUS_PENDING = "Pending";
+    public static final String STATUS_APPROVED = "Approved";
+    public static final String STATUS_REJECTED = "Rejected";
+    public static final String STATUS_FILLED = "Filled";
+
     private final String opportunityID;
     private String title;
     private String description;
@@ -41,7 +47,7 @@ public class InternshipOpportunity {
         this.preferredMajor = preferredMajor;
         this.openingDate = openingDate;
         this.closingDate = closingDate;
-        this.status = "Pending";
+        this.status = STATUS_PENDING;
         this.maxSlots = maxSlots;
         this.visibility = false;
         this.minGPA = minGPA;
@@ -56,7 +62,7 @@ public class InternshipOpportunity {
     public boolean isOpen() {
         Date now = new Date();
         return now.after(openingDate) && now.before(closingDate) && 
-                !status.equals("Filled") && status.equals("Approved");
+                !status.equals(STATUS_FILLED) && status.equals(STATUS_APPROVED);
     }
 
     /**
@@ -65,7 +71,7 @@ public class InternshipOpportunity {
      * @return true if visible
      */
     public boolean isVisible() {
-        return visibility && status.equals("Approved");
+        return visibility && status.equals(STATUS_APPROVED);
     }
 
     /**

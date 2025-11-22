@@ -5,7 +5,7 @@ import java.util.List;
  * Service class for managing internship opportunities.
  * Handles creation, approval, rejection, and visibility of internships.
  */
-public class InternshipService {
+public class InternshipService implements IInternshipService {
     private final IInternshipRepository internshipRepository;
     private final IUserRepository userRepository;
 
@@ -23,17 +23,18 @@ public class InternshipService {
     /**
      * Creates a new internship opportunity.
      *
-     * @param userId the user ID of the creator
+     * @param userId the ID of the company representative creating the internship
      * @param title the title
      * @param description the description
      * @param level the level
      * @param preferredMajor the preferred major
      * @param openingDate the opening date
      * @param closingDate the closing date
-     * @param maxSlots the max slots
-     * @param minGPA the min GPA
+     * @param maxSlots the maximum slots
+     * @param minGPA the minimum GPA
      * @return true if created successfully
      */
+    @Override
     public boolean createInternship(String userId, String title, String description, String level, String preferredMajor, Date openingDate, Date closingDate, int maxSlots, double minGPA) {
         User user = userRepository.getUserById(userId);
         if (!user.isCompanyRepresentative()) return false;
@@ -59,6 +60,7 @@ public class InternshipService {
      *
      * @param opportunityId the opportunity ID
      */
+    @Override
     public void approveInternship(String opportunityId) {
         InternshipOpportunity opp = internshipRepository.getInternshipById(opportunityId);
         if (opp != null) {
@@ -73,6 +75,7 @@ public class InternshipService {
      *
      * @param opportunityId the opportunity ID
      */
+    @Override
     public void rejectInternship(String opportunityId) {
         InternshipOpportunity opp = internshipRepository.getInternshipById(opportunityId);
         if (opp != null) {
@@ -86,6 +89,7 @@ public class InternshipService {
      *
      * @param opportunityId the opportunity ID
      */
+    @Override
     public void deleteInternship(String opportunityId) {
         internshipRepository.removeInternship(opportunityId);
     }
@@ -95,6 +99,7 @@ public class InternshipService {
      *
      * @return list of all internships
      */
+    @Override
     public List<InternshipOpportunity> getAllInternships() {
         return internshipRepository.getAllInternships();
     }
@@ -103,8 +108,9 @@ public class InternshipService {
      * Gets an internship by ID.
      *
      * @param id the internship ID
-     * @return the internship or null if not found
+     * @return the internship or null
      */
+    @Override
     public InternshipOpportunity getInternship(String id) {
         return internshipRepository.getInternshipById(id);
     }
@@ -115,6 +121,7 @@ public class InternshipService {
      * @param opportunityId the opportunity ID
      * @param visible true to make visible
      */
+    @Override
     public void toggleVisibility(String opportunityId, boolean visible) {
         InternshipOpportunity opp = internshipRepository.getInternshipById(opportunityId);
         if (opp != null) {
@@ -126,8 +133,9 @@ public class InternshipService {
     /**
      * Gets the internship repository.
      *
-     * @return the internship repository
+     * @return the repository
      */
+    @Override
     public IInternshipRepository getInternshipRepository() {
         return internshipRepository;
     }

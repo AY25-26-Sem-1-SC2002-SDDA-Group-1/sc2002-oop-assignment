@@ -19,6 +19,7 @@ public class Statistics {
     private int totalAcceptances;
     private int totalRejections;
     private final IApplicationRepository applicationRepository;
+    private final IStudentApplicationService applicationService;
     private final IInternshipRepository internshipRepository;
     private final IUserRepository userRepository;
 
@@ -29,7 +30,7 @@ public class Statistics {
      * @param internshipRepository the internship repository
      * @param userRepository the user repository
      */
-    public Statistics(IApplicationRepository applicationRepository,
+    public Statistics(IApplicationRepository applicationRepository, IStudentApplicationService applicationService,
                      IInternshipRepository internshipRepository,
                      IUserRepository userRepository) {
         this.applicationCounts = new HashMap<>();
@@ -40,6 +41,7 @@ public class Statistics {
         this.totalAcceptances = 0;
         this.totalRejections = 0;
         this.applicationRepository = applicationRepository;
+        this.applicationService = applicationService;
         this.internshipRepository = internshipRepository;
         this.userRepository = userRepository;
     }
@@ -93,6 +95,158 @@ public class Statistics {
      * Displays statistics for a company representative.
      *
     /**
+     * Inner class to hold internship statistics.
+     */
+    private static class InternshipStats {
+        int totalInternships;
+        int pendingInternships;
+        int approvedInternships;
+        int rejectedInternships;
+        int filledInternships;
+        int basicInternships, intermediateInternships, advancedInternships;
+        int basicFilled, intermediateFilled, advancedFilled;
+    }
+
+    /**
+     * Inner class to hold application statistics.
+     */
+    private static class ApplicationStats {
+        int totalApplications;
+        int pendingApplications;
+        int totalAccepted;
+        int totalRejected;
+        int confirmedPlacements;
+        int withdrawnApplications;
+    }
+
+    /**
+     * Calculates internship statistics for a company representative.
+     */
+    private InternshipStats calculateInternshipStats(CompanyRepresentative rep) {
+        InternshipStats stats = new InternshipStats();
+        for (InternshipOpportunity opp : internshipRepository.getAllInternships()) {
+            if (opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
+                stats.totalInternships++;
+                String level = opp.getLevel();
+
+                switch (level) {
+                    case "Basic": stats.basicInternships++; break;
+                    case "Intermediate": stats.intermediateInternships++; break;
+                    case "Advanced": stats.advancedInternships++; break;
+                }
+
+                switch (opp.getStatus()) {
+                    case "Pending": stats.pendingInternships++; break;
+                    case "Approved": stats.approvedInternships++; break;
+                    case "Rejected": stats.rejectedInternships++; break;
+                    case "Filled":
+                        stats.filledInternships++;
+                        switch (level) {
+                            case "Basic": stats.basicFilled++; break;
+                            case "Intermediate": stats.intermediateFilled++; break;
+                            case "Advanced": stats.advancedFilled++; break;
+                        }
+                        break;
+                }
+            }
+        }
+        return stats;
+    }
+
+    /**
+     * Calculates application statistics for a company representative's internships.
+     */
+    private ApplicationStats calculateApplicationStats(CompanyRepresentative rep, InternshipStats internshipStats) {
+        ApplicationStats stats = new ApplicationStats();
+        for (InternshipOpportunity opp : internshipRepository.getAllInternships()) {
+            if (opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
+                for (Application app : applicationService.getApplicationRepository().getAllApplications()) {
+                    if (app.getOpportunity().getOpportunityID().equals(opp.getOpportunityID())) {
+                        stats.totalApplications++;
+                        switch (app.getStatusEnum()) {
+                            case CONFIRMED:
+                            case SUCCESSFUL:
+                                stats.totalAccepted++;
+                                if (app.getStatusEnum() == ApplicationStatus.CONFIRMED) {
+                                    stats.confirmedPlacements++;
+                                }
+                                break;
+                            case UNSUCCESSFUL:
+                                stats.totalRejected++;
+                                break;
+                            case WITHDRAWN:
+                                stats.withdrawnApplications++;
+                                stats.totalAccepted++;
+                                break;
+                            case WITHDRAWAL_REQUESTED:
+                                // Pending withdrawal, count as accepted for now
+                                stats.totalAccepted++;
+                                break;
+                            case WITHDRAWAL_REJECTED:
+                                // Rejected, count as rejected
+                                stats.totalRejected++;
+                                break;
+                            case PENDING:
+                                // Pending, not counted in accepted/rejected yet
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+        return stats;
+    }
+
+    /**
+     * Displays internship statistics.
+     */
+    private void displayInternshipStats(InternshipStats stats) {
+        System.out.println("\nInternship Summary:");
+        System.out.println("Total Internships Posted: " + stats.totalInternships);
+        System.out.println("  - Pending: " + stats.pendingInternships);
+        System.out.println("  - Approved: " + stats.approvedInternships);
+        System.out.println("  - Rejected: " + stats.rejectedInternships);
+        System.out.println("  - Filled: " + stats.filledInternships);
+
+        System.out.println("\nInternships by Level:");
+        System.out.println("Basic: " + stats.basicInternships + " posted, " + stats.basicFilled + " filled");
+        System.out.println("Intermediate: " + stats.intermediateInternships + " posted, " + stats.intermediateFilled + " filled");
+        System.out.println("Advanced: " + stats.advancedInternships + " posted, " + stats.advancedFilled + " filled");
+    }
+
+    /**
+     * Displays application statistics and performance metrics.
+     */
+    private void displayApplicationStats(ApplicationStats appStats, InternshipStats internshipStats) {
+        System.out.println("\nApplication Summary:");
+        System.out.println("Total Applications Received: " + appStats.totalApplications);
+        System.out.println("  - Pending: " + appStats.pendingApplications);
+        System.out.println("  - Accepted: " + appStats.totalAccepted);
+        System.out.println("  - Rejected: " + appStats.totalRejected);
+        System.out.println("  - Withdrawn: " + appStats.withdrawnApplications);
+        System.out.println("Confirmed Placements: " + appStats.confirmedPlacements);
+
+        if (appStats.totalApplications > 0) {
+            double acceptanceRate = (double) appStats.totalAccepted / appStats.totalApplications * 100;
+            System.out.println("Acceptance Rate: " + String.format("%.1f%%", acceptanceRate));
+            double withdrawalRate = (double) appStats.withdrawnApplications / appStats.totalApplications * 100;
+            System.out.println("Withdrawal Rate: " + String.format("%.1f%%", withdrawalRate));
+        }
+
+        // Fill rate analysis
+        if (internshipStats.approvedInternships > 0) {
+            double fillRate = (double) internshipStats.filledInternships / internshipStats.approvedInternships * 100;
+            System.out.println("Internship Fill Rate: " + String.format("%.1f%%", fillRate));
+        }
+
+        // Average applications per internship
+        if (internshipStats.totalInternships > 0) {
+            double avgApplications = (double) appStats.totalApplications / internshipStats.totalInternships;
+            System.out.println("Average Applications per Internship: " + String.format("%.1f", avgApplications));
+        }
+    }
+
+    /**
      * Displays comprehensive statistics for a company representative, including internship summary,
      * application breakdown, and performance metrics.
      *
@@ -107,112 +261,11 @@ public class Statistics {
         System.out.println("Position: " + rep.getPosition());
         System.out.println("Account Status: " + (rep.isApproved() ? "Approved" : "Pending"));
 
-        int totalInternships = 0;
-        int pendingInternships = 0;
-        int approvedInternships = 0;
-        int rejectedInternships = 0;
-        int filledInternships = 0;
-        int totalApplications = 0;
-        int pendingApplications = 0;
-        int totalAccepted = 0;
-        int totalRejected = 0;
-        int confirmedPlacements = 0;
-        int withdrawnApplications = 0;
+        InternshipStats internshipStats = calculateInternshipStats(rep);
+        ApplicationStats applicationStats = calculateApplicationStats(rep, internshipStats);
 
-        // Track by level
-        int basicInternships = 0, intermediateInternships = 0, advancedInternships = 0;
-        int basicFilled = 0, intermediateFilled = 0, advancedFilled = 0;
-
-        for (InternshipOpportunity opp : internshipRepository.getAllInternships()) {
-            if (opp.getCreatedBy().getUserID().equals(rep.getUserID())) {
-                totalInternships++;
-                String level = opp.getLevel();
-
-                switch (level) {
-                    case "Basic": basicInternships++; break;
-                    case "Intermediate": intermediateInternships++; break;
-                    case "Advanced": advancedInternships++; break;
-                }
-
-                switch (opp.getStatus()) {
-                    case "Pending": pendingInternships++; break;
-                    case "Approved": approvedInternships++; break;
-                    case "Rejected": rejectedInternships++; break;
-                    case "Filled":
-                        filledInternships++;
-                        switch (level) {
-                            case "Basic": basicFilled++; break;
-                            case "Intermediate": intermediateFilled++; break;
-                            case "Advanced": advancedFilled++; break;
-                        }
-                        break;
-                }
-
-                for (Application app : applicationRepository.getAllApplications()) {
-                    if (app.getOpportunity().getOpportunityID().equals(opp.getOpportunityID())) {
-                        totalApplications++;
-                        switch (app.getStatus()) {
-                            case "Pending":
-                                pendingApplications++;
-                                break;
-                            case "Successful":
-                            case "Confirmed":
-                                totalAccepted++;
-                                if (app.getStatus().equals("Confirmed")) {
-                                    confirmedPlacements++;
-                                }
-                                break;
-                            case "Unsuccessful":
-                                totalRejected++;
-                                break;
-                            case "Withdrawn":
-                                withdrawnApplications++;
-                                totalAccepted++;
-                                break;
-                        }
-                    }
-                }
-            }
-        }
-
-        System.out.println("\nInternship Summary:");
-        System.out.println("Total Internships Posted: " + totalInternships);
-        System.out.println("  - Pending: " + pendingInternships);
-        System.out.println("  - Approved: " + approvedInternships);
-        System.out.println("  - Rejected: " + rejectedInternships);
-        System.out.println("  - Filled: " + filledInternships);
-
-        System.out.println("\nInternships by Level:");
-        System.out.println("Basic: " + basicInternships + " posted, " + basicFilled + " filled");
-        System.out.println("Intermediate: " + intermediateInternships + " posted, " + intermediateFilled + " filled");
-        System.out.println("Advanced: " + advancedInternships + " posted, " + advancedFilled + " filled");
-
-        System.out.println("\nApplication Summary:");
-        System.out.println("Total Applications Received: " + totalApplications);
-        System.out.println("  - Pending: " + pendingApplications);
-        System.out.println("  - Accepted: " + totalAccepted);
-        System.out.println("  - Rejected: " + totalRejected);
-        System.out.println("  - Withdrawn: " + withdrawnApplications);
-        System.out.println("Confirmed Placements: " + confirmedPlacements);
-
-        if (totalApplications > 0) {
-            double acceptanceRate = (double) totalAccepted / totalApplications * 100;
-            System.out.println("Acceptance Rate: " + String.format("%.1f%%", acceptanceRate));
-            double withdrawalRate = (double) withdrawnApplications / totalApplications * 100;
-            System.out.println("Withdrawal Rate: " + String.format("%.1f%%", withdrawalRate));
-        }
-
-        // Fill rate analysis
-        if (approvedInternships > 0) {
-            double fillRate = (double) filledInternships / approvedInternships * 100;
-            System.out.println("Internship Fill Rate: " + String.format("%.1f%%", fillRate));
-        }
-
-        // Average applications per internship
-        if (totalInternships > 0) {
-            double avgApplications = (double) totalApplications / totalInternships;
-            System.out.println("Average Applications per Internship: " + String.format("%.1f", avgApplications));
-        }
+        displayInternshipStats(internshipStats);
+        displayApplicationStats(applicationStats, internshipStats);
     }
 
     /**
@@ -231,7 +284,7 @@ public class Statistics {
         System.out.println("GPA: " + student.getGpa());
 
         List<Application> studentApplications = new ArrayList<>();
-        for (Application app : applicationRepository.getAllApplications()) {
+        for (Application app : applicationService.getApplicationRepository().getAllApplications()) {
             if (app.getApplicant().getUserID().equals(student.getUserID())) {
                 studentApplications.add(app);
             }
@@ -275,7 +328,7 @@ public class Statistics {
         }
 
         // Eligible internships
-        List<InternshipOpportunity> eligibleInternships = student.viewEligibleInternships();
+        List<InternshipOpportunity> eligibleInternships = applicationService.getEligibleInternshipsForStudent(student.getUserID());
         System.out.println("\nEligible Internships: " + eligibleInternships.size());
 
         // Active applications (not withdrawn or unsuccessful)

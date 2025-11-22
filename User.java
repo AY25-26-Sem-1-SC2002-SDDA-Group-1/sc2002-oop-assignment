@@ -157,22 +157,6 @@ public abstract class User {
     }
 
     /**
-     * Creates a menu handler for this user type.
-     *
-     * @param internshipService the internship service
-     * @param applicationService the application service
-     * @param userService the user service
-     * @param scanner the scanner
-     * @return the menu handler
-     */
-    public abstract IMenuHandler createMenuHandler(
-        InternshipService internshipService,
-        ApplicationService applicationService,
-        UserService userService,
-         java.util.Scanner scanner
-    );
-
-    /**
      * Checks if this user is a student.
      *
      * @return true if student

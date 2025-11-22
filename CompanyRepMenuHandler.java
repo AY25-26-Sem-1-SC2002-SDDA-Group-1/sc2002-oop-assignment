@@ -11,9 +11,9 @@ import java.util.Scanner;
  */
 public class CompanyRepMenuHandler implements IMenuHandler {
     private final CompanyRepresentative rep;
-    private final InternshipService internshipService;
-    private final ApplicationService applicationService;
-    private final UserService userService;
+    private final IInternshipService internshipService;
+    private final IApplicationService applicationService;
+    private final IUserService userService;
     private final Scanner scanner;
     private final FilterManager filterManager;
 
@@ -27,8 +27,8 @@ public class CompanyRepMenuHandler implements IMenuHandler {
      * @param userService        the user service
      * @param scanner            the scanner for input
      */
-    public CompanyRepMenuHandler(CompanyRepresentative rep, InternshipService internshipService,
-            ApplicationService applicationService, UserService userService, Scanner scanner) {
+        public CompanyRepMenuHandler(CompanyRepresentative rep, IInternshipService internshipService,
+            IApplicationService applicationService, IUserService userService, Scanner scanner) {
         this.rep = rep;
         this.internshipService = internshipService;
         this.applicationService = applicationService;
@@ -539,10 +539,10 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             for (InternshipOpportunity opp : myInternships) {
                 // Count Confirmed, Successful, and Withdrawal Requested as filled slots
                 long filledSlots = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
-                        .filter(app -> app.getStatus().equals("Confirmed") || app.getStatus().equals("Successful") || app.getStatus().equals("Withdrawal Requested"))
+                        .filter(app -> app.getStatusEnum() == ApplicationStatus.CONFIRMED || app.getStatusEnum() == ApplicationStatus.SUCCESSFUL || app.getStatusEnum() == ApplicationStatus.WITHDRAWAL_REQUESTED)
                         .count();
                 long pendingCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
-                        .filter(app -> app.getStatus().equals("Pending"))
+                        .filter(app -> app.getStatusEnum() == ApplicationStatus.PENDING)
                         .count();
 
                 System.out.println(index + ". [" + opp.getOpportunityID() + "] " + opp.getTitle());
@@ -601,16 +601,16 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             // Get counts - note: Confirmed = accepted by student, Successful = approved but
             // not accepted, Withdrawal Requested = pending withdrawal
             long confirmedCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
-                    .filter(app -> app.getStatus().equals("Confirmed"))
+                    .filter(app -> app.getStatusEnum() == ApplicationStatus.CONFIRMED)
                     .count();
             long successfulCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
-                    .filter(app -> app.getStatus().equals("Successful"))
+                    .filter(app -> app.getStatusEnum() == ApplicationStatus.SUCCESSFUL)
                     .count();
             long withdrawalRequestedCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
-                    .filter(app -> app.getStatus().equals("Withdrawal Requested"))
+                    .filter(app -> app.getStatusEnum() == ApplicationStatus.WITHDRAWAL_REQUESTED)
                     .count();
             long pendingCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
-                    .filter(app -> app.getStatus().equals("Pending"))
+                    .filter(app -> app.getStatusEnum() == ApplicationStatus.PENDING)
                     .count();
 
             // Available slots = max - (confirmed + successful + withdrawal requested)
@@ -626,7 +626,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             // Show pending applications
             List<Application> pendingApps = applicationService.getApplicationsForInternship(opp.getOpportunityID())
                     .stream()
-                    .filter(app -> app.getStatus().equals("Pending"))
+                    .filter(app -> app.getStatusEnum() == ApplicationStatus.PENDING)
                     .toList();
 
             if (!pendingApps.isEmpty()) {
@@ -882,6 +882,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
     private void viewCompanyRepresentativeStatistics() {
         System.out.println("\n=== COMPANY REPRESENTATIVE STATISTICS ===");
         Statistics stats = new Statistics(applicationService.getApplicationRepository(),
+                (IStudentApplicationService) applicationService,
                 internshipService.getInternshipRepository(),
                 userService.getUserRepository());
         stats.displayCompanyRepresentativeStatistics(rep);

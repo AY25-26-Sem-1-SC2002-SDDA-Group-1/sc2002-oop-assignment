@@ -5,13 +5,14 @@ import java.util.Date;
  * Contains details such as application ID, applicant, opportunity, status, and dates.
  */
 public class Application {
+
     private final String applicationID;
     private final Student applicant;
     private final InternshipOpportunity opportunity;
-    private String status;
+    private ApplicationStatus status;
     private final Date appliedDate;
     private boolean manuallyWithdrawn;
-    private String previousStatus; // stores status before a withdrawal request
+    private ApplicationStatus previousStatus; // stores status before a withdrawal request
 
     /**
      * Constructs an Application with the current date as applied date.
@@ -21,7 +22,7 @@ public class Application {
      * @param opportunity the internship opportunity
      * @param status the current status of the application
      */
-    public Application(String applicationID, Student applicant, InternshipOpportunity opportunity, String status) {
+    public Application(String applicationID, Student applicant, InternshipOpportunity opportunity, ApplicationStatus status) {
         this.applicationID = applicationID;
         this.applicant = applicant;
         this.opportunity = opportunity;
@@ -40,7 +41,7 @@ public class Application {
      * @param status the current status of the application
      * @param appliedDate the date the application was submitted
      */
-    public Application(String applicationID, Student applicant, InternshipOpportunity opportunity, String status, Date appliedDate) {
+    public Application(String applicationID, Student applicant, InternshipOpportunity opportunity, ApplicationStatus status, Date appliedDate) {
         this.applicationID = applicationID;
         this.applicant = applicant;
         this.opportunity = opportunity;
@@ -55,19 +56,17 @@ public class Application {
      *
      * @param newStatus the new status to set
      */
-    public void updateStatus(String newStatus) {
-        // Capture previous status when entering withdrawal requested state
-        if ("Withdrawal Requested".equals(newStatus) && !"Withdrawal Requested".equals(this.status)) {
+    public void updateStatus(ApplicationStatus newStatus) {
+        if (newStatus == ApplicationStatus.WITHDRAWAL_REQUESTED && status != ApplicationStatus.WITHDRAWAL_REQUESTED) {
             this.previousStatus = this.status;
         }
-        // If withdrawal rejected, revert to previous (default Successful if missing)
-        if ("Withdrawal Rejected".equals(newStatus)) {
+        if (newStatus == ApplicationStatus.WITHDRAWAL_REJECTED) {
             if (this.previousStatus != null) {
                 this.status = this.previousStatus;
             } else {
-                this.status = "Successful";
+                this.status = ApplicationStatus.SUCCESSFUL;
             }
-            this.manuallyWithdrawn = false; // rejection cancels manual withdrawal intent
+            this.manuallyWithdrawn = false;
             this.previousStatus = null;
             return;
         }
@@ -106,8 +105,17 @@ public class Application {
      *
      * @return the status
      */
-    public String getStatus() {
+    public ApplicationStatus getStatusEnum() {
         return status;
+    }
+
+    /**
+     * Gets the status label for UI/persistence needs.
+     *
+     * @return the status label
+     */
+    public String getStatus() {
+        return status.getLabel();
     }
 
     /**
@@ -142,7 +150,7 @@ public class Application {
      *
      * @return the previous status
      */
-    public String getPreviousStatus() {
+    public ApplicationStatus getPreviousStatusEnum() {
         return previousStatus;
     }
 
@@ -151,7 +159,16 @@ public class Application {
      *
      * @param previousStatus the previous status to set
      */
-    public void setPreviousStatus(String previousStatus) {
+    public void setPreviousStatus(ApplicationStatus previousStatus) {
         this.previousStatus = previousStatus;
+    }
+
+    /**
+     * Gets the previous status label.
+     *
+     * @return previous status label or null
+     */
+    public String getPreviousStatus() {
+        return previousStatus != null ? previousStatus.getLabel() : null;
     }
 }

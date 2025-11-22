@@ -248,12 +248,37 @@ classDiagram
 
     class Statistics {
         -IApplicationRepository applicationRepository
+        -IStudentApplicationService applicationService
         -IInternshipRepository internshipRepository
         -IUserRepository userRepository
-        +Statistics(appRepo: IApplicationRepository, internshipRepo: IInternshipRepository, userRepo: IUserRepository)
+        +Statistics(appRepo: IApplicationRepository, appService: IStudentApplicationService, internshipRepo: IInternshipRepository, userRepo: IUserRepository)
         +displayStudentStatistics(student: Student): void
         +displayCompanyRepresentativeStatistics(rep: CompanyRepresentative): void
-        <<uses repositories instead of Database static methods>>
+        +displaySystemStatistics(): void
+        +calculateInternshipStats(rep: CompanyRepresentative): InternshipStats
+        +calculateApplicationStats(rep: CompanyRepresentative, internshipStats: InternshipStats): ApplicationStats
+        +displayInternshipStats(stats: InternshipStats): void
+        +displayApplicationStats(appStats: ApplicationStats, internshipStats: InternshipStats): void
+        <<SRP-compliant with segregated methods and inner data classes>>
+    }
+
+    class Statistics.InternshipStats {
+        +int totalInternships
+        +int pendingInternships
+        +int approvedInternships
+        +int rejectedInternships
+        +int filledInternships
+        +int basicInternships, intermediateInternships, advancedInternships
+        +int basicFilled, intermediateFilled, advancedFilled
+    }
+
+    class Statistics.ApplicationStats {
+        +int totalApplications
+        +int pendingApplications
+        +int totalAccepted
+        +int totalRejected
+        +int confirmedPlacements
+        +int withdrawnApplications
     }
 
     class IUserRepository {
@@ -377,6 +402,43 @@ classDiagram
          +getApplicationRepository(): IApplicationRepository
      }
 
+    class IStudentApplicationService {
+        <<interface>>
+        +applyForInternship(studentId: String, opportunityId: String): bool
+        +acceptInternship(applicationId: String): void
+        +requestWithdrawal(applicationId: String): void
+        +getAllApplicationsForStudent(studentId: String): List~Application~
+        +getApplicationsForStudent(studentId: String): List~Application~
+        +getApplicationRepository(): IApplicationRepository
+    }
+
+    class IStaffApplicationService {
+        <<interface>>
+        +approveApplication(applicationId: String): void
+        +rejectApplication(applicationId: String): void
+        +approveWithdrawal(applicationId: String): void
+        +getApplicationsForCompanyRep(repId: String): List~Application~
+        +getApplicationsForInternship(opportunityId: String): List~Application~
+        +getAllApplicationsForInternship(opportunityId: String): List~Application~
+    }
+
+    class ServiceFactory {
+        -CsvUserRepository userRepository
+        -CsvInternshipRepository internshipRepository
+        -CsvApplicationRepository applicationRepository
+        -UserService userService
+        -InternshipService internshipService
+        -ApplicationService applicationService
+        +initialize(): void
+        +getUserRepository(): IUserRepository
+        +getInternshipRepository(): IInternshipRepository
+        +getApplicationRepository(): IApplicationRepository
+        +getUserService(): IUserService
+        +getInternshipService(): IInternshipService
+        +getApplicationService(): IApplicationService
+        <<Dependency Injection Container>>
+    }
+
     class IMenuHandler {
         +showMenu(): void
     }
@@ -414,15 +476,9 @@ classDiagram
      class InternshipPlacementSystem {
          -Scanner scanner
          -User currentUser
-         -IUserRepository userRepository
-         -IInternshipRepository internshipRepository
-         -IApplicationRepository applicationRepository
-         -UserService userService
-         -InternshipService internshipService
-         -ApplicationService applicationService
+         -ServiceFactory serviceFactory
          +main(args: String[]): void
          -run(): void
-         -initializeServices(): void
          -showMainMenu(): void
          -showRegistrationMenu(): void
          -login(): void
@@ -430,6 +486,7 @@ classDiagram
          -registerStaff(): void
          -registerCompanyRep(): void
          -showUserMenu(): void
+         -getMenuHandler(): IMenuHandler
      }
 
     User <|-- Student
@@ -441,6 +498,9 @@ classDiagram
      IUserRepository <|.. CsvUserRepository
      IInternshipRepository <|.. CsvInternshipRepository
      IApplicationRepository <|.. CsvApplicationRepository
+
+     IStudentApplicationService <|.. ApplicationService
+     IStaffApplicationService <|.. ApplicationService
 
      IMenuHandler <|.. StudentMenuHandler
      IMenuHandler <|.. CompanyRepMenuHandler
@@ -481,6 +541,14 @@ classDiagram
     CareerStaffMenuHandler ..> InternshipService : uses
     CareerStaffMenuHandler ..> ApplicationService : uses
     CareerStaffMenuHandler ..> UIHelper : uses
+
+    InternshipPlacementSystem ..> ServiceFactory : uses
+    ServiceFactory ..> CsvUserRepository : creates
+    ServiceFactory ..> CsvInternshipRepository : creates
+    ServiceFactory ..> CsvApplicationRepository : creates
+    ServiceFactory ..> UserService : creates
+    ServiceFactory ..> InternshipService : creates
+    ServiceFactory ..> ApplicationService : creates
 
     InternshipPlacementSystem ..> UIHelper : uses
     InternshipPlacementSystem ..> MajorCatalog : uses
