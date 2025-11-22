@@ -12,20 +12,21 @@ An Internship Placement System, designed with Object-Oriented Principles
 - **Reporting**: Generate filtered reports on internship opportunities
 - **Data Persistence**: CSV-based storage for user data and applications (organized in `/data` folder)
 - **Batch Processing**: Space-separated IDs for mass operations (apply, process applications, toggle visibility)
-- **Waitlist System**: Automatic queue management for filled internships with FIFO processing
+- **Waitlist System(Deprecated from earlier commits due to data privacy concerns)**: Automatic queue management for filled internships with FIFO processing
 - **Smart Status Management**: Automatic status updates when slots become available
 - **GPA Filtering**: Minimum GPA requirements for internships with eligibility checking
 - **Statistics Dashboard**: Comprehensive stats for students and company representatives
-- **Automated Testing**: Comprehensive test suite with 13 automated tests covering authentication, data persistence, and business logic
+- **Automated Testing(Deprecated in cleanup stage)**: Comprehensive test suite with 13 automated tests covering authentication, data persistence, and business logic
 
 ## Security & Architecture Improvements
 
 ### Enhanced Security
+
 - **Password Hashing**: All passwords are securely hashed using SHA-256 with salt
 - **Input Validation**: Comprehensive validation for all user inputs (GPA ranges, major lists, email formats)
-- **Data Protection**: No plain text password storage in memory or files
 
 ### Architecture Refinements
+
 - **SOLID Compliance**: Full adherence to SOLID principles with proper dependency injection
 - **Repository Pattern**: Clean data access layer with legacy code completely removed
 - **Performance Optimization**: Streamlined algorithms using Java streams for better performance
@@ -35,6 +36,7 @@ An Internship Placement System, designed with Object-Oriented Principles
 ## Testing
 
 ### Manual Testing Guide
+
 The project includes comprehensive manual testing procedures covering all system functionality:
 
 - **15 Detailed Test Scenarios**: Step-by-step procedures for testing all features
@@ -44,12 +46,14 @@ The project includes comprehensive manual testing procedures covering all system
 - **Workflow Validation**: End-to-end testing of business processes
 
 ### Testing Guide Location
+
 - **Complete Manual Testing Guide**: `docs/TESTING_GUIDE.md`
 - **Step-by-step Instructions**: Detailed procedures with expected outcomes
 - **Test Data Reference**: Sample credentials and data for testing
 - **Troubleshooting**: Common issues and resolution steps
 
 ### Test Coverage
+
 - **User Authentication**: All user types and role-based access
 - **Input Validation**: Registration, internship creation, application processing
 - **Business Logic**: GPA eligibility, internship restrictions, workflow rules

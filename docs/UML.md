@@ -253,7 +253,6 @@ classDiagram
         +Statistics(appRepo: IApplicationRepository, internshipRepo: IInternshipRepository, userRepo: IUserRepository)
         +displayStudentStatistics(student: Student): void
         +displayCompanyRepresentativeStatistics(rep: CompanyRepresentative): void
-        +displaySystemStatistics(): void
         <<uses repositories instead of Database static methods>>
     }
 
