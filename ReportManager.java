@@ -116,7 +116,7 @@ public class ReportManager {
             
             // Show application statistics for this internship
             if (applicationRepository != null) {
-                int totalApps = 0, pendingApps = 0, successfulApps = 0, confirmedApps = 0;
+                int totalApps = 0, pendingApps = 0, successfulApps = 0, confirmedApps = 0, unsuccessfulApps = 0, withdrawnApps = 0, withdrawalRequestedApps = 0;
                 for (Application app : applicationRepository.getAllApplications()) {
                     if (app.getOpportunity().getOpportunityID().equals(opp.getOpportunityID())) {
                         totalApps++;
@@ -130,11 +130,22 @@ public class ReportManager {
                             case "Confirmed":
                                 confirmedApps++;
                                 break;
+                            case "Unsuccessful":
+                                unsuccessfulApps++;
+                                break;
+                            case "Withdrawn":
+                                withdrawnApps++;
+                                break;
+                            case "Withdrawal Requested":
+                                withdrawalRequestedApps++;
+                                break;
                         }
                     }
                 }
                 System.out.println("  Applications: " + totalApps + " (Pending: " + pendingApps + 
-                                 ", Successful: " + successfulApps + ", Confirmed: " + confirmedApps + ")");
+                                 ", Successful: " + successfulApps + ", Confirmed: " + confirmedApps +
+                                 ", Unsuccessful: " + unsuccessfulApps + ", Withdrawn: " + withdrawnApps +
+                                 ", Withdrawal Requested: " + withdrawalRequestedApps + ")");
             }
             System.out.println();
         }

@@ -138,13 +138,14 @@ public class CsvApplicationRepository implements IApplicationRepository {
      */
     @Override
     public void saveApplications() {
-        try (PrintWriter writer = new PrintWriter(new FileWriter("data/applications.csv"))) {
-            writer.println("ApplicationID,StudentID,OpportunityID,Status,AppliedDate,ManuallyWithdrawn,PreviousStatus");
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("data/applications.csv"))) {
+            writer.write("ApplicationID,StudentID,OpportunityID,Status,AppliedDate,ManuallyWithdrawn,PreviousStatus");
+            writer.newLine();
             for (Application app : applications) {
                 // Format date consistently for parsing
                 String formattedDate = app.getAppliedDate().toString();
                 String prevStatus = (app.getPreviousStatus() != null) ? app.getPreviousStatus() : "";
-                writer.println(
+                writer.write(
                     app.getApplicationID() + "," +
                     app.getApplicant().getUserID() + "," +
                     app.getOpportunity().getOpportunityID() + "," +
@@ -153,6 +154,7 @@ public class CsvApplicationRepository implements IApplicationRepository {
                     app.isManuallyWithdrawn() + "," +
                     prevStatus
                 );
+                writer.newLine();
             }
             writer.flush();
         } catch (IOException e) {

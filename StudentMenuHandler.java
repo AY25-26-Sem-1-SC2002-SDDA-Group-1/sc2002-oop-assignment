@@ -130,7 +130,7 @@ public class StudentMenuHandler implements IMenuHandler {
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             for (var internship : internships) {
                 int filledSlots = applicationService.getApplicationsForInternship(internship.getOpportunityID()).stream()
-                    .mapToInt(app -> "Confirmed".equals(app.getStatus()) ? 1 : 0).sum();
+                    .mapToInt(app -> ("Confirmed".equals(app.getStatus()) || "Successful".equals(app.getStatus()) || "Withdrawal Requested".equals(app.getStatus())) ? 1 : 0).sum();
                 System.out.println("ID: " + internship.getOpportunityID());
                 System.out.println("Title: " + internship.getTitle());
                 System.out.println("Company: " + internship.getCreatedBy().getCompanyName());
@@ -164,7 +164,7 @@ public class StudentMenuHandler implements IMenuHandler {
         int index = 1;
         for (InternshipOpportunity internship : internships) {
             int filledSlots = applicationService.getApplicationsForInternship(internship.getOpportunityID()).stream()
-                .mapToInt(app -> "Confirmed".equals(app.getStatus()) ? 1 : 0).sum();
+                .mapToInt(app -> ("Confirmed".equals(app.getStatus()) || "Successful".equals(app.getStatus()) || "Withdrawal Requested".equals(app.getStatus())) ? 1 : 0).sum();
             System.out.println(index + ". ID: " + internship.getOpportunityID() + " - " + internship.getTitle() + " (Filled: " + filledSlots + "/" + internship.getMaxSlots() + ")");
             index++;
         }
@@ -279,10 +279,9 @@ public class StudentMenuHandler implements IMenuHandler {
             System.out.println("-".repeat(50));
         }
 
-        System.out.print("\nEnter Application ID to accept: ");
-        String applicationID = scanner.nextLine();
-        if (applicationID.trim().isEmpty()) {
-            System.out.println("Application ID cannot be empty.");
+        System.out.print("\nEnter Application ID to accept (or 'back' to return): ");
+        String applicationID = scanner.nextLine().trim();
+        if (applicationID.isEmpty() || applicationID.equalsIgnoreCase("back")) {
             return;
         }
         student.acceptInternship(applicationID);
@@ -315,10 +314,9 @@ public class StudentMenuHandler implements IMenuHandler {
             System.out.println("-".repeat(50));
         }
 
-        System.out.print("\nEnter Application ID to withdraw: ");
-        String applicationID = scanner.nextLine();
-        if (applicationID.trim().isEmpty()) {
-            System.out.println("Application ID cannot be empty.");
+        System.out.print("\nEnter Application ID to withdraw (or 'back' to return): ");
+        String applicationID = scanner.nextLine().trim();
+        if (applicationID.isEmpty() || applicationID.equalsIgnoreCase("back")) {
             return;
         }
         student.requestWithdrawal(applicationID);

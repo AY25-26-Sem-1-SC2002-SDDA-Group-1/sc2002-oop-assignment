@@ -25,6 +25,8 @@ public class ApplicationService {
 
     /**
      * Allows a student to apply for an internship opportunity.
+     * Checks if the internship is already full (filled slots >= max slots).
+     * Filled slots include Confirmed, Successful, and Withdrawal Requested applications.
      *
      * @param studentId the ID of the student
      * @param opportunityId the ID of the internship opportunity
@@ -48,10 +50,12 @@ public class ApplicationService {
             .anyMatch(a -> a.getApplicant().getUserID().equals(studentId) && a.getOpportunity().getOpportunityID().equals(opportunityId));
         if (alreadyApplied) return false;
 
-        // All applications are accepted initially
-        long confirmed = applicationRepository.getAllApplications().stream()
-            .filter(a -> a.getOpportunity().getOpportunityID().equals(opportunityId) && "Confirmed".equals(a.getStatus()))
+        // Check if internship is already full
+        long filled = applicationRepository.getAllApplications().stream()
+            .filter(a -> a.getOpportunity().getOpportunityID().equals(opportunityId))
+            .filter(a -> "Confirmed".equals(a.getStatus()) || "Successful".equals(a.getStatus()) || "Withdrawal Requested".equals(a.getStatus()))
             .count();
+        if (filled >= opp.getMaxSlots()) return false;
 
         String initialStatus = "Pending";
 

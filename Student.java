@@ -212,13 +212,7 @@ public class Student extends User {
         }
         
         // Determine if internship is already full
-        int confirmedCount = 0;
-        for (Application app : applicationRepository.getAllApplications()) {
-            if (app.getOpportunity().getOpportunityID().equals(opportunity.getOpportunityID()) &&
-                app.getStatus().equals("Confirmed")) {
-                confirmedCount++;
-            }
-        }
+        // Note: Full check is now in ApplicationService.applyForInternship
 
         String initialStatus = "Pending";
 
@@ -279,6 +273,8 @@ public class Student extends User {
 
     /**
      * Accepts an internship offer.
+     * Checks if the internship is already full (filled slots >= max slots).
+     * Filled slots include Confirmed, Successful, and Withdrawal Requested applications.
      *
      * @param applicationID the application ID
      */
@@ -319,15 +315,15 @@ public class Student extends User {
             }
         }
         
-        // Check if internship is already full - count confirmed slots
-        long confirmedCount = applicationRepository.getAllApplications().stream()
+        // Check if internship is already full - count filled slots
+        long filledCount = applicationRepository.getAllApplications().stream()
             .filter(app -> app.getOpportunity().getOpportunityID().equals(opportunity.getOpportunityID()))
-            .filter(app -> app.getStatus().equals("Confirmed"))
+            .filter(app -> "Confirmed".equals(app.getStatus()) || "Successful".equals(app.getStatus()) || "Withdrawal Requested".equals(app.getStatus()))
             .count();
         
-        if (confirmedCount >= opportunity.getMaxSlots()) {
+        if (filledCount >= opportunity.getMaxSlots()) {
             System.out.println("[BLOCKED] Cannot accept this internship.");
-            System.out.println("Reason: The internship '" + opportunity.getTitle() + "' is already full (" + confirmedCount + "/" + opportunity.getMaxSlots() + " slots filled).");
+            System.out.println("Reason: The internship '" + opportunity.getTitle() + "' is already full (" + filledCount + "/" + opportunity.getMaxSlots() + " slots filled).");
             System.out.println("Your application remains in 'Successful' status.");
             return;
         }
@@ -357,7 +353,10 @@ public class Student extends User {
         }
         
         // Check if internship should be marked as Filled
-        confirmedCount++;
+        long confirmedCount = applicationRepository.getAllApplications().stream()
+            .filter(app -> app.getOpportunity().getOpportunityID().equals(opportunity.getOpportunityID()))
+            .filter(app -> "Confirmed".equals(app.getStatus()))
+            .count();
         if (confirmedCount >= opportunity.getMaxSlots()) {
             opportunity.setStatus("Filled");
         }

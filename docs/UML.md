@@ -4,12 +4,13 @@ This document contains the UML diagrams for the refactored Internship Placement 
 
 ---
 
-## Recent Updates (as of Nov 21, 2025)
+## Recent Updates (as of Nov 22, 2025)
 
-- **CompanyRepMenuHandler**: Now always passes `userType = "companyrep"` to `FilterManager` for correct menu filtering (no company sort option for company reps).
-- **Student Statistics**: `Statistics.displayStudentStatistics()` now shows eligible internships and active application count, with improved eligibility logic.
-- **MajorCatalog**: Centralized major list used for student registration, internship creation, and filtering.
-- **Error Handling**: Consistent try-catch blocks in menu handlers.
+- **Statistics**: Updated student and company representative statistics to include withdrawn applications in acceptance counts, added withdrawal rates, and provided additional insights like GPA and unique companies applied to.
+- **ReportManager**: Updated detailed internship reports to display all application statuses (including withdrawn and withdrawal requested) for comprehensive visibility.
+- **Application Status Handling**: Improved handling of withdrawal requests in statistics, counting them under previous status until approval and including withdrawn applications in success metrics.
+- **Slot Management**: Slots are now considered filled for applications with status "Successful", "Confirmed", or "Withdrawal Requested". Prevents new applications when slots are full. Displays capped at max slots to avoid overfilled indicators.
+- **Application Submission**: Students cannot apply to internships that are at capacity (filled slots >= max slots).
 - **SOLID Principles**: All changes maintain SRP, OCP, LSP, ISP, DIP.
 
 ---

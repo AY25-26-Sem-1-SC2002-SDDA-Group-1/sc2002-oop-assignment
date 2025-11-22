@@ -1,1 +1,6 @@
 ApplicationID,StudentID,OpportunityID,Status,AppliedDate,ManuallyWithdrawn,PreviousStatus
+APP001,U2310005E,INT003,Withdrawn,Sat Nov 22 12:04:27 GMT+08:00 2025,true,Confirmed
+APP002,U2310005E,INT004,Withdrawn,Sat Nov 22 13:02:00 GMT+08:00 2025,true,Successful
+APP003,U2310006E,INT004,Successful,Sat Nov 22 13:03:56 GMT+08:00 2025,false,
+APP004,U2422745G,INT001,Withdrawn,Sat Nov 22 13:11:47 GMT+08:00 2025,true,Confirmed
+APP005,U2422745G,INT004,Successful,Sat Nov 22 13:22:12 GMT+08:00 2025,false,

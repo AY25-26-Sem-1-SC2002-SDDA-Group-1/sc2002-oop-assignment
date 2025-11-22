@@ -1,5 +1,7 @@
 /**
  * Manages filtering and sorting settings for internship listings.
+ * Supports user-type specific menu customization, such as hiding irrelevant
+ * options for company representatives (e.g., no "Company" sort option).
  */
 public class FilterManager {
     private final FilterSettings filterSettings;
@@ -47,6 +49,10 @@ public class FilterManager {
 
     /**
      * Displays the filter management menu and handles user input.
+     * Provides different menu options based on user type:
+     * - Company reps: No "Company" sort option since they only see their own internships
+     * - Other users: Full sort options including "Company"
+     * Handles setting status, level, major filters and sort preferences.
      */
     public void manageFilters() {
         UIHelper.printSectionHeader("MANAGE FILTERS");

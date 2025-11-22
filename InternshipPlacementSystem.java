@@ -195,6 +195,9 @@ public class InternshipPlacementSystem {
         }
     }
 
+    /**
+     * Handles student registration process, using MajorCatalog for consistent major selection.
+     */
     private void registerStudent() {
         try {
             UIHelper.printSectionHeader("STUDENT REGISTRATION");

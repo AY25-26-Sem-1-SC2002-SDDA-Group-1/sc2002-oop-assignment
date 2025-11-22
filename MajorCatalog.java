@@ -3,7 +3,9 @@ import java.util.List;
 
 /**
  * Shared catalog of supported majors for consistent major lists across the system.
- * Ensures all UI flows use the same major options.
+ * Ensures all UI flows use the same major options for student registration,
+ * internship creation, and filtering. This utility class centralizes major
+ * management to maintain data consistency and reduce duplication.
  */
 public final class MajorCatalog {
     private static final List<String> MAJORS = List.of(

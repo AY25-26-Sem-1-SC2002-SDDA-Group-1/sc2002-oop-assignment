@@ -18,7 +18,8 @@ public class CompanyRepMenuHandler implements IMenuHandler {
     private final FilterManager filterManager;
 
     /**
-     * Constructs a CompanyRepMenuHandler.
+     * Constructs a CompanyRepMenuHandler with customized FilterManager for company reps.
+     * Initializes FilterManager with "companyrep" userType to hide irrelevant filter options.
      *
      * @param rep                the company representative
      * @param internshipService  the internship service
@@ -536,9 +537,9 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             System.out.println("\nYour Internships:");
             int index = 1;
             for (InternshipOpportunity opp : myInternships) {
-                // Count both Confirmed and Successful as filled slots
+                // Count Confirmed, Successful, and Withdrawal Requested as filled slots
                 long filledSlots = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
-                        .filter(app -> app.getStatus().equals("Confirmed") || app.getStatus().equals("Successful"))
+                        .filter(app -> app.getStatus().equals("Confirmed") || app.getStatus().equals("Successful") || app.getStatus().equals("Withdrawal Requested"))
                         .count();
                 long pendingCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
                         .filter(app -> app.getStatus().equals("Pending"))
@@ -598,23 +599,27 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             System.out.println("=".repeat(70));
 
             // Get counts - note: Confirmed = accepted by student, Successful = approved but
-            // not accepted
+            // not accepted, Withdrawal Requested = pending withdrawal
             long confirmedCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
                     .filter(app -> app.getStatus().equals("Confirmed"))
                     .count();
             long successfulCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
                     .filter(app -> app.getStatus().equals("Successful"))
                     .count();
+            long withdrawalRequestedCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
+                    .filter(app -> app.getStatus().equals("Withdrawal Requested"))
+                    .count();
             long pendingCount = applicationService.getApplicationsForInternship(opp.getOpportunityID()).stream()
                     .filter(app -> app.getStatus().equals("Pending"))
                     .count();
 
-            // Available slots = max - (confirmed + successful)
-            long filledSlots = confirmedCount + successfulCount;
+            // Available slots = max - (confirmed + successful + withdrawal requested)
+            long filledSlots = confirmedCount + successfulCount + withdrawalRequestedCount;
+            filledSlots = Math.min(filledSlots, opp.getMaxSlots()); // Cap at max slots to prevent display of overfilled
             int availableSlots = (int) (opp.getMaxSlots() - filledSlots);
 
             System.out.println("Slots: " + filledSlots + "/" + opp.getMaxSlots() +
-                    " (" + confirmedCount + " confirmed, " + successfulCount + " awaiting acceptance)" +
+                    " (" + confirmedCount + " confirmed, " + successfulCount + " awaiting acceptance, " + withdrawalRequestedCount + " withdrawal pending)" +
                     (filledSlots >= opp.getMaxSlots() ? " [FULL]" : " [" + availableSlots + " available]"));
             System.out.println("Pending: " + pendingCount);
 
@@ -640,10 +645,9 @@ public class CompanyRepMenuHandler implements IMenuHandler {
             }
 
             // Show available actions
-            System.out.println("0. Back");
-
-            System.out.println("\nActions:");
-            if (pendingCount > 0) {
+            System.out.println("\nAvailable Actions:");
+            System.out.println("0. Back to Main Menu");
+            if (pendingCount > 0 && availableSlots > 0) {
                 System.out.println("1. Accept/Reject Applications");
             }
 
@@ -656,10 +660,12 @@ public class CompanyRepMenuHandler implements IMenuHandler {
 
             switch (choice) {
                 case "1":
-                    if (pendingCount > 0) {
+                    if (pendingCount > 0 && availableSlots > 0) {
                         processApplicationsBatch(opp, pendingApps);
-                    } else {
+                    } else if (pendingCount == 0) {
                         UIHelper.printErrorMessage("No pending applications.");
+                    } else {
+                        UIHelper.printErrorMessage("No available slots for accepting applications.");
                     }
                     break;
                 default:
@@ -676,6 +682,13 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         System.out.println("\nNote: You can accept or reject multiple applications.");
         System.out.println("      Applications will be accepted up to the available slot limit.");
 
+        // Calculate available slots
+        long filledSlots = applicationService.getApplicationRepository().getAllApplications().stream()
+            .filter(a -> a.getOpportunity().getOpportunityID().equals(opp.getOpportunityID()) &&
+                   (a.getStatus().equals("Successful") || a.getStatus().equals("Confirmed")))
+            .count();
+        int availableSlots = (int) (opp.getMaxSlots() - filledSlots);
+
         System.out.print("\nEnter Application IDs or numbers (space-separated, e.g., 1 2 or APP001 APP002): ");
         String input = scanner.nextLine().trim();
 
@@ -688,6 +701,7 @@ public class CompanyRepMenuHandler implements IMenuHandler {
 
         // Validate all IDs exist and are pending
         List<Application> validApps = new ArrayList<>();
+        boolean hasInvalid = false;
         for (String appId : appIds) {
             Application app = null;
             try {
@@ -695,7 +709,8 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                 if (num >= 1 && num <= pendingApps.size()) {
                     app = pendingApps.get(num - 1);
                 } else {
-                    System.out.println("[SKIP] " + appId + ": Invalid number");
+                    System.out.println("[INVALID] " + appId + ": Invalid number");
+                    hasInvalid = true;
                     continue;
                 }
             } catch (NumberFormatException e) {
@@ -705,15 +720,16 @@ public class CompanyRepMenuHandler implements IMenuHandler {
                         .findFirst()
                         .orElse(null);
                 if (app == null) {
-                    System.out.println("[SKIP] " + appId + ": Not found or not pending");
+                    System.out.println("[INVALID] " + appId + ": Not found or not pending");
+                    hasInvalid = true;
                     continue;
                 }
             }
             validApps.add(app);
         }
 
-        if (validApps.isEmpty()) {
-            UIHelper.printErrorMessage("No valid application IDs found.");
+        if (hasInvalid || validApps.isEmpty()) {
+            UIHelper.printErrorMessage("Some application IDs are invalid. Please enter valid IDs.");
             return;
         }
 
@@ -735,6 +751,12 @@ public class CompanyRepMenuHandler implements IMenuHandler {
         }
 
         boolean isAccept = decision.equals("accept") || decision.equals("a");
+
+        // Check slot limit for accept
+        if (isAccept && validApps.size() > availableSlots) {
+            UIHelper.printErrorMessage("You selected " + validApps.size() + " applications to accept, but only " + availableSlots + " slots are available. Please select fewer applications.");
+            return;
+        }
 
         // Applications will be accepted up to the slot limit
 
