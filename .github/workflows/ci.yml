@@ -22,6 +22,12 @@ jobs:
       - name: Compile Java code
         run: javac *.java
 
+      - name: Upload class files
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-classes
+          path: "*.class"
+
       - name: Run application
         run: timeout 10s java InternshipPlacementSystem || echo "Application started successfully"
 
@@ -37,6 +43,11 @@ jobs:
         with:
           java-version: "17"
           distribution: "temurin"
+
+      - name: Download class files
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-classes
 
       - name: Create JAR
         run: jar cfe internship-app.jar InternshipPlacementSystem *.class
